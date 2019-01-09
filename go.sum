@@ -2,6 +2,8 @@ git.apache.org/thrift.git v0.0.0-20180902110319-2566ecd5d999/go.mod h1:fPE2ZNJGy
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/allegro/bigcache v1.1.0 h1:MLuIKTjdxDc+qsG2rhjsYjsHQC5LUGjIWzutg7M+W68=
 github.com/allegro/bigcache v1.1.0/go.mod h1:Cb/ax3seSYIx7SuZdm2G2xzfwmv3TPSk2ucNfQESPXM=
+github.com/aristanetworks/goarista v0.0.0-20190109022107-b3287ee62909 h1:JRpWPE0CdS0IEaPrIeTcOLS0V3Fsf7aE+aLvtRIX7LU=
+github.com/aristanetworks/goarista v0.0.0-20190109022107-b3287ee62909/go.mod h1:D/tb0zPVXnP7fmsLZjtdUhSsumbK/ij54UXjjVgMGxQ=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
@@ -12,6 +14,8 @@ github.com/go-stack/stack v1.8.0 h1:5SgMzNM5HxrEjV0ww2lTmX6E2Izsfxas4+YHWRs3Lsk=
 github.com/go-stack/stack v1.8.0/go.mod h1:v0f6uXyyMGvRgIKkXu+yp6POWl0qKG85gN/melR3HDY=
 github.com/gochain-io/gochain v2.2.20+incompatible h1:FmocQSgmq3W3uNBT9mhSeRngVbClO6dTv29mZ0LqhrE=
 github.com/gochain-io/gochain v2.2.20+incompatible/go.mod h1:Ka3R7w3BBA2ZQnr7PkBTX8ktVW1hidoo8QutcctSANI=
+github.com/gochain-io/gochain v2.2.21+incompatible h1:UOosGqyLmpNOAAQVCF0NVdZkOSvgmpg0/DZucvbAa7Y=
+github.com/gochain-io/gochain v2.2.21+incompatible/go.mod h1:Ka3R7w3BBA2ZQnr7PkBTX8ktVW1hidoo8QutcctSANI=
 github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b/go.mod h1:SBH7ygxi8pfUlaOkMMuAQtPIUF8ecWP5IEl/CR7VP2Q=
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
 github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db h1:woRePGFeVFfLKN/pOkfl+p/TAqKOfFu+7KPlMVpok/w=
