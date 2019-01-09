@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"math/big"
 	"os"
 
+	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli"
 )
 
@@ -16,8 +18,8 @@ func main() {
 	globalFlags := []cli.Flag{
 		cli.StringFlag{
 			Name:        "network",
-			Usage:       "The name of the network (testnet/mainnet)",
-			Value:       "testnet",
+			Usage:       "The name of the network (gochain-testnet/gochain-mainnet/ethereum)",
+			Value:       "gochain-testnet",
 			Destination: &network,
 			Hidden:      false},
 	}
@@ -28,7 +30,7 @@ func main() {
 			Aliases: []string{"bl"},
 			Flags:   globalFlags,
 			Action: func(c *cli.Context) {
-				fmt.Println("block details: ", c.Args().First())
+				GetBlockDetails(network, c.Args().First())
 			},
 		},
 		{
@@ -37,7 +39,7 @@ func main() {
 			Flags:   globalFlags,
 			Usage:   "Show information about the transaction",
 			Action: func(c *cli.Context) {
-				fmt.Println("transaction details: ", c.Args().First())
+				GetTransactionDetails(network, c.Args().First())
 			},
 		},
 		{
@@ -46,7 +48,7 @@ func main() {
 			Flags:   globalFlags,
 			Usage:   "Show information about the address",
 			Action: func(c *cli.Context) {
-				fmt.Println("address details: ", c.Args().First())
+				GetAddressDetails(network, c.Args().First())
 			},
 		},
 		{
@@ -93,4 +95,58 @@ func main() {
 		},
 	}
 	app.Run(os.Args)
+}
+
+func getRPCURL(network string) string {
+
+	switch network {
+	case "gochain-mainnet":
+		return "https://rpc.gochain.io"
+	case "ethereum":
+		return ""
+	default:
+		//gochain-testnet
+		return "https://testnet-rpc.gochain.io"
+	}
+}
+func parseBigInt(value string) (*big.Int, error) {
+	i := big.Int{}
+	_, err := fmt.Sscan(value, &i)
+	return &i, err
+}
+
+func GetBlockDetails(network, blockNumber string) {
+	client := GetClient(getRPCURL(network))
+	blockN, err := parseBigInt(blockNumber)
+	if err != nil {
+		log.Fatal().Err(err).Str("Block number", blockNumber).Msg("Wrong format of the block number, please use number")
+	}
+	block, err := client.GetBlockByNumber(blockN)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Cannot get block details from the network")
+	}
+	log.Info().Interface("Block", block.Header()).Msg("Block details")
+}
+func GetTransactionDetails(network, txhash string) {
+	client := GetClient(getRPCURL(network))
+	tx, isPending, err := client.GetTransactionByHash(txhash)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Cannot get transaction details from the network")
+	}
+	log.Info().Interface("Transaction", tx).Bool("Pending", isPending).Msg("Transaction details")
+}
+func GetAddressDetails(network, addrHash string) {
+	client := GetClient(getRPCURL(network))
+	addr, err := client.GetBalance(addrHash, nil)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Cannot get address balance from the network")
+	}
+	code, err := client.GetCode(addrHash, nil)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Cannot get address code from the network")
+	}
+	log.Info().Int64("Balance", addr.Int64()).Msg("Address details")
+	if len(code) > 0 {
+		log.Info().Str("Code", string(code[:])).Msg("Address details")
+	}
 }
