@@ -2,15 +2,18 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"os"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli"
 )
 
 func main() {
-	var network, function, contractAddress string
+	var network, rpcUrl, function, contractAddress string
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 	app := cli.NewApp()
 	app.Name = "web3-cli"
 	app.Version = "0.0.1"
@@ -18,9 +21,16 @@ func main() {
 	globalFlags := []cli.Flag{
 		cli.StringFlag{
 			Name:        "network",
-			Usage:       "The name of the network (gochain-testnet/gochain-mainnet/ethereum)",
+			Usage:       "The name of the network (gochain-testnet/gochain-mainnet/ethereum/localhost)",
 			Value:       "gochain-testnet",
 			Destination: &network,
+			EnvVar:      "NETWORK",
+			Hidden:      false},
+		cli.StringFlag{
+			Name:        "rpc-url",
+			Usage:       "The network RPC URL",
+			Destination: &rpcUrl,
+			EnvVar:      "RPC_URL",
 			Hidden:      false},
 	}
 	app.Commands = []cli.Command{
@@ -30,7 +40,7 @@ func main() {
 			Aliases: []string{"bl"},
 			Flags:   globalFlags,
 			Action: func(c *cli.Context) {
-				GetBlockDetails(network, c.Args().First())
+				GetBlockDetails(network, rpcUrl, c.Args().First())
 			},
 		},
 		{
@@ -39,7 +49,7 @@ func main() {
 			Flags:   globalFlags,
 			Usage:   "Show information about the transaction",
 			Action: func(c *cli.Context) {
-				GetTransactionDetails(network, c.Args().First())
+				GetTransactionDetails(network, rpcUrl, c.Args().First())
 			},
 		},
 		{
@@ -48,7 +58,7 @@ func main() {
 			Flags:   globalFlags,
 			Usage:   "Show information about the address",
 			Action: func(c *cli.Context) {
-				GetAddressDetails(network, c.Args().First())
+				GetAddressDetails(network, rpcUrl, c.Args().First())
 			},
 		},
 		{
@@ -61,7 +71,7 @@ func main() {
 					Name:  "build",
 					Usage: "Build the specified contract",
 					Action: func(c *cli.Context) {
-						fmt.Println("building the contract from the file: ", c.Args().First())
+						BuildSol(c.Args().First())
 					},
 				},
 				{
@@ -97,16 +107,23 @@ func main() {
 	app.Run(os.Args)
 }
 
-func getRPCURL(network string) string {
+func getRPCURL(network, rpcURL string) string {
+
+	if rpcURL != "" {
+		return rpcURL
+	}
 
 	switch network {
 	case "gochain-mainnet":
-		return "https://rpc.gochain.io"
-	case "ethereum":
-		return ""
-	default:
-		//gochain-testnet
 		return "https://testnet-rpc.gochain.io"
+	case "localhost":
+		return "localhost"
+	case "ethereum":
+		return "https://main-rpc.linkpool.io"
+	default:
+		//gochain-mainnet
+		return "https://rpc.gochain.io"
+
 	}
 }
 func parseBigInt(value string) (*big.Int, error) {
@@ -115,8 +132,8 @@ func parseBigInt(value string) (*big.Int, error) {
 	return &i, err
 }
 
-func GetBlockDetails(network, blockNumber string) {
-	client := GetClient(getRPCURL(network))
+func GetBlockDetails(network, rpcURL, blockNumber string) {
+	client := GetClient(getRPCURL(network, rpcURL))
 	blockN, err := parseBigInt(blockNumber)
 	if err != nil {
 		log.Fatal().Err(err).Str("Block number", blockNumber).Msg("Wrong format of the block number, please use number")
@@ -127,16 +144,16 @@ func GetBlockDetails(network, blockNumber string) {
 	}
 	log.Info().Interface("Block", block.Header()).Msg("Block details")
 }
-func GetTransactionDetails(network, txhash string) {
-	client := GetClient(getRPCURL(network))
+func GetTransactionDetails(network, rpcURL, txhash string) {
+	client := GetClient(getRPCURL(network, rpcURL))
 	tx, isPending, err := client.GetTransactionByHash(txhash)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Cannot get transaction details from the network")
 	}
 	log.Info().Interface("Transaction", tx).Bool("Pending", isPending).Msg("Transaction details")
 }
-func GetAddressDetails(network, addrHash string) {
-	client := GetClient(getRPCURL(network))
+func GetAddressDetails(network, rpcURL, addrHash string) {
+	client := GetClient(getRPCURL(network, rpcURL))
 	addr, err := client.GetBalance(addrHash, nil)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Cannot get address balance from the network")
@@ -149,4 +166,16 @@ func GetAddressDetails(network, addrHash string) {
 	if len(code) > 0 {
 		log.Info().Str("Code", string(code[:])).Msg("Address details")
 	}
+}
+
+func BuildSol(filename string) {
+	b, err := ioutil.ReadFile(filename)
+	if err != nil {
+		log.Info().Err(err).Msg("Building Sol")
+	}
+	str := string(b) // convert content to a 'string'
+	log.Info().Str("File", str).Msg("Building Sol")
+	compileData, err := CompileSolidityString(str)
+	log.Info().Err(err).Msg("Building Sol")
+	log.Info().Interface("Compiled", compileData).Msg("Building Sol")
 }
