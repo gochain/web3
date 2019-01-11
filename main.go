@@ -21,7 +21,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:        "network",
-			Usage:       "The name of the network (gochain-testnet/gochain-mainnet/ethereum-mainnet/localhost)",
+			Usage:       "The name of the network (testnet/mainnet/ethereum/ropsten/localhost)",
 			Value:       "gochain-testnet",
 			Destination: &network,
 			EnvVar:      "NETWORK",
@@ -110,14 +110,16 @@ func getRPCURL(network, rpcURL string) string {
 	}
 
 	switch network {
-	case "gochain-testnet":
+	case "testnet":
 		return "https://testnet-rpc.gochain.io"
-	case "gochain-mainnet":
+	case "mainnet":
 		return "https://rpc.gochain.io"
 	case "localhost":
 		return "http://localhost:8545"
-	case "ethereum-mainnet":
+	case "ethereum":
 		return "https://main-rpc.linkpool.io"
+	case "ropsten":
+		return "https://ropsten-rpc.linkpool.io"
 	default:
 		log.Fatal().Str("Network", network).Msg("Cannot recognize the network")
 		return ""
