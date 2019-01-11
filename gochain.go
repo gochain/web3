@@ -2,13 +2,13 @@ package main
 
 import (
 	"context"
+	"log"
 	"math/big"
 
 	"github.com/gochain-io/gochain/consensus/clique"
 	"github.com/gochain-io/gochain/common"
 	"github.com/gochain-io/gochain/core/types"
 	"github.com/gochain-io/gochain/goclient"
-	"github.com/rs/zerolog/log"
 )
 
 type RPCClient struct {
@@ -19,7 +19,7 @@ type RPCClient struct {
 func GetClient(rpcURL string) *RPCClient {
 	client, err := goclient.Dial(rpcURL)
 	if err != nil {
-		log.Fatal().Err(err).Str("URL", rpcURL).Msg("Cannot connect to the network")
+		log.Fatalf("Cannot connect to the network %q: %v", rpcURL, err)
 	}
 	rpc := &RPCClient{
 		url:    rpcURL,

@@ -1,19 +1,21 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/big"
 	"os"
+	"log"
 
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+	"github.com/gochain-io/gochain/core/types"
 	"github.com/urfave/cli"
 )
 
+var verbose bool
+
 func main() {
 	var network, rpcUrl, function, contractAddress string
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 	app := cli.NewApp()
 	app.Name = "web3-cli"
 	app.Version = "0.0.1"
@@ -32,6 +34,11 @@ func main() {
 			Destination: &rpcUrl,
 			EnvVar:      "RPC_URL",
 			Hidden:      false},
+		cli.BoolFlag{
+			Name: "verbose",
+			Usage: "Enable verbose logging",
+			Destination: &verbose,
+			Hidden: false},
 	}
 	app.Commands = []cli.Command{
 		{
@@ -114,26 +121,38 @@ func main() {
 func getRPCURL(network, rpcURL string) string {
 
 	if rpcURL != "" {
-		return rpcURL
+		if network != "" {
+			log.Fatalf("Cannot set both rpcURL %q and network %q", rpcURL, network)
+		}
+	} else {
+		switch network {
+		case "testnet":
+			rpcURL = "https://testnet-rpc.gochain.io"
+		case "mainnet":
+			rpcURL = "https://rpc.gochain.io"
+		case "localhost":
+			rpcURL = "http://localhost:8545"
+		case "ethereum":
+			rpcURL = "https://main-rpc.linkpool.io"
+		case "ropsten":
+			rpcURL = "https://ropsten-rpc.linkpool.io"
+		default:
+			log.Fatal("Unrecognized network:", network)
+			return ""
+		}
+		if verbose {
+			log.Println("Network:", network)
+		}
 	}
-
-	switch network {
-	case "testnet":
-		return "https://testnet-rpc.gochain.io"
-	case "mainnet":
-		return "https://rpc.gochain.io"
-	case "localhost":
-		return "http://localhost:8545"
-	case "ethereum":
-		return "https://main-rpc.linkpool.io"
-	case "ropsten":
-		return "https://ropsten-rpc.linkpool.io"
-	default:
-		log.Fatal().Str("Network", network).Msg("Cannot recognize the network")
-		return ""
+	if verbose {
+		log.Println("RPC URL:", rpcURL)
 	}
+	return rpcURL
 }
 func parseBigInt(value string) (*big.Int, error) {
+	if value == "" {
+		return nil, nil
+	}
 	i := big.Int{}
 	_, err := fmt.Sscan(value, &i)
 	return &i, err
@@ -143,55 +162,92 @@ func GetBlockDetails(network, rpcURL, blockNumber string) {
 	client := GetClient(getRPCURL(network, rpcURL))
 	blockN, err := parseBigInt(blockNumber)
 	if err != nil {
-		log.Fatal().Err(err).Str("Block number", blockNumber).Msg("Wrong format of the block number, please use number")
+		log.Fatalf("block number must be integer %q: %v", blockNumber, err)
 	}
 	block, err := client.GetBlockByNumber(blockN)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Cannot get block details from the network")
+		log.Fatalf("Cannot get block details from the network: %v", err)
 	}
-	log.Info().Interface("Block", block.Header()).Msg("Block details")
+	if verbose {
+		log.Println("Block details:")
+	}
+	marshalJSON(block.Header())
 }
+
 func GetTransactionDetails(network, rpcURL, txhash string) {
 	client := GetClient(getRPCURL(network, rpcURL))
 	tx, isPending, err := client.GetTransactionByHash(txhash)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Cannot get transaction details from the network")
+		log.Fatalf("Cannot get transaction details from the network: %v", err)
 	}
-	log.Info().Interface("Transaction", tx).Bool("Pending", isPending).Msg("Transaction details")
+	if verbose {
+		log.Println("Transaction details:")
+	}
+	type details struct {
+		Transaction *types.Transaction
+		Pending bool
+	}
+	marshalJSON(details{Transaction:tx, Pending: isPending})
 }
+
+type addressDetails struct {
+	Balance *big.Int
+	Code *string
+}
+
 func GetAddressDetails(network, rpcURL, addrHash string) {
 	client := GetClient(getRPCURL(network, rpcURL))
 	addr, err := client.GetBalance(addrHash, nil)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Cannot get address balance from the network")
+		log.Fatalf("Cannot get address balance from the network: %v", err)
 	}
 	code, err := client.GetCode(addrHash, nil)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Cannot get address code from the network")
+		log.Fatalf("Cannot get address code from the network: %v", err)
 	}
-	log.Info().Int64("Balance", addr.Int64()).Msg("Address details")
+	if verbose {
+		log.Println("Address details:")
+	}
+	ad := addressDetails{Balance: addr}
 	if len(code) > 0 {
-		log.Info().Str("Code", string(code[:])).Msg("Address details")
+		sc := string(code)
+		ad.Code = &sc
 	}
+	marshalJSON(&ad)
 }
 
 func GetSnapshot(network, rpcUrl string) {
 	client := GetClient(getRPCURL(network, rpcUrl))
 	s, err := client.GetSnapshot()
 	if err != nil {
-		log.Fatal().Err(err).Msg("Cannot get snapshot from the network")
+		log.Fatalf("Cannot get snapshot from the network: %v", err)
 	}
-	log.Info().Interface("Snapshot", s).Msg("Snapshot details")
+	if verbose {
+		log.Println("Snapshot details:")
+	}
+	marshalJSON(s)
 }
 
 func BuildSol(filename string) {
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
-		log.Info().Err(err).Msg("Building Sol")
+		log.Fatalf("Failed to read file %q: %v", filename, err)
 	}
 	str := string(b) // convert content to a 'string'
-	log.Info().Str("File", str).Msg("Building Sol")
+	if verbose {
+		log.Println("Building Sol:", str)
+	}
 	compileData, err := CompileSolidityString(str)
-	log.Info().Err(err).Msg("Building Sol")
-	log.Info().Interface("Compiled", compileData).Msg("Building Sol")
+	if verbose {
+		log.Println("Compiled Sol Details:")
+	}
+	marshalJSON(compileData)
+}
+
+func marshalJSON(data interface{}) {
+	b, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		log.Fatalf("Cannot marshal json: %v", err)
+	}
+	fmt.Println(string(b))
 }
