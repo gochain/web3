@@ -18,10 +18,10 @@ func main() {
 	app.Name = "web3-cli"
 	app.Version = "0.0.1"
 	app.Usage = "web3 cli tool"
-	globalFlags := []cli.Flag{
+	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:        "network",
-			Usage:       "The name of the network (gochain-testnet/gochain-mainnet/ethereum/localhost)",
+			Usage:       "The name of the network (gochain-testnet/gochain-mainnet/ethereum-mainnet/localhost)",
 			Value:       "gochain-testnet",
 			Destination: &network,
 			EnvVar:      "NETWORK",
@@ -38,7 +38,6 @@ func main() {
 			Name:    "block",
 			Usage:   "Show information about the block",
 			Aliases: []string{"bl"},
-			Flags:   globalFlags,
 			Action: func(c *cli.Context) {
 				GetBlockDetails(network, rpcUrl, c.Args().First())
 			},
@@ -46,7 +45,6 @@ func main() {
 		{
 			Name:    "transaction",
 			Aliases: []string{"tx"},
-			Flags:   globalFlags,
 			Usage:   "Show information about the transaction",
 			Action: func(c *cli.Context) {
 				GetTransactionDetails(network, rpcUrl, c.Args().First())
@@ -55,7 +53,6 @@ func main() {
 		{
 			Name:    "address",
 			Aliases: []string{"addr"},
-			Flags:   globalFlags,
 			Usage:   "Show information about the address",
 			Action: func(c *cli.Context) {
 				GetAddressDetails(network, rpcUrl, c.Args().First())
@@ -64,7 +61,6 @@ func main() {
 		{
 			Name:    "contract",
 			Aliases: []string{"c"},
-			Flags:   globalFlags,
 			Usage:   "actions with contracts",
 			Subcommands: []cli.Command{
 				{
@@ -114,16 +110,17 @@ func getRPCURL(network, rpcURL string) string {
 	}
 
 	switch network {
-	case "gochain-mainnet":
+	case "gochain-testnet":
 		return "https://testnet-rpc.gochain.io"
+	case "gochain-mainnet":
+		return "https://rpc.gochain.io"
 	case "localhost":
-		return "localhost"
-	case "ethereum":
+		return "http://localhost:8545"
+	case "ethereum-mainnet":
 		return "https://main-rpc.linkpool.io"
 	default:
-		//gochain-mainnet
-		return "https://rpc.gochain.io"
-
+		log.Fatal().Str("Network", network).Msg("Cannot recognize the network")
+		return ""
 	}
 }
 func parseBigInt(value string) (*big.Int, error) {
