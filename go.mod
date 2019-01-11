@@ -2,10 +2,11 @@ module github.com/gochain-io/web3-cli
 
 require (
 	github.com/allegro/bigcache v1.1.0 // indirect
+	github.com/aristanetworks/goarista v0.0.0-20190109022107-b3287ee62909 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/edsrzf/mmap-go v1.0.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
-	github.com/gochain-io/gochain v2.2.20+incompatible
+	github.com/gochain-io/gochain v2.2.21+incompatible
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
 	github.com/rs/cors v1.6.0 // indirect

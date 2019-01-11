@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/gochain-io/gochain/consensus/clique"
 	"github.com/gochain-io/gochain/common"
 	"github.com/gochain-io/gochain/core/types"
 	"github.com/gochain-io/gochain/goclient"
@@ -41,4 +42,8 @@ func (rpc *RPCClient) GetBlockByNumber(number *big.Int) (*types.Block, error) {
 
 func (rpc *RPCClient) GetTransactionByHash(hash string) (*types.Transaction, bool, error) {
 	return rpc.client.TransactionByHash(context.Background(), common.HexToHash(hash))
+}
+
+func (rpc *RPCClient) GetSnapshot() (*clique.Snapshot, error) {
+	return rpc.client.SnapshotAt(context.Background(), nil)
 }

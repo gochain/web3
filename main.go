@@ -22,7 +22,7 @@ func main() {
 		cli.StringFlag{
 			Name:        "network",
 			Usage:       "The name of the network (testnet/mainnet/ethereum/ropsten/localhost)",
-			Value:       "gochain-testnet",
+			Value:       "mainnet",
 			Destination: &network,
 			EnvVar:      "NETWORK",
 			Hidden:      false},
@@ -99,6 +99,14 @@ func main() {
 				},
 			},
 		},
+		{
+			Name:    "snapshot",
+			Aliases: []string{"sn"},
+			Usage:   "Show the clique snapshot",
+			Action: func(c *cli.Context) {
+				GetSnapshot(network, rpcUrl)
+			},
+		},
 	}
 	app.Run(os.Args)
 }
@@ -165,6 +173,15 @@ func GetAddressDetails(network, rpcURL, addrHash string) {
 	if len(code) > 0 {
 		log.Info().Str("Code", string(code[:])).Msg("Address details")
 	}
+}
+
+func GetSnapshot(network, rpcUrl string) {
+	client := GetClient(getRPCURL(network, rpcUrl))
+	s, err := client.GetSnapshot()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Cannot get snapshot from the network")
+	}
+	log.Info().Interface("Snapshot", s).Msg("Snapshot details")
 }
 
 func BuildSol(filename string) {
