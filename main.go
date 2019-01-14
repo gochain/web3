@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math/big"
 	"os"
-	"log"
 
 	"github.com/gochain-io/gochain/core/types"
 	"github.com/urfave/cli"
@@ -15,7 +15,7 @@ import (
 var verbose bool
 
 func main() {
-	var network, rpcUrl, function, contractAddress string
+	var network, rpcUrl, function, contractAddress, privateKey string
 	app := cli.NewApp()
 	app.Name = "web3-cli"
 	app.Version = "0.0.1"
@@ -24,7 +24,6 @@ func main() {
 		cli.StringFlag{
 			Name:        "network",
 			Usage:       "The name of the network (testnet/mainnet/ethereum/ropsten/localhost)",
-			Value:       "mainnet",
 			Destination: &network,
 			EnvVar:      "NETWORK",
 			Hidden:      false},
@@ -35,10 +34,10 @@ func main() {
 			EnvVar:      "RPC_URL",
 			Hidden:      false},
 		cli.BoolFlag{
-			Name: "verbose",
-			Usage: "Enable verbose logging",
+			Name:        "verbose",
+			Usage:       "Enable verbose logging",
 			Destination: &verbose,
-			Hidden: false},
+			Hidden:      false},
 	}
 	app.Commands = []cli.Command{
 		{
@@ -81,7 +80,15 @@ func main() {
 					Name:  "deploy",
 					Usage: "Build and deploy the specified contract to the network",
 					Action: func(c *cli.Context) {
-						fmt.Println("deploying the contract from the file: ", c.Args().First())
+						DeploySol(network, rpcUrl, privateKey, c.Args().First())
+					},
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:        "private-key",
+							Usage:       "The private key",
+							EnvVar:      "PRIVATE_KEY",
+							Destination: &privateKey,
+							Hidden:      true},
 					},
 				},
 				{
@@ -171,7 +178,7 @@ func GetBlockDetails(network, rpcURL, blockNumber string) {
 	if verbose {
 		log.Println("Block details:")
 	}
-	marshalJSON(block.Header())
+	fmt.Println(marshalJSON(block.Header()))
 }
 
 func GetTransactionDetails(network, rpcURL, txhash string) {
@@ -185,14 +192,14 @@ func GetTransactionDetails(network, rpcURL, txhash string) {
 	}
 	type details struct {
 		Transaction *types.Transaction
-		Pending bool
+		Pending     bool
 	}
-	marshalJSON(details{Transaction:tx, Pending: isPending})
+	fmt.Println(marshalJSON(details{Transaction: tx, Pending: isPending}))
 }
 
 type addressDetails struct {
 	Balance *big.Int
-	Code *string
+	Code    *string
 }
 
 func GetAddressDetails(network, rpcURL, addrHash string) {
@@ -213,7 +220,7 @@ func GetAddressDetails(network, rpcURL, addrHash string) {
 		sc := string(code)
 		ad.Code = &sc
 	}
-	marshalJSON(&ad)
+	fmt.Println(marshalJSON(&ad))
 }
 
 func GetSnapshot(network, rpcUrl string) {
@@ -225,7 +232,7 @@ func GetSnapshot(network, rpcUrl string) {
 	if verbose {
 		log.Println("Snapshot details:")
 	}
-	marshalJSON(s)
+	fmt.Println(marshalJSON(s))
 }
 
 func BuildSol(filename string) {
@@ -242,15 +249,48 @@ func BuildSol(filename string) {
 		log.Fatalf("Failed to compile %q: %v", filename, err)
 	}
 	if verbose {
-		log.Println("Compiled Sol Details:")
+		log.Println("Compiled Sol Details:", marshalJSON(compileData))
 	}
-	marshalJSON(compileData)
+
+	for contractName, v := range compileData {
+		filename := contractName[8:]
+		err := ioutil.WriteFile(filename+".bin", []byte(v.RuntimeCode), 0600)
+		if err != nil {
+			log.Fatalf("Cannot write the bin file: %v", err)
+		}
+		err = ioutil.WriteFile(filename+".abi", []byte(marshalJSON(v.Info.AbiDefinition)), 0600)
+		if err != nil {
+			log.Fatalf("Cannot write the abi file: %v", err)
+		}
+		fmt.Println("Contract has been successfully compiled and the following files have been written:", filename+".bin,", filename+".abi")
+	}
 }
 
-func marshalJSON(data interface{}) {
+func DeploySol(network, rpcUrl, privateKey, contractName string) {
+	client := GetClient(getRPCURL(network, rpcUrl))
+	if _, err := os.Stat(contractName); os.IsNotExist(err) {
+		log.Fatalf("Cannot find the bin file: %v", err)
+	}
+	dat, err := ioutil.ReadFile(contractName)
+	if err != nil {
+		log.Fatalf("Cannot read the bin file: %v", err)
+	}
+	tx, err := client.DeployContract(privateKey, string(dat))
+	if err != nil {
+		log.Fatalf("Cannot deploy the contract: %v", err)
+	}
+	receipt, err := client.WaitForReceipt(tx)
+	if err != nil {
+		log.Fatalf("Cannot get the receipt: %v", err)
+	}
+	fmt.Println("Contract has been successfully deployed with transaction:", tx.Hash().Hex())
+	fmt.Println("Contract address is:", receipt.ContractAddress.Hex())
+}
+
+func marshalJSON(data interface{}) string {
 	b, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		log.Fatalf("Cannot marshal json: %v", err)
 	}
-	fmt.Println(string(b))
+	return string(b)
 }
