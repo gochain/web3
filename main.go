@@ -238,6 +238,9 @@ func BuildSol(filename string) {
 		log.Println("Building Sol:", str)
 	}
 	compileData, err := CompileSolidityString(str)
+	if err != nil {
+		log.Fatalf("Failed to compile %q: %v", filename, err)
+	}
 	if verbose {
 		log.Println("Compiled Sol Details:")
 	}
