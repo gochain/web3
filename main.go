@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"math/big"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/gochain-io/gochain/core/types"
 	"github.com/urfave/cli"
@@ -15,8 +18,21 @@ import (
 var verbose bool
 
 func main() {
+	// Interrupt cancellation.
+	ctx, cancelFn := context.WithCancel(context.Background())
+	sigCh := make(chan os.Signal, 1)
+	defer close(sigCh)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		for range sigCh {
+			cancelFn()
+		}
+	}()
+
+	// Flags
 	var network, rpcUrl, function, contractAddress, privateKey string
 	var testnet bool
+
 	app := cli.NewApp()
 	app.Name = "web3-cli"
 	app.Version = "0.0.2"
@@ -55,7 +71,7 @@ func main() {
 			Usage:   "Show information about the block",
 			Aliases: []string{"bl"},
 			Action: func(c *cli.Context) {
-				GetBlockDetails(rpcUrl, c.Args().First())
+				GetBlockDetails(ctx, rpcUrl, c.Args().First())
 			},
 		},
 		{
@@ -63,7 +79,7 @@ func main() {
 			Aliases: []string{"tx"},
 			Usage:   "Show information about the transaction",
 			Action: func(c *cli.Context) {
-				GetTransactionDetails(rpcUrl, c.Args().First())
+				GetTransactionDetails(ctx, rpcUrl, c.Args().First())
 			},
 		},
 		{
@@ -71,7 +87,7 @@ func main() {
 			Aliases: []string{"addr"},
 			Usage:   "Show information about the address",
 			Action: func(c *cli.Context) {
-				GetAddressDetails(rpcUrl, c.Args().First())
+				GetAddressDetails(ctx, rpcUrl, c.Args().First())
 			},
 		},
 		{
@@ -83,14 +99,14 @@ func main() {
 					Name:  "build",
 					Usage: "Build the specified contract",
 					Action: func(c *cli.Context) {
-						BuildSol(c.Args().First())
+						BuildSol(ctx, c.Args().First())
 					},
 				},
 				{
 					Name:  "deploy",
 					Usage: "Build and deploy the specified contract to the network",
 					Action: func(c *cli.Context) {
-						DeploySol(rpcUrl, privateKey, c.Args().First())
+						DeploySol(ctx, rpcUrl, privateKey, c.Args().First())
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -128,7 +144,7 @@ func main() {
 			Aliases: []string{"sn"},
 			Usage:   "Show the clique snapshot",
 			Action: func(c *cli.Context) {
-				GetSnapshot(rpcUrl)
+				GetSnapshot(ctx, rpcUrl)
 			},
 		},
 	}
@@ -184,13 +200,13 @@ func parseBigInt(value string) (*big.Int, error) {
 	return &i, err
 }
 
-func GetBlockDetails(rpcURL, blockNumber string) {
+func GetBlockDetails(ctx context.Context, rpcURL, blockNumber string) {
 	client := GetClient(rpcURL)
 	blockN, err := parseBigInt(blockNumber)
 	if err != nil {
 		log.Fatalf("block number must be integer %q: %v", blockNumber, err)
 	}
-	block, err := client.GetBlockByNumber(blockN)
+	block, err := client.GetBlockByNumber(ctx, blockN)
 	if err != nil {
 		log.Fatalf("Cannot get block details from the network: %v", err)
 	}
@@ -200,9 +216,9 @@ func GetBlockDetails(rpcURL, blockNumber string) {
 	fmt.Println(marshalJSON(block.Header()))
 }
 
-func GetTransactionDetails(rpcURL, txhash string) {
+func GetTransactionDetails(ctx context.Context, rpcURL, txhash string) {
 	client := GetClient(rpcURL)
-	tx, isPending, err := client.GetTransactionByHash(txhash)
+	tx, isPending, err := client.GetTransactionByHash(ctx, txhash)
 	if err != nil {
 		log.Fatalf("Cannot get transaction details from the network: %v", err)
 	}
@@ -221,13 +237,13 @@ type addressDetails struct {
 	Code    *string
 }
 
-func GetAddressDetails(rpcURL, addrHash string) {
+func GetAddressDetails(ctx context.Context, rpcURL, addrHash string) {
 	client := GetClient(rpcURL)
-	addr, err := client.GetBalance(addrHash, nil)
+	addr, err := client.GetBalance(ctx, addrHash, nil)
 	if err != nil {
 		log.Fatalf("Cannot get address balance from the network: %v", err)
 	}
-	code, err := client.GetCode(addrHash, nil)
+	code, err := client.GetCode(ctx, addrHash, nil)
 	if err != nil {
 		log.Fatalf("Cannot get address code from the network: %v", err)
 	}
@@ -242,9 +258,9 @@ func GetAddressDetails(rpcURL, addrHash string) {
 	fmt.Println(marshalJSON(&ad))
 }
 
-func GetSnapshot(rpcUrl string) {
+func GetSnapshot(ctx context.Context, rpcUrl string) {
 	client := GetClient(rpcUrl)
-	s, err := client.GetSnapshot()
+	s, err := client.GetSnapshot(ctx)
 	if err != nil {
 		log.Fatalf("Cannot get snapshot from the network: %v", err)
 	}
@@ -254,7 +270,7 @@ func GetSnapshot(rpcUrl string) {
 	fmt.Println(marshalJSON(s))
 }
 
-func BuildSol(filename string) {
+func BuildSol(ctx context.Context, filename string) {
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
 		log.Fatalf("Failed to read file %q: %v", filename, err)
@@ -263,7 +279,7 @@ func BuildSol(filename string) {
 	if verbose {
 		log.Println("Building Sol:", str)
 	}
-	compileData, err := CompileSolidityString(str)
+	compileData, err := CompileSolidityString(ctx, str)
 	if err != nil {
 		log.Fatalf("Failed to compile %q: %v", filename, err)
 	}
@@ -285,7 +301,7 @@ func BuildSol(filename string) {
 	}
 }
 
-func DeploySol(rpcUrl, privateKey, contractName string) {
+func DeploySol(ctx context.Context, rpcUrl, privateKey, contractName string) {
 	client := GetClient(rpcUrl)
 	if _, err := os.Stat(contractName); os.IsNotExist(err) {
 		log.Fatalf("Cannot find the bin file: %v", err)
@@ -294,11 +310,11 @@ func DeploySol(rpcUrl, privateKey, contractName string) {
 	if err != nil {
 		log.Fatalf("Cannot read the bin file: %v", err)
 	}
-	tx, err := client.DeployContract(privateKey, string(dat))
+	tx, err := client.DeployContract(ctx, privateKey, string(dat))
 	if err != nil {
 		log.Fatalf("Cannot deploy the contract: %v", err)
 	}
-	receipt, err := client.WaitForReceipt(tx)
+	receipt, err := client.WaitForReceipt(ctx, tx)
 	if err != nil {
 		log.Fatalf("Cannot get the receipt: %v", err)
 	}
