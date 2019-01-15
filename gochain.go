@@ -56,7 +56,7 @@ func (rpc *RPCClient) GetSnapshot(ctx context.Context) (*clique.Snapshot, error)
 }
 
 func (rpc *RPCClient) DeployContract(ctx context.Context, privateKeyHex string, contractData string) (*types.Transaction, error) {
-	if privateKeyHex[:2] == "0x" {
+	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
 		privateKeyHex = privateKeyHex[2:]
 	}
 	privateKey, err := crypto.HexToECDSA(privateKeyHex)
