@@ -16,16 +16,22 @@ var verbose bool
 
 func main() {
 	var network, rpcUrl, function, contractAddress, privateKey string
+	var testnet bool
 	app := cli.NewApp()
 	app.Name = "web3-cli"
-	app.Version = "0.0.1"
+	app.Version = "0.0.2"
 	app.Usage = "web3 cli tool"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:        "network",
-			Usage:       "The name of the network (testnet/mainnet/ethereum/ropsten/localhost)",
+			Usage:       "The name of the network (mainnet/testnet/ethereum/ropsten/localhost). Default is mainnet.",
 			Destination: &network,
 			EnvVar:      "NETWORK",
+			Hidden:      false},
+		cli.BoolFlag{
+			Name:        "testnet",
+			Usage:       "Shorthand for '-network testnet'.",
+			Destination: &testnet,
 			Hidden:      false},
 		cli.StringFlag{
 			Name:        "rpc-url",
@@ -39,13 +45,17 @@ func main() {
 			Destination: &verbose,
 			Hidden:      false},
 	}
+	app.Before = func(*cli.Context) error {
+		rpcUrl = getRPCURL(network, rpcUrl, testnet)
+		return nil
+	}
 	app.Commands = []cli.Command{
 		{
 			Name:    "block",
 			Usage:   "Show information about the block",
 			Aliases: []string{"bl"},
 			Action: func(c *cli.Context) {
-				GetBlockDetails(network, rpcUrl, c.Args().First())
+				GetBlockDetails(rpcUrl, c.Args().First())
 			},
 		},
 		{
@@ -53,7 +63,7 @@ func main() {
 			Aliases: []string{"tx"},
 			Usage:   "Show information about the transaction",
 			Action: func(c *cli.Context) {
-				GetTransactionDetails(network, rpcUrl, c.Args().First())
+				GetTransactionDetails(rpcUrl, c.Args().First())
 			},
 		},
 		{
@@ -61,7 +71,7 @@ func main() {
 			Aliases: []string{"addr"},
 			Usage:   "Show information about the address",
 			Action: func(c *cli.Context) {
-				GetAddressDetails(network, rpcUrl, c.Args().First())
+				GetAddressDetails(rpcUrl, c.Args().First())
 			},
 		},
 		{
@@ -80,7 +90,7 @@ func main() {
 					Name:  "deploy",
 					Usage: "Build and deploy the specified contract to the network",
 					Action: func(c *cli.Context) {
-						DeploySol(network, rpcUrl, privateKey, c.Args().First())
+						DeploySol(rpcUrl, privateKey, c.Args().First())
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -118,24 +128,33 @@ func main() {
 			Aliases: []string{"sn"},
 			Usage:   "Show the clique snapshot",
 			Action: func(c *cli.Context) {
-				GetSnapshot(network, rpcUrl)
+				GetSnapshot(rpcUrl)
 			},
 		},
 	}
 	app.Run(os.Args)
 }
 
-func getRPCURL(network, rpcURL string) string {
-
+// getRPCURL resolves the rpcUrl from the user specified options, or quits if an illegal combination or value is found.
+func getRPCURL(network, rpcURL string, testnet bool) string {
 	if rpcURL != "" {
 		if network != "" {
 			log.Fatalf("Cannot set both rpcURL %q and network %q", rpcURL, network)
 		}
+		if testnet {
+			log.Fatalf("Cannot set both rpcURL %q and testnet", rpcURL)
+		}
 	} else {
+		if testnet {
+			if network != "" {
+				log.Fatalf("Cannot set both network %q and testnet", network)
+			}
+			network = "testnet"
+		}
 		switch network {
 		case "testnet":
 			rpcURL = "https://testnet-rpc.gochain.io"
-		case "mainnet":
+		case "mainnet","":
 			rpcURL = "https://rpc.gochain.io"
 		case "localhost":
 			rpcURL = "http://localhost:8545"
@@ -165,8 +184,8 @@ func parseBigInt(value string) (*big.Int, error) {
 	return &i, err
 }
 
-func GetBlockDetails(network, rpcURL, blockNumber string) {
-	client := GetClient(getRPCURL(network, rpcURL))
+func GetBlockDetails(rpcURL, blockNumber string) {
+	client := GetClient(rpcURL)
 	blockN, err := parseBigInt(blockNumber)
 	if err != nil {
 		log.Fatalf("block number must be integer %q: %v", blockNumber, err)
@@ -181,8 +200,8 @@ func GetBlockDetails(network, rpcURL, blockNumber string) {
 	fmt.Println(marshalJSON(block.Header()))
 }
 
-func GetTransactionDetails(network, rpcURL, txhash string) {
-	client := GetClient(getRPCURL(network, rpcURL))
+func GetTransactionDetails(rpcURL, txhash string) {
+	client := GetClient(rpcURL)
 	tx, isPending, err := client.GetTransactionByHash(txhash)
 	if err != nil {
 		log.Fatalf("Cannot get transaction details from the network: %v", err)
@@ -202,8 +221,8 @@ type addressDetails struct {
 	Code    *string
 }
 
-func GetAddressDetails(network, rpcURL, addrHash string) {
-	client := GetClient(getRPCURL(network, rpcURL))
+func GetAddressDetails(rpcURL, addrHash string) {
+	client := GetClient(rpcURL)
 	addr, err := client.GetBalance(addrHash, nil)
 	if err != nil {
 		log.Fatalf("Cannot get address balance from the network: %v", err)
@@ -223,8 +242,8 @@ func GetAddressDetails(network, rpcURL, addrHash string) {
 	fmt.Println(marshalJSON(&ad))
 }
 
-func GetSnapshot(network, rpcUrl string) {
-	client := GetClient(getRPCURL(network, rpcUrl))
+func GetSnapshot(rpcUrl string) {
+	client := GetClient(rpcUrl)
 	s, err := client.GetSnapshot()
 	if err != nil {
 		log.Fatalf("Cannot get snapshot from the network: %v", err)
@@ -266,8 +285,8 @@ func BuildSol(filename string) {
 	}
 }
 
-func DeploySol(network, rpcUrl, privateKey, contractName string) {
-	client := GetClient(getRPCURL(network, rpcUrl))
+func DeploySol(rpcUrl, privateKey, contractName string) {
+	client := GetClient(rpcUrl)
 	if _, err := os.Stat(contractName); os.IsNotExist(err) {
 		log.Fatalf("Cannot find the bin file: %v", err)
 	}
