@@ -26,3 +26,10 @@ vendor/
 Thumbs.db
 
 web3-cli
+/web3
+
+bin/
+*.bin
+*.abi
+/web3_*
+/*.sol

@@ -1,29 +1,33 @@
-# GoChain cli tool
+# Web3 CLI Tool
 
-Simple command line tool for interacting with web3 enabled blockchains - GoChain/Ethereum etc.
+Simple command line tool for interacting with web3 enabled blockchains - GoChain, Ethereum, etc.
 
 ## Local installation
 
-Clone the repo
+Clone the repo:
 
-`git clone https://github.com/gochain-io/web3-cli`
+```sh
+git clone https://github.com/gochain-io/web3
+```
 
-
-you also should have Docker installed [Docker] (https://docs.docker.com/install/linux/docker-ce/ubuntu/)
-
+You also should have Docker installed [Docker](https://docs.docker.com/install/linux/docker-ce/ubuntu/)
 
 Build:
 
-`go build`
+```sh
+make build
+```
 
 Run:
 
- `./web3-cli help`
-
+ ```sh
+ ./web3 help
+ ```
 
 ## List of available commands
 
 ### Global parameters
+
 `$NETWORK as env variable or -network as command parameter` - the name of the network (testnet/mainnet/ethereum/ropsten/localhost)
 
 `$RPC_URL as env variable or -rpc-url as command parameter` - The network RPC URL (ie http://localhost:8545)
@@ -31,27 +35,28 @@ Run:
 `-verbose as command parameter` - Verbose logging
 
 ### Show the clique snapshot
-```
-./web3-cli snapshot
+
+```sh
+./web3 snapshot
 ```
 
 **Parameters:**
 none
 
-
 ### Show information about the block
-```
-./web3-cli block BLOCK_ID
+
+```sh
+./web3 block BLOCK_ID
 ```
 
 **Parameters:**
 
 - BLOCK_ID - id of the block
 
-
 ### Show information about the transaction
-```
-./web3-cli transaction TX_HASH
+
+```sh
+./web3 transaction TX_HASH
 ```
 
 **Parameters:**
@@ -60,8 +65,9 @@ none
 
 
 ### Show information about the address
-```
-./web3-cli transaction ADDRESS_HASH
+
+```sj
+./web3 transaction ADDRESS_HASH
 ```
 
 **Parameters:**
@@ -69,8 +75,9 @@ none
 - ADDRESS_HASH - hash of the address
 
 ### Build a smart contract
-```
-./web3-cli contract build FILENAME
+
+```sh
+./web3 contract build FILENAME
 ```
 
 **Parameters:**
@@ -78,12 +85,12 @@ none
 - FILENAME - the name of the .sol file
 
 ### Deploy a smart contract to a network
-```
-./web3-cli contract deploy FILENAME
+
+```sh
+./web3 contract deploy FILENAME
 ```
 
 **Parameters:**
 
 - FILENAME - the name of the .bin file
 - $PRIVATE_KEY as env variable or -private-key as command parameter - the private key of the wallet
-
