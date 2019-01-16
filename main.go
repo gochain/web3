@@ -167,20 +167,9 @@ func getRPCURL(network, rpcURL string, testnet bool) string {
 			}
 			network = "testnet"
 		}
-		switch network {
-		case "testnet":
-			rpcURL = "https://testnet-rpc.gochain.io"
-		case "mainnet", "":
-			rpcURL = "https://rpc.gochain.io"
-		case "localhost":
-			rpcURL = "http://localhost:8545"
-		case "ethereum":
-			rpcURL = "https://main-rpc.linkpool.io"
-		case "ropsten":
-			rpcURL = "https://ropsten-rpc.linkpool.io"
-		default:
+		rpcURL = networkURL(network)
+		if rpcURL == "" {
 			log.Fatal("Unrecognized network:", network)
-			return ""
 		}
 		if verbose {
 			log.Println("Network:", network)
@@ -191,6 +180,24 @@ func getRPCURL(network, rpcURL string, testnet bool) string {
 	}
 	return rpcURL
 }
+
+func networkURL(network string) string {
+	switch network {
+	case "testnet":
+		return "https://testnet-rpc.gochain.io"
+	case "mainnet", "":
+		return "https://rpc.gochain.io"
+	case "localhost":
+		return "http://localhost:8545"
+	case "ethereum":
+		return "https://main-rpc.linkpool.io"
+	case "ropsten":
+		return "https://ropsten-rpc.linkpool.io"
+	default:
+		return ""
+	}
+}
+
 func parseBigInt(value string) (*big.Int, error) {
 	if value == "" {
 		return nil, nil
