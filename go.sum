@@ -34,6 +34,8 @@ github.com/gochain-io/gochain v2.2.20+incompatible h1:FmocQSgmq3W3uNBT9mhSeRngVb
 github.com/gochain-io/gochain v2.2.20+incompatible/go.mod h1:Ka3R7w3BBA2ZQnr7PkBTX8ktVW1hidoo8QutcctSANI=
 github.com/gochain-io/gochain v2.2.21+incompatible h1:UOosGqyLmpNOAAQVCF0NVdZkOSvgmpg0/DZucvbAa7Y=
 github.com/gochain-io/gochain v2.2.21+incompatible/go.mod h1:Ka3R7w3BBA2ZQnr7PkBTX8ktVW1hidoo8QutcctSANI=
+github.com/gochain-io/gochain v2.2.24+incompatible h1:ylJ86T+Q1epUV56oc5zEjkMetjYM3C0PycUjryLlEyM=
+github.com/gochain-io/gochain v2.2.24+incompatible/go.mod h1:Ka3R7w3BBA2ZQnr7PkBTX8ktVW1hidoo8QutcctSANI=
 github.com/gogo/protobuf v1.1.1/go.mod h1:r8qH/GZQm5c6nD/R0oafs1akxWv10x8SbQlK7atdtwQ=
 github.com/gogo/protobuf v1.2.0/go.mod h1:r8qH/GZQm5c6nD/R0oafs1akxWv10x8SbQlK7atdtwQ=
 github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b/go.mod h1:SBH7ygxi8pfUlaOkMMuAQtPIUF8ecWP5IEl/CR7VP2Q=

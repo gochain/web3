@@ -9,13 +9,20 @@ import (
 	"math/big"
 	"os"
 	"os/signal"
+	"sort"
 	"syscall"
+	"time"
 
-	"github.com/gochain-io/gochain/core/types"
+	"github.com/gochain-io/gochain/common"
+
 	"github.com/urfave/cli"
 )
 
-var verbose bool
+// Flags
+var (
+	verbose bool
+	format  string
+)
 
 func main() {
 	// Interrupt cancellation.
@@ -59,6 +66,11 @@ func main() {
 			Name:        "verbose",
 			Usage:       "Enable verbose logging",
 			Destination: &verbose,
+			Hidden:      false},
+		cli.StringFlag{
+			Name:        "format",
+			Usage:       "Output format",
+			Destination: &format,
 			Hidden:      false},
 	}
 	app.Before = func(*cli.Context) error {
@@ -220,8 +232,51 @@ func GetBlockDetails(ctx context.Context, rpcURL, blockNumber string) {
 	if verbose {
 		log.Println("Block details:")
 	}
-	fmt.Println(marshalJSON(block.Header()))
+	header := block.Header()
+	switch format {
+	case "json":
+		fmt.Println(marshalJSON(header))
+		return
+	}
+
+	fmt.Println("Number:", header.Number)
+	fmt.Println("Time:", time.Unix(header.Time.Int64(), 0).In(time.UTC).Format(time.RFC3339))
+	fmt.Println("Transactions:", len(block.Transactions()))
+	gasPct := big.NewRat(int64(header.GasUsed), int64(header.GasLimit))
+	gasPct = gasPct.Mul(gasPct, big.NewRat(100, 1))
+	fmt.Printf("Gas Used: %d/%d (%s%%)\n", header.GasUsed, header.GasLimit, gasPct.FloatString(2))
+	fmt.Println("Difficulty:", header.Difficulty)
+	l := len(header.Extra)
+	if l > 32 {
+		l = 32
+	}
+	extraStr := string(header.Extra[:l])
+	fmt.Println("Hash:", header.Hash().String())
+	fmt.Println("Vanity:", extraStr)
+	fmt.Println("Coinbase:", header.Coinbase.String())
+	fmt.Println("ParentHash:", header.ParentHash.String())
+	fmt.Println("UncleHash:", header.UncleHash.String())
+	fmt.Println("Nonce:", header.Nonce.Uint64())
+	fmt.Println("Root:", header.Root.String())
+	fmt.Println("TxHash:", header.TxHash.String())
+	fmt.Println("ReceiptHash:", header.ReceiptHash.String())
+	fmt.Println("Bloom:", "0x"+common.Bytes2Hex(header.Bloom.Bytes()))
+	fmt.Println("MixDigest:", header.MixDigest.String())
+	if len(header.Signers) > 0 {
+		fmt.Println("Signers:", header.Signers)
+	}
+	if len(header.Voters) > 0 {
+		fmt.Println("Voters:", header.Voters)
+	}
+	if len(header.Signer) > 0 {
+		fmt.Println("Signer:", "0x"+common.Bytes2Hex(header.Signer))
+	}
 }
+
+var (
+	weiPerGO   = big.NewInt(1000000000000000000)
+	weiPerGwei = big.NewInt(1000000000)
+)
 
 func GetTransactionDetails(ctx context.Context, rpcURL, txhash string) {
 	client := GetClient(rpcURL)
@@ -230,23 +285,36 @@ func GetTransactionDetails(ctx context.Context, rpcURL, txhash string) {
 		log.Fatalf("Cannot get transaction details from the network: %v", err)
 	}
 	if verbose {
-		log.Println("Transaction details:")
+		fmt.Println("Transaction details:")
 	}
-	type details struct {
-		Transaction *types.Transaction
-		Pending     bool
-	}
-	fmt.Println(marshalJSON(details{Transaction: tx, Pending: isPending}))
-}
 
-type addressDetails struct {
-	Balance *big.Int
-	Code    *string
+	switch format {
+	case "json":
+		data := struct {
+			Transaction interface{} `json:"transaction"`
+			Pending     bool        `json:"pending"`
+		}{Transaction: tx, Pending: isPending}
+		fmt.Println(marshalJSON(data))
+		return
+	}
+
+	fmt.Println("Hash:", tx.Hash())
+	// TODO From: enhance upstream client to return sender
+	fmt.Println("To:", tx.To())
+	if isPending {
+		fmt.Println("Pending: true")
+	}
+	fmt.Println("Nonce:", tx.Nonce())
+	fmt.Println("Gas Limit:", tx.Gas())
+	gp := new(big.Rat).SetFrac(tx.GasPrice(), weiPerGwei)
+	fmt.Println("Gas Price:", gp.FloatString(18), "gwei")
+	amt := new(big.Rat).SetFrac(tx.Value(), weiPerGO)
+	fmt.Println("Amount:", amt.FloatString(18), "GO")
 }
 
 func GetAddressDetails(ctx context.Context, rpcURL, addrHash string) {
 	client := GetClient(rpcURL)
-	addr, err := client.GetBalance(ctx, addrHash, nil)
+	bal, err := client.GetBalance(ctx, addrHash, nil)
 	if err != nil {
 		log.Fatalf("Cannot get address balance from the network: %v", err)
 	}
@@ -257,12 +325,23 @@ func GetAddressDetails(ctx context.Context, rpcURL, addrHash string) {
 	if verbose {
 		log.Println("Address details:")
 	}
-	ad := addressDetails{Balance: addr}
-	if len(code) > 0 {
-		sc := string(code)
-		ad.Code = &sc
+
+	switch format {
+	case "json":
+		data := struct {
+			Balance *big.Int `json:"balance"`
+			Code    *string  `json:"code"`
+		}{Balance: bal}
+		if len(code) > 0 {
+			sc := string(code)
+			data.Code = &sc
+		}
+		fmt.Println(marshalJSON(&data))
+		return
 	}
-	fmt.Println(marshalJSON(&ad))
+
+	fmt.Println("Balance:", bal)
+	fmt.Println("Code:", string(code))
 }
 
 func GetSnapshot(ctx context.Context, rpcUrl string) {
@@ -274,7 +353,55 @@ func GetSnapshot(ctx context.Context, rpcUrl string) {
 	if verbose {
 		log.Println("Snapshot details:")
 	}
-	fmt.Println(marshalJSON(s))
+
+	switch format {
+	case "json":
+		fmt.Println(marshalJSON(s))
+		return
+	}
+
+	fmt.Println("Latest Number:", s.Number)
+	fmt.Println("Latest Hash:", s.Hash.String())
+	fmt.Println("Signers:")
+	type signer struct {
+		addr common.Address
+		num  uint64
+	}
+	signers := make([]signer, 0, len(s.Signers))
+	for addr, num := range s.Signers {
+		signers = append(signers, signer{addr, num})
+	}
+	sort.Slice(signers, func(i, j int) bool {
+		return signers[j].num < signers[i].num
+	})
+	for _, si := range signers {
+		//TODO mark signers which have fallen behind
+		fmt.Println("", si.addr.String(), "signed block", si.num, "-", s.Number-si.num, "blocks ago")
+	}
+
+	fmt.Println("Voters:")
+	for addr := range s.Voters {
+		fmt.Println("", addr.String())
+	}
+
+	if len(s.Votes) > 0 {
+		fmt.Println("Votes:")
+		for _, vote := range s.Votes {
+			pre := "un"
+			if vote.Authorize {
+				pre = ""
+			}
+			fmt.Printf("\t%d: signer %s voted to %sauthorize %s", vote.Block, vote.Signer, pre, vote.Address)
+		}
+		fmt.Println("Tally:", s.Tally)
+		for addr, tally := range s.Tally {
+			str := "unauthorize"
+			if tally.Authorize {
+				str = str[2:]
+			}
+			fmt.Println("", addr.String(), str, tally.Votes)
+		}
+	}
 }
 
 func BuildSol(ctx context.Context, filename string) {
@@ -294,6 +421,7 @@ func BuildSol(ctx context.Context, filename string) {
 		log.Println("Compiled Sol Details:", marshalJSON(compileData))
 	}
 
+	var filenames []string
 	for contractName, v := range compileData {
 		filename := contractName[8:]
 		err := ioutil.WriteFile(filename+".bin", []byte(v.RuntimeCode), 0600)
@@ -304,7 +432,26 @@ func BuildSol(ctx context.Context, filename string) {
 		if err != nil {
 			log.Fatalf("Cannot write the abi file: %v", err)
 		}
-		fmt.Println("Contract has been successfully compiled and the following files have been written:", filename+".bin,", filename+".abi")
+		filenames = append(filenames, filename)
+	}
+
+	switch format {
+	case "json":
+		data := struct {
+			Bin []string `json:"bin"`
+			ABI []string `json:"abi"`
+		}{}
+		for _, f := range filenames {
+			data.Bin = append(data.Bin, f+".bin")
+			data.ABI = append(data.ABI, f+".abi")
+		}
+		fmt.Println(marshalJSON(data))
+		return
+	}
+
+	fmt.Println("Successfully compiled contracts and wrote the following files:")
+	for _, filename := range filenames {
+		fmt.Println("", filename+".bin,", filename+".abi")
 	}
 }
 
@@ -325,6 +472,13 @@ func DeploySol(ctx context.Context, rpcUrl, privateKey, contractName string) {
 	if err != nil {
 		log.Fatalf("Cannot get the receipt: %v", err)
 	}
+
+	switch format {
+	case "json":
+		fmt.Println(marshalJSON(receipt))
+		return
+	}
+
 	fmt.Println("Contract has been successfully deployed with transaction:", tx.Hash().Hex())
 	fmt.Println("Contract address is:", receipt.ContractAddress.Hex())
 }
