@@ -51,7 +51,7 @@ none
 
 **Parameters:**
 
-- BLOCK_ID - id of the block
+- BLOCK_ID - id of the block (omit for `latest`)
 
 ### Show information about the transaction
 
