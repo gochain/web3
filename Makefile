@@ -7,6 +7,10 @@ install:
 docker: 
 	docker build -t gochain/web3:latest .
 
+push: docker
+	# todo: version these, or auto push this using CI
+	docker push gochain/web3:latest
+
 test: build
 	./test.sh
 

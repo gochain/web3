@@ -34,7 +34,7 @@ func main() {
 	var testnet bool
 
 	app := cli.NewApp()
-	app.Name = "web3-cli"
+	app.Name = "web3"
 	app.Version = "0.0.2"
 	app.Usage = "web3 cli tool"
 	app.Flags = []cli.Flag{
@@ -170,7 +170,7 @@ func getRPCURL(network, rpcURL string, testnet bool) string {
 		switch network {
 		case "testnet":
 			rpcURL = "https://testnet-rpc.gochain.io"
-		case "mainnet","":
+		case "mainnet", "":
 			rpcURL = "https://rpc.gochain.io"
 		case "localhost":
 			rpcURL = "http://localhost:8545"
