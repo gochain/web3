@@ -55,6 +55,41 @@ func (rpc *RPCClient) GetSnapshot(ctx context.Context) (*clique.Snapshot, error)
 	return rpc.client.SnapshotAt(ctx, nil)
 }
 
+type ID struct {
+	NetworkID   *big.Int    `json:"network_id"`
+	ChainID     *big.Int    `json:"chain_id"`
+	GenesisHash common.Hash `json:"genesis_hash"`
+}
+
+func (rpc *RPCClient) GetID(ctx context.Context) (*ID, error) {
+	var id ID
+	netID, err := rpc.client.NetworkID(ctx)
+	if err != nil {
+		log.Println("Failed to get network ID:", err)
+		netID = nil
+	}
+	if netID != nil {
+		id.NetworkID = netID
+	}
+	chainID, err := rpc.client.ChainID(ctx)
+	if err != nil {
+		log.Println("Failed to get chain ID:", err)
+		chainID = nil
+	}
+	if chainID != nil {
+		id.ChainID = chainID
+	}
+	gen, err := rpc.client.BlockByNumber(ctx, big.NewInt(0))
+	if err != nil {
+		log.Printf("failed to get genesis block: %v", err)
+		gen = nil
+	}
+	if gen != nil {
+		id.GenesisHash = gen.Hash()
+	}
+	return &id, nil
+}
+
 func (rpc *RPCClient) DeployContract(ctx context.Context, privateKeyHex string, contractData string) (*types.Transaction, error) {
 	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
 		privateKeyHex = privateKeyHex[2:]

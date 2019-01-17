@@ -159,6 +159,14 @@ func main() {
 				GetSnapshot(ctx, rpcUrl)
 			},
 		},
+		{
+			Name:    "id",
+			Aliases: []string{"id"},
+			Usage:   "Show chain id information",
+			Action: func(c *cli.Context) {
+				GetID(ctx, rpcUrl)
+			},
+		},
 	}
 	app.Run(os.Args)
 }
@@ -402,6 +410,25 @@ func GetSnapshot(ctx context.Context, rpcUrl string) {
 			fmt.Println("", addr.String(), str, tally.Votes)
 		}
 	}
+}
+
+func GetID(ctx context.Context, rpcUrl string) {
+	client := GetClient(rpcUrl)
+	id, err := client.GetID(ctx)
+	if err != nil {
+		log.Fatalf("Cannot get id info from the network: %v", err)
+	}
+	if verbose {
+		log.Println("Snapshot details:")
+	}
+	switch format {
+	case "json":
+		fmt.Println(marshalJSON(id))
+		return
+	}
+	fmt.Println("Network ID:", id.NetworkID)
+	fmt.Println("Chain ID:", id.ChainID)
+	fmt.Println("Genesis Hash:", id.GenesisHash.String())
 }
 
 func BuildSol(ctx context.Context, filename string) {
