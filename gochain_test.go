@@ -1,4 +1,4 @@
-package main
+package web3
 
 import (
 	"context"
@@ -8,8 +8,8 @@ import (
 
 func ExampleRPCClient_GetBlockByNumber() {
 	ctx := context.Background()
-	for _, network := range []string{"mainnet","testnet"} {
-		c := GetClient(networkURL(network))
+	for _, network := range []string{"mainnet", "testnet"} {
+		c := GetClient(NetworkURL(network))
 
 		bl, err := c.GetBlockByNumber(ctx, nil)
 		if err != nil {

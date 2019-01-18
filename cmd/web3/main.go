@@ -14,8 +14,9 @@ import (
 	"time"
 
 	"github.com/gochain-io/gochain/common"
-
 	"github.com/urfave/cli"
+
+	"github.com/gochain-io/web3"
 )
 
 // Flags
@@ -42,7 +43,7 @@ func main() {
 
 	app := cli.NewApp()
 	app.Name = "web3"
-	app.Version = "0.0.2"
+	app.Version = "0.0.3"
 	app.Usage = "web3 cli tool"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
@@ -187,7 +188,7 @@ func getRPCURL(network, rpcURL string, testnet bool) string {
 			}
 			network = "testnet"
 		}
-		rpcURL = networkURL(network)
+		rpcURL = web3.NetworkURL(network)
 		if rpcURL == "" {
 			log.Fatal("Unrecognized network:", network)
 		}
@@ -201,23 +202,6 @@ func getRPCURL(network, rpcURL string, testnet bool) string {
 	return rpcURL
 }
 
-func networkURL(network string) string {
-	switch network {
-	case "testnet":
-		return "https://testnet-rpc.gochain.io"
-	case "mainnet", "":
-		return "https://rpc.gochain.io"
-	case "localhost":
-		return "http://localhost:8545"
-	case "ethereum":
-		return "https://main-rpc.linkpool.io"
-	case "ropsten":
-		return "https://ropsten-rpc.linkpool.io"
-	default:
-		return ""
-	}
-}
-
 func parseBigInt(value string) (*big.Int, error) {
 	if value == "" {
 		return nil, nil
@@ -228,7 +212,7 @@ func parseBigInt(value string) (*big.Int, error) {
 }
 
 func GetBlockDetails(ctx context.Context, rpcURL, blockNumber string) {
-	client := GetClient(rpcURL)
+	client := web3.GetClient(rpcURL)
 	blockN, err := parseBigInt(blockNumber)
 	if err != nil {
 		log.Fatalf("block number must be integer %q: %v", blockNumber, err)
@@ -287,7 +271,7 @@ var (
 )
 
 func GetTransactionDetails(ctx context.Context, rpcURL, txhash string) {
-	client := GetClient(rpcURL)
+	client := web3.GetClient(rpcURL)
 	tx, isPending, err := client.GetTransactionByHash(ctx, txhash)
 	if err != nil {
 		log.Fatalf("Cannot get transaction details from the network: %v", err)
@@ -321,7 +305,7 @@ func GetTransactionDetails(ctx context.Context, rpcURL, txhash string) {
 }
 
 func GetAddressDetails(ctx context.Context, rpcURL, addrHash string) {
-	client := GetClient(rpcURL)
+	client := web3.GetClient(rpcURL)
 	bal, err := client.GetBalance(ctx, addrHash, nil)
 	if err != nil {
 		log.Fatalf("Cannot get address balance from the network: %v", err)
@@ -353,7 +337,7 @@ func GetAddressDetails(ctx context.Context, rpcURL, addrHash string) {
 }
 
 func GetSnapshot(ctx context.Context, rpcUrl string) {
-	client := GetClient(rpcUrl)
+	client := web3.GetClient(rpcUrl)
 	s, err := client.GetSnapshot(ctx)
 	if err != nil {
 		log.Fatalf("Cannot get snapshot from the network: %v", err)
@@ -413,7 +397,7 @@ func GetSnapshot(ctx context.Context, rpcUrl string) {
 }
 
 func GetID(ctx context.Context, rpcUrl string) {
-	client := GetClient(rpcUrl)
+	client := web3.GetClient(rpcUrl)
 	id, err := client.GetID(ctx)
 	if err != nil {
 		log.Fatalf("Cannot get id info from the network: %v", err)
@@ -440,7 +424,7 @@ func BuildSol(ctx context.Context, filename string) {
 	if verbose {
 		log.Println("Building Sol:", str)
 	}
-	compileData, err := CompileSolidityString(ctx, str)
+	compileData, err := web3.CompileSolidityString(ctx, str)
 	if err != nil {
 		log.Fatalf("Failed to compile %q: %v", filename, err)
 	}
@@ -483,7 +467,7 @@ func BuildSol(ctx context.Context, filename string) {
 }
 
 func DeploySol(ctx context.Context, rpcUrl, privateKey, contractName string) {
-	client := GetClient(rpcUrl)
+	client := web3.GetClient(rpcUrl)
 	if _, err := os.Stat(contractName); os.IsNotExist(err) {
 		log.Fatalf("Cannot find the bin file: %v", err)
 	}
