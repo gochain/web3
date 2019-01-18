@@ -8,7 +8,7 @@ require (
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/edsrzf/mmap-go v1.0.0 // indirect
 	github.com/go-logfmt/logfmt v0.4.0 // indirect
-	github.com/gochain-io/gochain v2.2.21+incompatible
+	github.com/gochain-io/gochain v2.2.24+incompatible
 	github.com/gogo/protobuf v1.2.0 // indirect
 	github.com/golang/lint v0.0.0-20181217174547-8f45f776aaf1 // indirect
 	github.com/golang/mock v1.2.0 // indirect
