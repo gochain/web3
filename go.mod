@@ -1,4 +1,4 @@
-module github.com/gochain-io/web3-cli
+module github.com/gochain-io/web3
 
 require (
 	git.apache.org/thrift.git v0.12.0 // indirect

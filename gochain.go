@@ -1,4 +1,4 @@
-package main
+package web3
 
 import (
 	"context"
@@ -17,6 +17,23 @@ import (
 	"github.com/gochain-io/gochain/crypto"
 	"github.com/gochain-io/gochain/goclient"
 )
+
+func NetworkURL(network string) string {
+	switch network {
+	case "testnet":
+		return "https://testnet-rpc.gochain.io"
+	case "mainnet", "":
+		return "https://rpc.gochain.io"
+	case "localhost":
+		return "http://localhost:8545"
+	case "ethereum":
+		return "https://main-rpc.linkpool.io"
+	case "ropsten":
+		return "https://ropsten-rpc.linkpool.io"
+	default:
+		return ""
+	}
+}
 
 type RPCClient struct {
 	url    string

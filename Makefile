@@ -1,8 +1,8 @@
 build: 
-	go build -o web3
+	go build ./cmd/web3
 
 install:
-	go build -o ${GOPATH}/bin/web3
+	go install ./cmd/web3
 
 docker: 
 	docker build -t gochain/web3:latest .
@@ -11,8 +11,8 @@ push: docker
 	# todo: version these, or auto push this using CI
 	docker push gochain/web3:latest
 
-test: build
-	./test.sh
+test:
+	go test ./...
 
 release:
 	GOOS=linux go build -o web3_linux

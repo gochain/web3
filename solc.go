@@ -1,4 +1,4 @@
-package main
+package web3
 
 import (
 	"bytes"

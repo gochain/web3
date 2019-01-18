@@ -9,7 +9,7 @@ ADD go.sum $D
 RUN go mod download
 # now build
 ADD . $D
-RUN cd $D && go build -o web3-alpine && cp web3-alpine /tmp/
+RUN cd $D && go build -o web3-alpine ./cmd/web3 && cp web3-alpine /tmp/
 
 # final stage
 FROM alpine

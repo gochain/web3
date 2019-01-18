@@ -1,16 +1,29 @@
-# Web3 CLI Tool
+# Web3
 
-Simple command line tool for interacting with web3 enabled blockchains - GoChain, Ethereum, etc.
+Simple command line tool for interacting with web3 enabled blockchains - GoChain, Ethereum, etc. 
+This repository also exports the backing golang `package web3`.
 
 ## Local installation
+
+### I have the Go language installed
+
+```sh
+go install github.com/gochain-io/web3/cmd/web3
+```
+
+### I don't have the go language installed
+
+#### a) Download a prebuilt release binary
+
+Coming soon.
+
+#### a) Build from source
 
 Clone the repo:
 
 ```sh
 git clone https://github.com/gochain-io/web3
 ```
-
-You also should have Docker installed [Docker](https://docs.docker.com/install/linux/docker-ce/ubuntu/)
 
 Build:
 
@@ -23,6 +36,8 @@ Run:
  ```sh
  ./web3 help
  ```
+ 
+ Note: Some commands require [Docker](https://docs.docker.com/install/linux/docker-ce/ubuntu/).
 
 ## List of available commands
 
