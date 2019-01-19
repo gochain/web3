@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/gochain-io/gochain/common"
+	"github.com/gochain-io/gochain/common/hexutil"
 	"github.com/urfave/cli"
 
 	"github.com/gochain-io/web3"
@@ -256,8 +257,16 @@ func GetBlockDetails(ctx context.Context, rpcURL, blockNumber string) {
 	gasPct := big.NewRat(gasUsed, gasLimit)
 	gasPct = gasPct.Mul(gasPct, big.NewRat(100, 1))
 	fmt.Printf("Gas Used: %d/%d (%s%%)\n", gasUsed, gasLimit, gasPct.FloatString(2))
-	fmt.Println("Difficulty:", new(big.Int).SetBytes(common.Hex2Bytes(block.Difficulty)))
-	fmt.Println("Total Difficulty:", new(big.Int).SetBytes(common.Hex2Bytes(block.TotalDifficulty)))
+	d, err := hexutil.DecodeBig(block.Difficulty)
+	if err != nil {
+		log.Fatalf("Failed to decode difficulty %q: %v", block.Difficulty, err)
+	}
+	fmt.Println("Difficulty:", d)
+	td, err := hexutil.DecodeBig(block.TotalDifficulty)
+	if err != nil {
+		log.Fatalf("Failed to decode total difficulty %q: %v", block.TotalDifficulty, err)
+	}
+	fmt.Println("Total Difficulty:", td)
 	fmt.Println("Hash:", block.Hash.String())
 	fmt.Println("Vanity:", block.ExtraVanity())
 	fmt.Println("Coinbase:", block.Miner.String())
