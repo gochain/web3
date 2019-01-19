@@ -112,10 +112,6 @@ type Block struct {
 	Uncles []common.Hash `json:"uncles"`
 }
 
-func (b *Block) DifficultyInt64() (int64, error) {
-	return strconv.ParseInt(b.Difficulty, 0, 64)
-}
-
 func (b *Block) NumberInt64() (int64, error) {
 	return strconv.ParseInt(b.Number, 0, 64)
 }
