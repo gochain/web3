@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"sort"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -212,56 +213,79 @@ func parseBigInt(value string) (*big.Int, error) {
 }
 
 func GetBlockDetails(ctx context.Context, rpcURL, blockNumber string) {
-	client := web3.GetClient(rpcURL)
+	client, err := web3.NewClient(rpcURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
+	}
+	defer client.Close()
 	blockN, err := parseBigInt(blockNumber)
 	if err != nil {
 		log.Fatalf("block number must be integer %q: %v", blockNumber, err)
 	}
-	block, err := client.GetBlockByNumber(ctx, blockN)
+	block, err := client.GetBlockByNumber(ctx, blockN, false)
 	if err != nil {
 		log.Fatalf("Cannot get block details from the network: %v", err)
 	}
 	if verbose {
 		log.Println("Block details:")
 	}
-	header := block.Header()
 	switch format {
 	case "json":
-		fmt.Println(marshalJSON(header))
+		fmt.Println(marshalJSON(block))
 		return
 	}
 
-	fmt.Println("Number:", header.Number)
-	fmt.Println("Time:", time.Unix(header.Time.Int64(), 0).In(time.UTC).Format(time.RFC3339))
-	fmt.Println("Transactions:", len(block.Transactions()))
-	gasPct := big.NewRat(int64(header.GasUsed), int64(header.GasLimit))
+	n, err := block.NumberInt64()
+	if err != nil {
+		log.Fatalf("Failed to parse number %q: %v", block.Difficulty, err)
+	}
+	fmt.Println("Number:", n)
+	ts, err := block.TimestampUnix()
+	if err != nil {
+		log.Fatalf("Failed to parse unix timestamp %q: %v", block.Timestamp, err)
+	}
+	fmt.Println("Time:", time.Unix(ts, 0).In(time.UTC).Format(time.RFC3339))
+	fmt.Println("Transactions:", len(block.Txs))
+	gasUsed, err := block.GasUsedInt64()
+	if err != nil {
+		log.Fatalf("Failed to parse gas used %q: %v", block.GasUsed, err)
+	}
+	gasLimit, err := block.GasLimitInt64()
+	if err != nil {
+		log.Fatalf("Failed to parse gas limit %q: %v", block.GasLimit, err)
+	}
+	gasPct := big.NewRat(gasUsed, gasLimit)
 	gasPct = gasPct.Mul(gasPct, big.NewRat(100, 1))
-	fmt.Printf("Gas Used: %d/%d (%s%%)\n", header.GasUsed, header.GasLimit, gasPct.FloatString(2))
-	fmt.Println("Difficulty:", header.Difficulty)
-	l := len(header.Extra)
-	if l > 32 {
-		l = 32
+	fmt.Printf("Gas Used: %d/%d (%s%%)\n", gasUsed, gasLimit, gasPct.FloatString(2))
+	d, err := strconv.ParseInt(block.Difficulty, 0, 64)
+	if err != nil {
+		log.Fatalf("Failed to parse difficulty %q: %v", block.Difficulty, err)
 	}
-	extraStr := string(header.Extra[:l])
-	fmt.Println("Hash:", header.Hash().String())
-	fmt.Println("Vanity:", extraStr)
-	fmt.Println("Coinbase:", header.Coinbase.String())
-	fmt.Println("ParentHash:", header.ParentHash.String())
-	fmt.Println("UncleHash:", header.UncleHash.String())
-	fmt.Println("Nonce:", header.Nonce.Uint64())
-	fmt.Println("Root:", header.Root.String())
-	fmt.Println("TxHash:", header.TxHash.String())
-	fmt.Println("ReceiptHash:", header.ReceiptHash.String())
-	fmt.Println("Bloom:", "0x"+common.Bytes2Hex(header.Bloom.Bytes()))
-	fmt.Println("MixDigest:", header.MixDigest.String())
-	if len(header.Signers) > 0 {
-		fmt.Println("Signers:", header.Signers)
+	fmt.Println("Difficulty:", d)
+	td, err := strconv.ParseInt(block.TotalDifficulty, 0, 64)
+	if err != nil {
+		log.Fatalf("Failed to parse total difficulty %q: %v", block.TotalDifficulty, err)
 	}
-	if len(header.Voters) > 0 {
-		fmt.Println("Voters:", header.Voters)
+	fmt.Println("Total Difficulty:", td)
+	fmt.Println("Hash:", block.Hash.String())
+	fmt.Println("Vanity:", block.ExtraVanity())
+	fmt.Println("Coinbase:", block.Miner.String())
+	fmt.Println("ParentHash:", block.ParentHash.String())
+	fmt.Println("UncleHash:", block.Sha3Uncles.String())
+	fmt.Println("Nonce:", block.Nonce.Uint64())
+	fmt.Println("Root:", block.StateRoot.String())
+	fmt.Println("TxHash:", block.TxsRoot.String())
+	fmt.Println("ReceiptHash:", block.ReceiptsRoot.String())
+	fmt.Println("Bloom:", "0x"+common.Bytes2Hex(block.LogsBloom.Bytes()))
+	fmt.Println("MixDigest:", block.MixHash.String())
+	if len(block.Signers) > 0 {
+		fmt.Println("Signers:", block.Signers)
 	}
-	if len(header.Signer) > 0 {
-		fmt.Println("Signer:", "0x"+common.Bytes2Hex(header.Signer))
+	if len(block.Voters) > 0 {
+		fmt.Println("Voters:", block.Voters)
+	}
+	if len(block.Signer) > 0 {
+		fmt.Println("Signer:", block.Signer)
 	}
 }
 
@@ -271,8 +295,12 @@ var (
 )
 
 func GetTransactionDetails(ctx context.Context, rpcURL, txhash string) {
-	client := web3.GetClient(rpcURL)
-	tx, isPending, err := client.GetTransactionByHash(ctx, txhash)
+	client, err := web3.NewClient(rpcURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
+	}
+	defer client.Close()
+	tx, err := client.GetTransactionByHash(ctx, txhash)
 	if err != nil {
 		log.Fatalf("Cannot get transaction details from the network: %v", err)
 	}
@@ -282,30 +310,33 @@ func GetTransactionDetails(ctx context.Context, rpcURL, txhash string) {
 
 	switch format {
 	case "json":
-		data := struct {
-			Transaction interface{} `json:"transaction"`
-			Pending     bool        `json:"pending"`
-		}{Transaction: tx, Pending: isPending}
-		fmt.Println(marshalJSON(data))
+		fmt.Println(marshalJSON(tx))
 		return
 	}
 
-	fmt.Println("Hash:", tx.Hash())
-	// TODO From: enhance upstream client to return sender
-	fmt.Println("To:", tx.To())
-	if isPending {
-		fmt.Println("Pending: true")
-	}
-	fmt.Println("Nonce:", tx.Nonce())
-	fmt.Println("Gas Limit:", tx.Gas())
-	gp := new(big.Rat).SetFrac(tx.GasPrice(), weiPerGwei)
+	fmt.Println("Hash:", tx.Hash.String())
+	fmt.Println("From:", tx.From.String())
+	fmt.Println("To:", tx.To.String())
+	amt := new(big.Rat).SetFrac((*big.Int)(&tx.Value), weiPerGO)
+	fmt.Println("Value:", amt.FloatString(18), "GO")
+	fmt.Println("Nonce:", uint64(tx.Nonce))
+	fmt.Println("Gas Limit:", (*big.Int)(&tx.GasLimit))
+	gp := new(big.Rat).SetFrac((*big.Int)(&tx.GasPrice), weiPerGwei)
 	fmt.Println("Gas Price:", gp.FloatString(18), "gwei")
-	amt := new(big.Rat).SetFrac(tx.Value(), weiPerGO)
-	fmt.Println("Amount:", amt.FloatString(18), "GO")
+	if tx.BlockHash == (common.Hash{}) {
+		fmt.Println("Pending: true")
+	} else {
+		fmt.Println("Block Number:", (*big.Int)(&tx.BlockNumber))
+		fmt.Println("Block Hash:", tx.BlockHash.String())
+	}
 }
 
 func GetAddressDetails(ctx context.Context, rpcURL, addrHash string) {
-	client := web3.GetClient(rpcURL)
+	client, err := web3.NewClient(rpcURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
+	}
+	defer client.Close()
 	bal, err := client.GetBalance(ctx, addrHash, nil)
 	if err != nil {
 		log.Fatalf("Cannot get address balance from the network: %v", err)
@@ -336,8 +367,12 @@ func GetAddressDetails(ctx context.Context, rpcURL, addrHash string) {
 	fmt.Println("Code:", string(code))
 }
 
-func GetSnapshot(ctx context.Context, rpcUrl string) {
-	client := web3.GetClient(rpcUrl)
+func GetSnapshot(ctx context.Context, rpcURL string) {
+	client, err := web3.NewClient(rpcURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
+	}
+	defer client.Close()
 	s, err := client.GetSnapshot(ctx)
 	if err != nil {
 		log.Fatalf("Cannot get snapshot from the network: %v", err)
@@ -396,8 +431,12 @@ func GetSnapshot(ctx context.Context, rpcUrl string) {
 	}
 }
 
-func GetID(ctx context.Context, rpcUrl string) {
-	client := web3.GetClient(rpcUrl)
+func GetID(ctx context.Context, rpcURL string) {
+	client, err := web3.NewClient(rpcURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
+	}
+	defer client.Close()
 	id, err := client.GetID(ctx)
 	if err != nil {
 		log.Fatalf("Cannot get id info from the network: %v", err)
@@ -466,8 +505,12 @@ func BuildSol(ctx context.Context, filename string) {
 	}
 }
 
-func DeploySol(ctx context.Context, rpcUrl, privateKey, contractName string) {
-	client := web3.GetClient(rpcUrl)
+func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string) {
+	client, err := web3.NewClient(rpcURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
+	}
+	defer client.Close()
 	if _, err := os.Stat(contractName); os.IsNotExist(err) {
 		log.Fatalf("Cannot find the bin file: %v", err)
 	}
@@ -490,7 +533,7 @@ func DeploySol(ctx context.Context, rpcUrl, privateKey, contractName string) {
 		return
 	}
 
-	fmt.Println("Contract has been successfully deployed with transaction:", tx.Hash().Hex())
+	fmt.Println("Contract has been successfully deployed with transaction:", tx.Hash.Hex())
 	fmt.Println("Contract address is:", receipt.ContractAddress.Hex())
 }
 
