@@ -2,18 +2,24 @@ package web3
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"math/big"
 	"strconv"
+	"time"
 
-	"github.com/gochain-io/gochain"
 	"github.com/gochain-io/gochain/common"
 	"github.com/gochain-io/gochain/common/hexutil"
 	"github.com/gochain-io/gochain/core/types"
+	"github.com/gochain-io/gochain/crypto"
+	"github.com/gochain-io/gochain/rlp"
 	"github.com/gochain-io/gochain/rpc"
 )
+
+var NotFoundErr = errors.New("not found")
 
 func NetworkURL(network string) string {
 	switch network {
@@ -39,8 +45,15 @@ type Client interface {
 	GetTransactionByHash(ctx context.Context, hash string) (*Transaction, error)
 	GetSnapshot(ctx context.Context) (*Snapshot, error)
 	GetID(ctx context.Context) (*ID, error)
-	DeployContract(ctx context.Context, privateKeyHex string, contractData string) (*Transaction, error)
-	WaitForReceipt(ctx context.Context, tx *Transaction) (*Receipt, error)
+	GetTransactionReceipt(ctx context.Context, hash common.Hash) (*Receipt, error)
+	GetChainID(ctx context.Context) (*big.Int, error)
+	GetNetworkID(ctx context.Context) (*big.Int, error)
+	// GetGasPrice returns a suggested gas price.
+	GetGasPrice(ctx context.Context) (*big.Int, error)
+	// GetPendingTransactionCount returns the transaction count including pending txs.
+	// This value is also the next legal nonce.
+	GetPendingTransactionCount(ctx context.Context, account common.Address) (uint64, error)
+	SendTransaction(ctx context.Context, tx *Transaction) error
 	Close()
 }
 
@@ -54,6 +67,10 @@ func NewClient(url string) (Client, error) {
 
 type client struct {
 	r *rpc.Client
+}
+
+func (c *client) Close() {
+	c.r.Close()
 }
 
 func (c *client) GetBalance(ctx context.Context, address string, blockNumber *big.Int) (*big.Int, error) {
@@ -97,10 +114,6 @@ type Block struct {
 
 func (b *Block) DifficultyInt64() (int64, error) {
 	return strconv.ParseInt(b.Difficulty, 0, 64)
-}
-
-func (b *Block) TotalDifficultyInt64() (int64, error) {
-	return strconv.ParseInt(b.TotalDifficulty, 0, 64)
 }
 
 func (b *Block) NumberInt64() (int64, error) {
@@ -154,7 +167,7 @@ func (c *client) GetTransactionByHash(ctx context.Context, hash string) (*Transa
 	if err != nil {
 		return nil, err
 	} else if tx == nil {
-		return nil, gochain.NotFound
+		return nil, NotFoundErr
 	} else if tx.R == (common.Hash{}) {
 		return nil, fmt.Errorf("server returned transaction without signature")
 	}
@@ -221,7 +234,7 @@ func (c *client) GetID(ctx context.Context) (*ID, error) {
 	return &ID{NetworkID: netID, ChainID: (*big.Int)(chainID), GenesisHash: block.Hash}, nil
 }
 
-func (c *client) NetworkID(ctx context.Context) (*big.Int, error) {
+func (c *client) GetNetworkID(ctx context.Context) (*big.Int, error) {
 	version := new(big.Int)
 	var ver string
 	if err := c.r.CallContext(ctx, &ver, "net_version"); err != nil {
@@ -233,14 +246,10 @@ func (c *client) NetworkID(ctx context.Context) (*big.Int, error) {
 	return version, nil
 }
 
-func (c *client) ChainID(ctx context.Context) (*big.Int, error) {
+func (c *client) GetChainID(ctx context.Context) (*big.Int, error) {
 	var result hexutil.Big
 	err := c.r.CallContext(ctx, &result, "eth_chainId")
 	return (*big.Int)(&result), err
-}
-
-func (c *client) DeployContract(ctx context.Context, privateKeyHex string, contractData string) (*Transaction, error) {
-	panic("implement me")
 }
 
 type Receipt struct {
@@ -254,12 +263,41 @@ type Receipt struct {
 	GasUsed           uint64         `json:"gasUsed"`
 }
 
-func (c *client) WaitForReceipt(ctx context.Context, tx *Transaction) (*Receipt, error) {
-	panic("implement me")
+func (c *client) GetTransactionReceipt(ctx context.Context, hash common.Hash) (*Receipt, error) {
+	var r *Receipt
+	err := c.r.CallContext(ctx, &r, "eth_getTransactionReceipt", hash)
+	if err == nil {
+		if r == nil {
+			return nil, NotFoundErr
+		}
+	}
+	return r, err
 }
 
-func (c *client) Close() {
-	c.r.Close()
+func (c *client) GetGasPrice(ctx context.Context) (*big.Int, error) {
+	var hex hexutil.Big
+	if err := c.r.CallContext(ctx, &hex, "eth_gasPrice"); err != nil {
+		return nil, err
+	}
+	return (*big.Int)(&hex), nil
+}
+
+func (c *client) GetPendingTransactionCount(ctx context.Context, account common.Address) (uint64, error) {
+	return c.getTransactionCount(ctx, account, "pending")
+}
+
+func (c *client) getTransactionCount(ctx context.Context, account common.Address, blockNumArg string) (uint64, error) {
+	var result hexutil.Uint64
+	err := c.r.CallContext(ctx, &result, "eth_getTransactionCount", account, blockNumArg)
+	return uint64(result), err
+}
+
+func (c *client) SendTransaction(ctx context.Context, tx *Transaction) error {
+	data, err := rlp.EncodeToBytes(tx)
+	if err != nil {
+		return err
+	}
+	return c.r.CallContext(ctx, nil, "eth_sendRawTransaction", common.ToHex(data))
 }
 
 func (c *client) getBlock(ctx context.Context, method string, hashOrNum string, includeTxs bool) (*Block, error) {
@@ -268,7 +306,7 @@ func (c *client) getBlock(ctx context.Context, method string, hashOrNum string, 
 	if err != nil {
 		return nil, err
 	} else if len(raw) == 0 {
-		return nil, gochain.NotFound
+		return nil, NotFoundErr
 	}
 	var block Block
 	if err := json.Unmarshal(raw, &block); err != nil {
@@ -319,4 +357,83 @@ func toBlockNumArg(number *big.Int) string {
 		return "latest"
 	}
 	return hexutil.EncodeBig(number)
+}
+
+func DeployContract(ctx context.Context, client Client, privateKeyHex string, contractData string) (*Transaction, error) {
+	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
+		privateKeyHex = privateKeyHex[2:]
+	}
+	privateKey, err := crypto.HexToECDSA(privateKeyHex)
+	if err != nil {
+		return nil, fmt.Errorf("invalid private key: %v", err)
+	}
+
+	gasPrice, err := client.GetGasPrice(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get gas price: %v", err)
+	}
+
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return nil, errors.New("error casting public key to ECDSA")
+	}
+
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	nonce, err := client.GetPendingTransactionCount(ctx, fromAddress)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get nonce: %v", err)
+	}
+	decodedContractData, err := hexutil.Decode(contractData)
+	if err != nil {
+		return nil, fmt.Errorf("cannot decode contract data: %v", err)
+	}
+	//TODO try to use native Transaction only; can't sign currently
+	tx := types.NewContractCreation(nonce, big.NewInt(0), 2000000, gasPrice, decodedContractData)
+	signedTx, err := types.SignTx(tx, types.HomesteadSigner{}, privateKey)
+	if err != nil {
+		return nil, fmt.Errorf("cannot sign transaction: %v", err)
+	}
+
+	rtx := convertTx(signedTx, fromAddress)
+	err = client.SendTransaction(ctx, rtx)
+	if err != nil {
+		return nil, fmt.Errorf("cannot send transaction: %v", err)
+	}
+
+	return rtx, nil
+}
+
+func convertTx(tx *types.Transaction, from common.Address) *Transaction {
+	rtx := &Transaction{}
+	rtx.Nonce = hexutil.Uint64(tx.Nonce())
+	rtx.GasPrice.ToInt().Set(tx.GasPrice())
+	rtx.GasLimit.ToInt().SetUint64(tx.Gas())
+	rtx.To = *tx.To()
+	rtx.Value.ToInt().Set(tx.Value())
+	rtx.Input = hexutil.Bytes(tx.Data())
+	rtx.Hash = tx.Hash()
+	rtx.From = from
+	v, r, s := tx.RawSignatureValues()
+	rtx.V.ToInt().Set(v)
+	rtx.R.SetBytes(r.Bytes())
+	rtx.S.SetBytes(s.Bytes())
+	return rtx
+}
+
+func WaitForReceipt(ctx context.Context, client Client, tx *Transaction) (*Receipt, error) {
+	for i := 0; ; i++ {
+		receipt, err := client.GetTransactionReceipt(ctx, tx.Hash)
+		if err == nil {
+			return receipt, nil
+		}
+		if i >= (5) {
+			return nil, fmt.Errorf("cannot get the receipt: %v", err)
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(2 * time.Second):
+		}
+	}
 }

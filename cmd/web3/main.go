@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/signal"
 	"sort"
-	"strconv"
 	"syscall"
 	"time"
 
@@ -48,7 +47,7 @@ func main() {
 	app.Usage = "web3 cli tool"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:        "network",
+			Name:        "network, n",
 			Usage:       "The name of the network (mainnet/testnet/ethereum/ropsten/localhost). Default is mainnet.",
 			Destination: &network,
 			EnvVar:      "NETWORK",
@@ -70,8 +69,8 @@ func main() {
 			Destination: &verbose,
 			Hidden:      false},
 		cli.StringFlag{
-			Name:        "format",
-			Usage:       "Output format",
+			Name:        "format, f",
+			Usage:       "Output format (json). Default is human readable log lines.",
 			Destination: &format,
 			Hidden:      false},
 	}
@@ -237,7 +236,7 @@ func GetBlockDetails(ctx context.Context, rpcURL, blockNumber string) {
 
 	n, err := block.NumberInt64()
 	if err != nil {
-		log.Fatalf("Failed to parse number %q: %v", block.Difficulty, err)
+		log.Fatalf("Failed to parse number %q: %v", block.Number, err)
 	}
 	fmt.Println("Number:", n)
 	ts, err := block.TimestampUnix()
@@ -257,16 +256,8 @@ func GetBlockDetails(ctx context.Context, rpcURL, blockNumber string) {
 	gasPct := big.NewRat(gasUsed, gasLimit)
 	gasPct = gasPct.Mul(gasPct, big.NewRat(100, 1))
 	fmt.Printf("Gas Used: %d/%d (%s%%)\n", gasUsed, gasLimit, gasPct.FloatString(2))
-	d, err := strconv.ParseInt(block.Difficulty, 0, 64)
-	if err != nil {
-		log.Fatalf("Failed to parse difficulty %q: %v", block.Difficulty, err)
-	}
-	fmt.Println("Difficulty:", d)
-	td, err := strconv.ParseInt(block.TotalDifficulty, 0, 64)
-	if err != nil {
-		log.Fatalf("Failed to parse total difficulty %q: %v", block.TotalDifficulty, err)
-	}
-	fmt.Println("Total Difficulty:", td)
+	fmt.Println("Difficulty:", new(big.Int).SetBytes(common.Hex2Bytes(block.Difficulty)))
+	fmt.Println("Total Difficulty:", new(big.Int).SetBytes(common.Hex2Bytes(block.TotalDifficulty)))
 	fmt.Println("Hash:", block.Hash.String())
 	fmt.Println("Vanity:", block.ExtraVanity())
 	fmt.Println("Coinbase:", block.Miner.String())
@@ -518,11 +509,11 @@ func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string) {
 	if err != nil {
 		log.Fatalf("Cannot read the bin file: %v", err)
 	}
-	tx, err := client.DeployContract(ctx, privateKey, string(dat))
+	tx, err := web3.DeployContract(ctx, client, privateKey, string(dat))
 	if err != nil {
 		log.Fatalf("Cannot deploy the contract: %v", err)
 	}
-	receipt, err := client.WaitForReceipt(ctx, tx)
+	receipt, err := web3.WaitForReceipt(ctx, client, tx)
 	if err != nil {
 		log.Fatalf("Cannot get the receipt: %v", err)
 	}
