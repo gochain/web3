@@ -1,11 +1,18 @@
 package web3
 
-import (
-	"strconv"
-	"strings"
+import "math/big"
+
+var (
+	weiPerGO   = big.NewInt(1e18)
+	weiPerGwei = big.NewInt(1e9)
 )
 
-func HexToInt64(hex string) (int64, error) {
-	hex = strings.TrimPrefix(hex, "0x")
-	return strconv.ParseInt(hex, 16, 64)
+// WeiAsBase converts w wei in to the base unit, and formats it as a decimal fraction with full precision (up to 18 decimals).
+func WeiAsBase(w *big.Int) string {
+	return new(big.Rat).SetFrac(w, weiPerGO).FloatString(18)
+}
+
+// WeiAsGwei converts w wei in to gwei, and formats it as a decimal fraction with full precision (up to 9 decimals).
+func WeiAsGwei(w *big.Int) string {
+	return new(big.Rat).SetFrac(w, weiPerGwei).FloatString(9)
 }
