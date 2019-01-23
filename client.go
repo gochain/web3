@@ -72,7 +72,7 @@ func (c *client) GetTransactionByHash(ctx context.Context, hash string) (*Transa
 		return nil, err
 	} else if tx == nil {
 		return nil, NotFoundErr
-	} else if tx.R == (common.Hash{}) {
+	} else if tx.R == nil {
 		return nil, fmt.Errorf("server returned transaction without signature")
 	}
 	return tx, nil
