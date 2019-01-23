@@ -13,8 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gochain-io/gochain/common"
-	"github.com/gochain-io/gochain/common/hexutil"
+	"github.com/gochain-io/gochain/v3/common"
 	"github.com/urfave/cli"
 
 	"github.com/gochain-io/web3"
@@ -235,38 +234,14 @@ func GetBlockDetails(ctx context.Context, rpcURL, blockNumber string) {
 		return
 	}
 
-	n, err := block.NumberInt64()
-	if err != nil {
-		log.Fatalf("Failed to parse number %q: %v", block.Number, err)
-	}
-	fmt.Println("Number:", n)
-	ts, err := block.TimestampUnix()
-	if err != nil {
-		log.Fatalf("Failed to parse unix timestamp %q: %v", block.Timestamp, err)
-	}
-	fmt.Println("Time:", time.Unix(ts, 0).In(time.UTC).Format(time.RFC3339))
+	fmt.Println("Number:", block.Number)
+	fmt.Println("Time:", block.Timestamp.Format(time.RFC3339))
 	fmt.Println("Transactions:", len(block.Txs))
-	gasUsed, err := block.GasUsedInt64()
-	if err != nil {
-		log.Fatalf("Failed to parse gas used %q: %v", block.GasUsed, err)
-	}
-	gasLimit, err := block.GasLimitInt64()
-	if err != nil {
-		log.Fatalf("Failed to parse gas limit %q: %v", block.GasLimit, err)
-	}
-	gasPct := big.NewRat(gasUsed, gasLimit)
+	gasPct := big.NewRat(int64(block.GasUsed), int64(block.GasLimit))
 	gasPct = gasPct.Mul(gasPct, big.NewRat(100, 1))
-	fmt.Printf("Gas Used: %d/%d (%s%%)\n", gasUsed, gasLimit, gasPct.FloatString(2))
-	d, err := hexutil.DecodeBig(block.Difficulty)
-	if err != nil {
-		log.Fatalf("Failed to decode difficulty %q: %v", block.Difficulty, err)
-	}
-	fmt.Println("Difficulty:", d)
-	td, err := hexutil.DecodeBig(block.TotalDifficulty)
-	if err != nil {
-		log.Fatalf("Failed to decode total difficulty %q: %v", block.TotalDifficulty, err)
-	}
-	fmt.Println("Total Difficulty:", td)
+	fmt.Printf("Gas Used: %d/%d (%s%%)\n", block.GasUsed, block.GasLimit, gasPct.FloatString(2))
+	fmt.Println("Difficulty:", block.Difficulty)
+	fmt.Println("Total Difficulty:", block.TotalDifficulty)
 	fmt.Println("Hash:", block.Hash.String())
 	fmt.Println("Vanity:", block.ExtraVanity())
 	fmt.Println("Coinbase:", block.Miner.String())
@@ -285,14 +260,9 @@ func GetBlockDetails(ctx context.Context, rpcURL, blockNumber string) {
 		fmt.Println("Voters:", block.Voters)
 	}
 	if len(block.Signer) > 0 {
-		fmt.Println("Signer:", block.Signer)
+		fmt.Printf("Signer: %X\n", block.Signer)
 	}
 }
-
-var (
-	weiPerGO   = big.NewInt(1000000000000000000)
-	weiPerGwei = big.NewInt(1000000000)
-)
 
 func GetTransactionDetails(ctx context.Context, rpcURL, txhash string) {
 	client, err := web3.NewClient(rpcURL)
@@ -317,16 +287,15 @@ func GetTransactionDetails(ctx context.Context, rpcURL, txhash string) {
 	fmt.Println("Hash:", tx.Hash.String())
 	fmt.Println("From:", tx.From.String())
 	fmt.Println("To:", tx.To.String())
-	amt := new(big.Rat).SetFrac((*big.Int)(&tx.Value), weiPerGO)
-	fmt.Println("Value:", amt.FloatString(18), "GO")
+	//TODO lookup base unit for network?
+	fmt.Println("Value:", web3.WeiAsBase(tx.Value), "GO")
 	fmt.Println("Nonce:", uint64(tx.Nonce))
-	fmt.Println("Gas Limit:", (*big.Int)(&tx.GasLimit))
-	gp := new(big.Rat).SetFrac((*big.Int)(&tx.GasPrice), weiPerGwei)
-	fmt.Println("Gas Price:", gp.FloatString(18), "gwei")
+	fmt.Println("Gas Limit:", tx.GasLimit)
+	fmt.Println("Gas Price:", web3.WeiAsGwei(tx.GasPrice), "gwei")
 	if tx.BlockHash == (common.Hash{}) {
 		fmt.Println("Pending: true")
 	} else {
-		fmt.Println("Block Number:", (*big.Int)(&tx.BlockNumber))
+		fmt.Println("Block Number:", tx.BlockNumber)
 		fmt.Println("Block Hash:", tx.BlockHash.String())
 	}
 }
