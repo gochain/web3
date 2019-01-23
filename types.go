@@ -5,8 +5,8 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/gochain-io/gochain/common"
-	"github.com/gochain-io/gochain/core/types"
+	"github.com/gochain-io/gochain/v3/common"
+	"github.com/gochain-io/gochain/v3/core/types"
 )
 
 type Snapshot struct {

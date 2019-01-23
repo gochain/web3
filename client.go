@@ -7,11 +7,11 @@ import (
 	"log"
 	"math/big"
 
-	"github.com/gochain-io/gochain/common"
-	"github.com/gochain-io/gochain/common/hexutil"
-	"github.com/gochain-io/gochain/core/types"
-	"github.com/gochain-io/gochain/rlp"
-	"github.com/gochain-io/gochain/rpc"
+	"github.com/gochain-io/gochain/v3/common"
+	"github.com/gochain-io/gochain/v3/common/hexutil"
+	"github.com/gochain-io/gochain/v3/core/types"
+	"github.com/gochain-io/gochain/v3/rlp"
+	"github.com/gochain-io/gochain/v3/rpc"
 )
 
 type Client interface {
