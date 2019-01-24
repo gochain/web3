@@ -1,6 +1,7 @@
 package web3
 
 import (
+	"errors"
 	"time"
 
 	"github.com/gochain-io/gochain/v3/common"
@@ -9,26 +10,26 @@ import (
 )
 
 type rpcBlock struct {
-	ParentHash      common.Hash      `json:"parentHash"`
-	Sha3Uncles      common.Hash      `json:"sha3Uncles"`
-	Miner           common.Address   `json:"miner"`
-	Signers         []common.Address `json:"signers,omitempty"`
-	Voters          []common.Address `json:"voters,omitempty"`
-	Signer          hexutil.Bytes    `json:"signer,omitempty"`
-	StateRoot       common.Hash      `json:"stateRoot"`
-	TxsRoot         common.Hash      `json:"transactionsRoot"`
-	ReceiptsRoot    common.Hash      `json:"receiptsRoot"`
-	LogsBloom       *types.Bloom     `json:"logsBloom"`
-	Difficulty      hexutil.Big      `json:"difficulty"`
-	TotalDifficulty hexutil.Big      `json:"totalDifficulty"`
-	Number          hexutil.Big      `json:"number"`
-	GasLimit        hexutil.Uint64   `json:"gasLimit"`
-	GasUsed         hexutil.Uint64   `json:"gasUsed"`
-	Timestamp       hexutil.Uint64   `json:"timestamp"`
-	ExtraData       hexutil.Bytes    `json:"extraData"`
-	MixHash         common.Hash      `json:"mixHash"`
-	Nonce           types.BlockNonce `json:"nonce"`
-	Hash            common.Hash      `json:"hash"`
+	ParentHash      *common.Hash      `json:"parentHash"`
+	Sha3Uncles      *common.Hash      `json:"sha3Uncles"`
+	Miner           *common.Address   `json:"miner"`
+	Signers         []common.Address  `json:"signers,omitempty"`
+	Voters          []common.Address  `json:"voters,omitempty"`
+	Signer          *hexutil.Bytes    `json:"signer,omitempty"`
+	StateRoot       *common.Hash      `json:"stateRoot"`
+	TxsRoot         *common.Hash      `json:"transactionsRoot"`
+	ReceiptsRoot    *common.Hash      `json:"receiptsRoot"`
+	LogsBloom       *types.Bloom      `json:"logsBloom"`
+	Difficulty      *hexutil.Big      `json:"difficulty"`
+	TotalDifficulty *hexutil.Big      `json:"totalDifficulty"`
+	Number          *hexutil.Big      `json:"number"`
+	GasLimit        *hexutil.Uint64   `json:"gasLimit"`
+	GasUsed         *hexutil.Uint64   `json:"gasUsed"`
+	Timestamp       *hexutil.Uint64   `json:"timestamp"`
+	ExtraData       *hexutil.Bytes    `json:"extraData"`
+	MixHash         *common.Hash      `json:"mixHash"`
+	Nonce           *types.BlockNonce `json:"nonce"`
+	Hash            *common.Hash      `json:"hash"`
 
 	// TODO support full Transactions
 	Txs    []common.Hash `json:"transactions,omitempty"`
@@ -36,106 +37,250 @@ type rpcBlock struct {
 }
 
 // copyTo copies the fields from r to b.
-func (r *rpcBlock) copyTo(b *Block) {
-	b.ParentHash = r.ParentHash
-	b.Sha3Uncles = r.Sha3Uncles
-	b.Miner = r.Miner
+func (r *rpcBlock) copyTo(b *Block) error {
+	if r.ParentHash == nil {
+		return errors.New("missing 'parentHash'")
+	}
+	b.ParentHash = *r.ParentHash
+	if r.Sha3Uncles == nil {
+		return errors.New("missing 'sha3Uncles'")
+	}
+	b.Sha3Uncles = *r.Sha3Uncles
+	if r.Miner == nil {
+		return errors.New("missing 'miner'")
+	}
+	b.Miner = *r.Miner
 	b.Signers = r.Signers
 	b.Voters = r.Voters
-	b.Signer = r.Signer
-	b.StateRoot = r.StateRoot
-	b.TxsRoot = r.TxsRoot
-	b.ReceiptsRoot = r.ReceiptsRoot
+	if r.Signer != nil {
+		b.Signer = *r.Signer
+	}
+	if r.StateRoot == nil {
+		return errors.New("missing 'stateRoot'")
+	}
+	b.StateRoot = *r.StateRoot
+	if r.TxsRoot == nil {
+		return errors.New("missing 'transactionsRoot'")
+	}
+	b.TxsRoot = *r.TxsRoot
+	if r.ReceiptsRoot == nil {
+		return errors.New("missing 'receiptsRoot'")
+	}
+	b.ReceiptsRoot = *r.ReceiptsRoot
+	if r.LogsBloom == nil {
+		return errors.New("missing 'logsBloom'")
+	}
 	b.LogsBloom = r.LogsBloom
+	if r.Difficulty == nil {
+		return errors.New("missing 'difficulty'")
+	}
 	b.Difficulty = r.Difficulty.ToInt()
-	b.TotalDifficulty = r.TotalDifficulty.ToInt()
+	if r.TotalDifficulty != nil {
+		b.TotalDifficulty = r.TotalDifficulty.ToInt()
+	}
+	if r.Number == nil {
+		return errors.New("missing 'number'")
+	}
 	b.Number = r.Number.ToInt()
-	b.GasLimit = uint64(r.GasLimit)
-	b.GasUsed = uint64(r.GasUsed)
-	b.Timestamp = time.Unix(int64(r.Timestamp), 0).UTC()
-	b.ExtraData = r.ExtraData
-	b.MixHash = r.MixHash
-	b.Nonce = r.Nonce
-	b.Hash = r.Hash
+	if r.GasLimit == nil {
+		return errors.New("missing 'gasLimit'")
+	}
+	b.GasLimit = uint64(*r.GasLimit)
+	if r.GasUsed == nil {
+		return errors.New("missing 'gasUsed'")
+	}
+	b.GasUsed = uint64(*r.GasUsed)
+	if r.Timestamp == nil {
+		return errors.New("missing 'timestamp'")
+	}
+	b.Timestamp = time.Unix(int64(*r.Timestamp), 0).UTC()
+	if r.ExtraData == nil {
+		return errors.New("missing 'extraData")
+	}
+	b.ExtraData = *r.ExtraData
+	if r.MixHash == nil {
+		return errors.New("missing 'mixHash'")
+	}
+	b.MixHash = *r.MixHash
+	if r.Nonce == nil {
+		return errors.New("missing 'nonce'")
+	}
+	b.Nonce = *r.Nonce
+	if r.Hash == nil {
+		return errors.New("missing 'hash'")
+	}
+	b.Hash = *r.Hash
 	b.Txs = r.Txs
 	b.Uncles = r.Uncles
+	return nil
 }
 
 // copyFrom copies the fields from b to r.
 func (r *rpcBlock) copyFrom(b *Block) {
-	r.ParentHash = b.ParentHash
-	r.Sha3Uncles = b.Sha3Uncles
-	r.Miner = b.Miner
+	r.ParentHash = &b.ParentHash
+	r.Sha3Uncles = &b.Sha3Uncles
+	r.Miner = &b.Miner
 	r.Signers = b.Signers
 	r.Voters = b.Voters
-	r.Signer = b.Signer
-	r.StateRoot = b.StateRoot
-	r.TxsRoot = b.TxsRoot
-	r.ReceiptsRoot = b.ReceiptsRoot
+	r.Signer = (*hexutil.Bytes)(&b.Signer)
+	r.StateRoot = &b.StateRoot
+	r.TxsRoot = &b.TxsRoot
+	r.ReceiptsRoot = &b.ReceiptsRoot
 	r.LogsBloom = b.LogsBloom
-	r.Difficulty = (hexutil.Big)(*b.Difficulty)
-	r.TotalDifficulty = (hexutil.Big)(*b.TotalDifficulty)
-	r.Number = (hexutil.Big)(*b.Number)
-	r.GasLimit = hexutil.Uint64(b.GasLimit)
-	r.GasUsed = hexutil.Uint64(b.GasUsed)
-	r.Timestamp = hexutil.Uint64(b.Timestamp.Unix())
-	r.ExtraData = b.ExtraData
-	r.MixHash = b.MixHash
-	r.Nonce = b.Nonce
-	r.Hash = b.Hash
+	r.Difficulty = (*hexutil.Big)(b.Difficulty)
+	r.TotalDifficulty = (*hexutil.Big)(b.TotalDifficulty)
+	r.Number = (*hexutil.Big)(b.Number)
+	r.GasLimit = (*hexutil.Uint64)(&b.GasLimit)
+	r.GasUsed = (*hexutil.Uint64)(&b.GasUsed)
+	t := uint64(b.Timestamp.Unix())
+	r.Timestamp = (*hexutil.Uint64)(&t)
+	r.ExtraData = (*hexutil.Bytes)(&b.ExtraData)
+	r.MixHash = &b.MixHash
+	r.Nonce = &b.Nonce
+	r.Hash = &b.Hash
 	r.Txs = b.Txs
 	r.Uncles = b.Uncles
 }
 
 type rpcTransaction struct {
-	Nonce            hexutil.Uint64 `json:"nonce"`
-	GasPrice         hexutil.Big    `json:"gasPrice"`
-	GasLimit         hexutil.Uint64 `json:"gas"`
-	To               common.Address `json:"to"`
-	Value            hexutil.Big    `json:"value"`
-	Input            hexutil.Bytes  `json:"input"`
-	Hash             common.Hash    `json:"hash"`
-	BlockNumber      hexutil.Big    `json:"blockNumber"`
-	BlockHash        common.Hash    `json:"blockHash"`
-	From             common.Address `json:"from"`
-	TransactionIndex hexutil.Uint64 `json:"transactionIndex"`
-	V                hexutil.Big    `json:"v"`
-	R                common.Hash    `json:"r"`
-	S                common.Hash    `json:"s"`
+	Nonce    *hexutil.Uint64 `json:"nonce"`
+	GasPrice *hexutil.Big    `json:"gasPrice"`
+	GasLimit *hexutil.Uint64 `json:"gas"`
+	To       *common.Address `json:"to"`
+	Value    *hexutil.Big    `json:"value"`
+	Input    *hexutil.Bytes  `json:"input"`
+	From     *common.Address `json:"from"`
+	V        *hexutil.Big    `json:"v"`
+	R        *hexutil.Big    `json:"r"`
+	S        *hexutil.Big    `json:"s"`
+	Hash     *common.Hash    `json:"hash"`
+
+	BlockNumber      *hexutil.Big    `json:"blockNumber,omitempty"`
+	BlockHash        *common.Hash    `json:"blockHash,omitempty"`
+	TransactionIndex *hexutil.Uint64 `json:"transactionIndex,omitempty"`
 }
 
 // copyTo copies the fields from r to t.
-func (r *rpcTransaction) copyTo(t *Transaction) {
-	t.Nonce = uint64(r.Nonce)
+func (r *rpcTransaction) copyTo(t *Transaction) error {
+	if r.Nonce == nil {
+		return errors.New("missing 'nonce'")
+	}
+	t.Nonce = uint64(*r.Nonce)
+	if r.GasPrice == nil {
+		return errors.New("missing 'gasPrice'")
+	}
 	t.GasPrice = r.GasPrice.ToInt()
-	t.GasLimit = uint64(r.GasLimit)
-	t.To = r.To
+	if r.GasLimit == nil {
+		return errors.New("missing 'gas'")
+	}
+	t.GasLimit = uint64(*r.GasLimit)
+	if r.To != nil {
+		t.To = r.To
+	}
+	if r.Value == nil {
+		return errors.New("missing 'value'")
+	}
 	t.Value = r.Value.ToInt()
-	t.Input = r.Input
-	t.Hash = r.Hash
-	t.BlockNumber = r.BlockNumber.ToInt()
-	t.BlockHash = r.BlockHash
-	t.From = r.From
-	t.TransactionIndex = uint64(r.TransactionIndex)
+	if r.Input != nil {
+		t.Input = *r.Input
+	}
+	if r.V == nil {
+		return errors.New("missing 'v'")
+	}
 	t.V = r.V.ToInt()
-	t.R = r.R
-	t.S = r.S
+	if r.R == nil {
+		return errors.New("missing 'r'")
+	}
+	t.R = r.R.ToInt()
+	if r.S == nil {
+		return errors.New("missing 's'")
+	}
+	t.S = r.S.ToInt()
+	if r.Hash != nil {
+		t.Hash = *r.Hash
+	}
+
+	if r.BlockNumber != nil {
+		t.BlockNumber = r.BlockNumber.ToInt()
+	}
+	if r.BlockHash != nil {
+		t.BlockHash = *r.BlockHash
+	}
+	if r.From != nil {
+		t.From = *r.From
+	}
+	if r.TransactionIndex != nil {
+		t.TransactionIndex = uint64(*r.TransactionIndex)
+	}
+	return nil
 }
 
 // copyFrom copies the fields from t to r.
 func (r *rpcTransaction) copyFrom(t *Transaction) {
-	r.Nonce = hexutil.Uint64(t.Nonce)
-	r.GasPrice = hexutil.Big(*t.GasPrice)
-	r.GasLimit = hexutil.Uint64(t.GasLimit)
+	r.Nonce = (*hexutil.Uint64)(&t.Nonce)
+	r.GasPrice = (*hexutil.Big)(t.GasPrice)
+	r.GasLimit = (*hexutil.Uint64)(&t.GasLimit)
 	r.To = t.To
-	r.Value = hexutil.Big(*t.Value)
-	r.Input = t.Input
-	r.Hash = t.Hash
-	r.BlockNumber = hexutil.Big(*t.BlockNumber)
-	r.BlockHash = t.BlockHash
-	r.From = t.From
-	r.TransactionIndex = hexutil.Uint64(t.TransactionIndex)
-	r.V = hexutil.Big(*t.V)
-	r.R = t.R
-	r.S = t.S
+	r.Value = (*hexutil.Big)(t.Value)
+	r.Input = (*hexutil.Bytes)(&t.Input)
+	r.Hash = &t.Hash
+	r.BlockNumber = (*hexutil.Big)(t.BlockNumber)
+	r.BlockHash = &t.BlockHash
+	r.From = &t.From
+	r.TransactionIndex = (*hexutil.Uint64)(&t.TransactionIndex)
+	r.V = (*hexutil.Big)(t.V)
+	r.R = (*hexutil.Big)(t.R)
+	r.S = (*hexutil.Big)(t.S)
+}
+
+type rpcReceipt struct {
+	PostState         *hexutil.Bytes  `json:"root"`
+	Status            *hexutil.Uint64 `json:"status"`
+	CumulativeGasUsed *hexutil.Uint64 `json:"cumulativeGasUsed"`
+	Bloom             *types.Bloom    `json:"logsBloom"`
+	Logs              []*types.Log    `json:"logs"`
+	TxHash            *common.Hash    `json:"transactionHash"`
+	ContractAddress   *common.Address `json:"contractAddress"`
+	GasUsed           *hexutil.Uint64 `json:"gasUsed" `
+}
+
+func (rr *rpcReceipt) copyTo(r *Receipt) error {
+	if rr.PostState != nil {
+		r.PostState = *rr.PostState
+	}
+	if rr.Status != nil {
+		r.Status = uint64(*rr.Status)
+	}
+	if rr.CumulativeGasUsed == nil {
+		return errors.New("missing 'cumulativeGasUsed'")
+	}
+	r.CumulativeGasUsed = uint64(*rr.CumulativeGasUsed)
+	r.Bloom = *rr.Bloom
+	if rr.Logs == nil {
+		return errors.New("missing 'logs'")
+	}
+	r.Logs = rr.Logs
+	if rr.TxHash == nil {
+		return errors.New("missing 'transactionHash'")
+	}
+	r.TxHash = *rr.TxHash
+	if rr.ContractAddress != nil {
+		r.ContractAddress = *rr.ContractAddress
+	}
+	if rr.GasUsed == nil {
+		return errors.New("missing 'gasUsed'")
+	}
+	r.GasUsed = uint64(*rr.GasUsed)
+	return nil
+}
+
+func (rr *rpcReceipt) copyFrom(r *Receipt) {
+	rr.PostState = (*hexutil.Bytes)(&r.PostState)
+	rr.Status = (*hexutil.Uint64)(&r.Status)
+	rr.CumulativeGasUsed = (*hexutil.Uint64)(&r.CumulativeGasUsed)
+	rr.Bloom = &r.Bloom
+	rr.Logs = r.Logs
+	rr.TxHash = &r.TxHash
+	rr.ContractAddress = &r.ContractAddress
+	rr.GasUsed = (*hexutil.Uint64)(&r.GasUsed)
 }

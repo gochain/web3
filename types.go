@@ -46,14 +46,29 @@ type ID struct {
 }
 
 type Receipt struct {
-	PostState         []byte         `json:"root"`
-	Status            uint64         `json:"status"`
-	CumulativeGasUsed uint64         `json:"cumulativeGasUsed"`
-	Bloom             types.Bloom    `json:"logsBloom"`
-	Logs              []*types.Log   `json:"logs"`
-	TxHash            common.Hash    `json:"transactionHash"`
-	ContractAddress   common.Address `json:"contractAddress"`
-	GasUsed           uint64         `json:"gasUsed"`
+	PostState         []byte
+	Status            uint64
+	CumulativeGasUsed uint64
+	Bloom             types.Bloom
+	Logs              []*types.Log
+	TxHash            common.Hash
+	ContractAddress   common.Address
+	GasUsed           uint64
+}
+
+func (r *Receipt) UnmarshalJSON(data []byte) error {
+	var rr rpcReceipt
+	err := json.Unmarshal(data, &rr)
+	if err != nil {
+		return err
+	}
+	return rr.copyTo(r)
+}
+
+func (r *Receipt) MarshalJSON() ([]byte, error) {
+	var rr rpcReceipt
+	rr.copyFrom(r)
+	return json.Marshal(&rr)
 }
 
 type Block struct {
@@ -89,8 +104,7 @@ func (b *Block) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	r.copyTo(b)
-	return nil
+	return r.copyTo(b)
 }
 
 func (b *Block) MarshalJSON() ([]byte, error) {
@@ -108,20 +122,21 @@ func (b *Block) ExtraVanity() string {
 }
 
 type Transaction struct {
-	Nonce            uint64
-	GasPrice         *big.Int // wei
-	GasLimit         uint64
-	To               common.Address
-	Value            *big.Int // wei
-	Input            []byte
-	Hash             common.Hash
+	Nonce    uint64
+	GasPrice *big.Int // wei
+	GasLimit uint64
+	To       *common.Address
+	Value    *big.Int // wei
+	Input    []byte
+	From     common.Address
+	V        *big.Int
+	R        *big.Int
+	S        *big.Int
+	Hash     common.Hash
+
 	BlockNumber      *big.Int
 	BlockHash        common.Hash
-	From             common.Address
 	TransactionIndex uint64
-	V                *big.Int
-	R                common.Hash
-	S                common.Hash
 }
 
 func (t *Transaction) UnmarshalJSON(data []byte) error {
@@ -130,8 +145,7 @@ func (t *Transaction) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	r.copyFrom(t)
-	return nil
+	return r.copyTo(t)
 }
 
 func (t *Transaction) MarshalJSON() ([]byte, error) {
