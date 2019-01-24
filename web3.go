@@ -99,7 +99,7 @@ func convertTx(tx *types.Transaction, from common.Address) *Transaction {
 	rtx.Nonce = tx.Nonce()
 	rtx.GasPrice = tx.GasPrice()
 	rtx.GasLimit = tx.Gas()
-	rtx.To = *tx.To()
+	rtx.To = tx.To()
 	rtx.Value = tx.Value()
 	rtx.Input = tx.Data()
 	rtx.Hash = tx.Hash()
