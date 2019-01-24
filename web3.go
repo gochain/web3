@@ -52,21 +52,28 @@ func WeiAsGwei(w *big.Int) string {
 }
 
 func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, address, functionName string, parameters ...interface{}) (interface{}, error) {
-	var (
-		ret0 = new(string)
-	)
-	out := ret0
+	var out interface{}
+	switch myabi.Methods[functionName].Outputs[0].Type.String() {
+	case "bool":
+		out = new(bool)
+	case "uint256":
+		out = new(uint8)
+	default:
+		out = new(string)
+	}
+
 	input, err := myabi.Pack(functionName, parameters...)
+
 	if err != nil {
 		return nil, err
 	}
 	toAddress := common.HexToAddress(address)
 	res, err := client.EthCall(ctx, CallMsg{Data: input, To: &toAddress})
-	err = myabi.Unpack(out, functionName, res)
+	err = myabi.Unpack(&out, functionName, res)
 	if err != nil {
 		return nil, err
 	}
-	return *out, nil
+	return out, nil
 }
 func DeployContract(ctx context.Context, client Client, privateKeyHex string, contractData string) (*Transaction, error) {
 	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {

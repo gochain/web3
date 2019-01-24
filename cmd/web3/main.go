@@ -136,7 +136,11 @@ func main() {
 					Name:  "call",
 					Usage: "Call the specified function of the contract",
 					Action: func(c *cli.Context) {
-						CallContract(ctx, rpcUrl, contractAddress, contractFile, function)
+						args := make([]interface{}, len(c.Args()))
+						for i, v := range c.Args() {
+							args[i] = v
+						}
+						CallContract(ctx, rpcUrl, contractAddress, contractFile, function, args...)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -512,7 +516,7 @@ func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string) {
 	fmt.Println("Contract address is:", receipt.ContractAddress.Hex())
 }
 
-func CallContract(ctx context.Context, rpcURL, contractAddress, contractFile, functionName string) {
+func CallContract(ctx context.Context, rpcURL, contractAddress, contractFile, functionName string, parameters ...interface{}) {
 	client, err := web3.NewClient(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
@@ -529,7 +533,7 @@ func CallContract(ctx context.Context, rpcURL, contractAddress, contractFile, fu
 	if err != nil {
 		log.Fatalf("Cannot initialize ABI: %v", err)
 	}
-	res, err := web3.CallConstantFunction(ctx, client, myabi, contractAddress, functionName)
+	res, err := web3.CallConstantFunction(ctx, client, myabi, contractAddress, functionName, parameters...)
 	if err != nil {
 		log.Fatalf("Cannot call the contract: %v", err)
 	}
