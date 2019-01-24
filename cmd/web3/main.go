@@ -13,6 +13,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gochain-io/gochain/accounts/abi"
+
 	"github.com/gochain-io/gochain/v3/common"
 	"github.com/urfave/cli"
 
@@ -38,7 +40,7 @@ func main() {
 	}()
 
 	// Flags
-	var network, rpcUrl, function, contractAddress, privateKey string
+	var network, rpcUrl, function, contractAddress, contractFile, privateKey string
 	var testnet bool
 
 	app := cli.NewApp()
@@ -134,8 +136,7 @@ func main() {
 					Name:  "call",
 					Usage: "Call the specified function of the contract",
 					Action: func(c *cli.Context) {
-						println("calling the function of the deployed contract")
-						fmt.Println("calling the function of the deployed contract from:", network)
+						CallContract(ctx, rpcUrl, contractAddress, contractFile, function)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -147,6 +148,11 @@ func main() {
 							Name:        "contract",
 							Destination: &contractAddress,
 							Usage:       "The address of the deployed contract",
+							Hidden:      false},
+						cli.StringFlag{
+							Name:        "contract-abi",
+							Destination: &contractFile,
+							Usage:       "The abi file of the deployed contract",
 							Hidden:      false},
 					},
 				},
@@ -504,6 +510,31 @@ func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string) {
 
 	fmt.Println("Contract has been successfully deployed with transaction:", tx.Hash.Hex())
 	fmt.Println("Contract address is:", receipt.ContractAddress.Hex())
+}
+
+func CallContract(ctx context.Context, rpcURL, contractAddress, contractFile, functionName string) {
+	client, err := web3.NewClient(rpcURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
+	}
+	defer client.Close()
+	if _, err := os.Stat(contractFile); os.IsNotExist(err) {
+		log.Fatalf("Cannot find the abi file: %v", err)
+	}
+	jsonReader, err := os.Open(contractFile)
+	if err != nil {
+		log.Fatalf("Cannot read the abi file: %v", err)
+	}
+	myabi, err := abi.JSON(jsonReader)
+	if err != nil {
+		log.Fatalf("Cannot initialize ABI: %v", err)
+	}
+	res, err := web3.CallConstantFunction(ctx, client, myabi, contractAddress, functionName)
+	if err != nil {
+		log.Fatalf("Cannot call the contract: %v", err)
+	}
+
+	fmt.Println("Call results:", res)
 }
 
 func marshalJSON(data interface{}) string {

@@ -8,6 +8,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/gochain-io/gochain/accounts/abi"
+
 	"github.com/gochain-io/gochain/v3/common"
 	"github.com/gochain-io/gochain/v3/common/hexutil"
 	"github.com/gochain-io/gochain/v3/core/types"
@@ -49,6 +51,23 @@ func WeiAsGwei(w *big.Int) string {
 	return new(big.Rat).SetFrac(w, weiPerGwei).FloatString(9)
 }
 
+func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, address, functionName string, parameters ...interface{}) (interface{}, error) {
+	var (
+		ret0 = new(string)
+	)
+	out := ret0
+	input, err := myabi.Pack(functionName, parameters...)
+	if err != nil {
+		return nil, err
+	}
+	toAddress := common.HexToAddress(address)
+	res, err := client.EthCall(ctx, CallMsg{Data: input, To: &toAddress})
+	err = myabi.Unpack(out, functionName, res)
+	if err != nil {
+		return nil, err
+	}
+	return *out, nil
+}
 func DeployContract(ctx context.Context, client Client, privateKeyHex string, contractData string) (*Transaction, error) {
 	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
 		privateKeyHex = privateKeyHex[2:]

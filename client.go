@@ -30,6 +30,7 @@ type Client interface {
 	// This value is also the next legal nonce.
 	GetPendingTransactionCount(ctx context.Context, account common.Address) (uint64, error)
 	SendTransaction(ctx context.Context, tx *Transaction) error
+	EthCall(ctx context.Context, msg CallMsg) ([]byte, error)
 	Close()
 }
 
@@ -47,6 +48,15 @@ type client struct {
 
 func (c *client) Close() {
 	c.r.Close()
+}
+
+func (c *client) EthCall(ctx context.Context, msg CallMsg) ([]byte, error) {
+	var result hexutil.Bytes
+	err := c.r.CallContext(ctx, &result, "eth_call", toCallArg(msg), "latest")
+	if err != nil {
+		return nil, err
+	}
+	return result, err
 }
 
 func (c *client) GetBalance(ctx context.Context, address string, blockNumber *big.Int) (*big.Int, error) {
@@ -223,4 +233,24 @@ func toBlockNumArg(number *big.Int) string {
 		return "latest"
 	}
 	return hexutil.EncodeBig(number)
+}
+
+func toCallArg(msg CallMsg) interface{} {
+	arg := map[string]interface{}{
+		"from": msg.From,
+		"to":   msg.To,
+	}
+	if len(msg.Data) > 0 {
+		arg["data"] = hexutil.Bytes(msg.Data)
+	}
+	if msg.Value != nil {
+		arg["value"] = (*hexutil.Big)(msg.Value)
+	}
+	if msg.Gas != 0 {
+		arg["gas"] = hexutil.Uint64(msg.Gas)
+	}
+	if msg.GasPrice != nil {
+		arg["gasPrice"] = (*hexutil.Big)(msg.GasPrice)
+	}
+	return arg
 }
