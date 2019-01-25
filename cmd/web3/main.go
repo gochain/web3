@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gochain-io/gochain/accounts/abi"
+	"github.com/gochain-io/gochain/v3/accounts/abi"
 
 	"github.com/gochain-io/gochain/v3/common"
 	"github.com/urfave/cli"

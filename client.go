@@ -30,7 +30,7 @@ type Client interface {
 	// This value is also the next legal nonce.
 	GetPendingTransactionCount(ctx context.Context, account common.Address) (uint64, error)
 	SendTransaction(ctx context.Context, tx *Transaction) error
-	EthCall(ctx context.Context, msg CallMsg) ([]byte, error)
+	Call(ctx context.Context, msg CallMsg) ([]byte, error)
 	Close()
 }
 
@@ -50,7 +50,7 @@ func (c *client) Close() {
 	c.r.Close()
 }
 
-func (c *client) EthCall(ctx context.Context, msg CallMsg) ([]byte, error) {
+func (c *client) Call(ctx context.Context, msg CallMsg) ([]byte, error) {
 	var result hexutil.Bytes
 	err := c.r.CallContext(ctx, &result, "eth_call", toCallArg(msg), "latest")
 	if err != nil {

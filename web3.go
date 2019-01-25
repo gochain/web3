@@ -8,7 +8,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/gochain-io/gochain/accounts/abi"
+	"github.com/gochain-io/gochain/v3/accounts/abi"
 
 	"github.com/gochain-io/gochain/v3/common"
 	"github.com/gochain-io/gochain/v3/common/hexutil"
@@ -53,10 +53,10 @@ func WeiAsGwei(w *big.Int) string {
 
 func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, address, functionName string, parameters ...interface{}) (interface{}, error) {
 	var out interface{}
-	switch myabi.Methods[functionName].Outputs[0].Type.String() {
-	case "bool":
+	switch myabi.Methods[functionName].Outputs[0].Type.T {
+	case abi.BoolTy:
 		out = new(bool)
-	case "uint256":
+	case abi.UintTy:
 		out = new(uint8)
 	default:
 		out = new(string)
@@ -68,7 +68,7 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 		return nil, err
 	}
 	toAddress := common.HexToAddress(address)
-	res, err := client.EthCall(ctx, CallMsg{Data: input, To: &toAddress})
+	res, err := client.Call(ctx, CallMsg{Data: input, To: &toAddress})
 	err = myabi.Unpack(&out, functionName, res)
 	if err != nil {
 		return nil, err
