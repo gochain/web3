@@ -41,6 +41,7 @@ func main() {
 
 	// Flags
 	var network, rpcUrl, function, contractAddress, contractFile, privateKey string
+	var amount int
 	var testnet bool
 
 	app := cli.NewApp()
@@ -140,7 +141,7 @@ func main() {
 						for i, v := range c.Args() {
 							args[i] = v
 						}
-						CallContract(ctx, rpcUrl, contractAddress, contractFile, function, args...)
+						CallContract(ctx, rpcUrl, privateKey, contractAddress, contractFile, function, amount, args...)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -157,6 +158,11 @@ func main() {
 							Name:        "contract-abi",
 							Destination: &contractFile,
 							Usage:       "The abi file of the deployed contract",
+							Hidden:      false},
+						cli.IntFlag{
+							Name:        "amount",
+							Destination: &amount,
+							Usage:       "Amount that you want to send to the transaction",
 							Hidden:      false},
 					},
 				},
@@ -516,7 +522,7 @@ func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string) {
 	fmt.Println("Contract address is:", receipt.ContractAddress.Hex())
 }
 
-func CallContract(ctx context.Context, rpcURL, contractAddress, contractFile, functionName string, parameters ...interface{}) {
+func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, contractFile, functionName string, amount int, parameters ...interface{}) {
 	client, err := web3.NewClient(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
@@ -533,12 +539,28 @@ func CallContract(ctx context.Context, rpcURL, contractAddress, contractFile, fu
 	if err != nil {
 		log.Fatalf("Cannot initialize ABI: %v", err)
 	}
-	res, err := web3.CallConstantFunction(ctx, client, myabi, contractAddress, functionName, parameters...)
-	if err != nil {
-		log.Fatalf("Cannot call the contract: %v", err)
-	}
+	if _, ok := myabi.Methods[functionName]; ok {
+		if myabi.Methods[functionName].Const {
+			res, err := web3.CallConstantFunction(ctx, client, myabi, contractAddress, functionName, parameters...)
+			if err != nil {
+				log.Fatalf("Cannot call the contract: %v", err)
+			}
+			fmt.Println("Call results:", res)
+		} else {
+			tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, functionName, amount, parameters...)
+			if err != nil {
+				log.Fatalf("Cannot call the contract: %v", err)
+			}
+			receipt, err := web3.WaitForReceipt(ctx, client, tx)
+			if err != nil {
+				log.Fatalf("Cannot get the receipt: %v", err)
+			}
+			fmt.Println("Transaction details:", receipt.ContractAddress.Hex())
+		}
 
-	fmt.Println("Call results:", res)
+	} else {
+		fmt.Println("There is no such function:", functionName)
+	}
 }
 
 func marshalJSON(data interface{}) string {
