@@ -164,6 +164,12 @@ func main() {
 							Destination: &amount,
 							Usage:       "Amount that you want to send to the transaction",
 							Hidden:      false},
+						cli.StringFlag{
+							Name:        "private-key",
+							Usage:       "The private key",
+							EnvVar:      "PRIVATE_KEY",
+							Destination: &privateKey,
+							Hidden:      true},
 					},
 				},
 			},
