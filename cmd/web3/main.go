@@ -561,7 +561,7 @@ func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 			if err != nil {
 				log.Fatalf("Cannot get the receipt: %v", err)
 			}
-			fmt.Println("Transaction details:", receipt.ContractAddress.Hex())
+			fmt.Println("Transaction address:", receipt.TxHash.Hex())
 		}
 
 	} else {
