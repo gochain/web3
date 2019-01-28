@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/gochain-io/gochain/v3/accounts/abi"
-
 	"github.com/gochain-io/gochain/v3/common"
 	"github.com/gochain-io/gochain/v3/common/hexutil"
 	"github.com/gochain-io/gochain/v3/core/types"
 	"github.com/gochain-io/gochain/v3/crypto"
+	"github.com/gochain-io/gochain/v3/rlp"
 )
 
 var NotFoundErr = errors.New("not found")
@@ -111,12 +111,15 @@ func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, add
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign transaction: %v", err)
 	}
-	rtx := convertTx(signedTx, fromAddress)
-	err = client.SendTransaction(ctx, rtx)
+	raw, err := rlp.EncodeToBytes(signedTx)
+	if err != nil {
+		return nil, err
+	}
+	err = client.SendRawTransaction(ctx, raw)
 	if err != nil {
 		return nil, fmt.Errorf("cannot send transaction: %v", err)
 	}
-	return rtx, nil
+	return convertTx(signedTx, fromAddress), nil
 }
 func DeployContract(ctx context.Context, client Client, privateKeyHex string, contractData string) (*Transaction, error) {
 	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
@@ -153,14 +156,16 @@ func DeployContract(ctx context.Context, client Client, privateKeyHex string, co
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign transaction: %v", err)
 	}
-
-	rtx := convertTx(signedTx, fromAddress)
-	err = client.SendTransaction(ctx, rtx)
+	raw, err := rlp.EncodeToBytes(signedTx)
+	if err != nil {
+		return nil, err
+	}
+	err = client.SendRawTransaction(ctx, raw)
 	if err != nil {
 		return nil, fmt.Errorf("cannot send transaction: %v", err)
 	}
 
-	return rtx, nil
+	return convertTx(signedTx, fromAddress), nil
 }
 
 func convertTx(tx *types.Transaction, from common.Address) *Transaction {
@@ -173,10 +178,7 @@ func convertTx(tx *types.Transaction, from common.Address) *Transaction {
 	rtx.Input = tx.Data()
 	rtx.Hash = tx.Hash()
 	rtx.From = from
-	v, r, s := tx.RawSignatureValues()
-	rtx.V = v
-	rtx.R.SetBytes(r.Bytes())
-	rtx.S.SetBytes(s.Bytes())
+	rtx.V, rtx.R, rtx.S = tx.RawSignatureValues()
 	return rtx
 }
 
