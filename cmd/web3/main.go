@@ -465,7 +465,7 @@ func BuildSol(ctx context.Context, filename string) {
 	var filenames []string
 	for contractName, v := range compileData {
 		filename := contractName[8:]
-		err := ioutil.WriteFile(filename+".bin", []byte(v.RuntimeCode), 0600)
+		err := ioutil.WriteFile(filename+".bin", []byte(v.Code), 0600)
 		if err != nil {
 			log.Fatalf("Cannot write the bin file: %v", err)
 		}
