@@ -6,7 +6,7 @@ jobs:
  build:
   docker:   
     - image: circleci/golang:1.11      
-  working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
+  working_directory: /go/src/github.com/gochain-io/web3
   steps: 
     - checkout
     - run: make test    
