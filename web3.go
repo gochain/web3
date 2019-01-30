@@ -6,12 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
 	"time"
 
+	"github.com/gochain-io/gochain/v3/accounts/abi"
 	"github.com/gochain-io/gochain/v3/common"
 	"github.com/gochain-io/gochain/v3/common/hexutil"
 	"github.com/gochain-io/gochain/v3/core/types"
 	"github.com/gochain-io/gochain/v3/crypto"
+	"github.com/gochain-io/gochain/v3/rlp"
 )
 
 var NotFoundErr = errors.New("not found")
@@ -49,6 +52,81 @@ func WeiAsGwei(w *big.Int) string {
 	return new(big.Rat).SetFrac(w, weiPerGwei).FloatString(9)
 }
 
+func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, address, functionName string, parameters ...interface{}) (interface{}, error) {
+	var out interface{}
+	switch myabi.Methods[functionName].Outputs[0].Type.T {
+	case abi.BoolTy:
+		out = new(bool)
+	case abi.UintTy, abi.IntTy:
+		out = new(big.Int)
+	case abi.StringTy:
+		out = new(string)
+	case abi.AddressTy:
+		out = new(common.Address)
+	case abi.BytesTy, abi.FixedBytesTy:
+		out = new([]byte)
+	default:
+		out = new(string)
+	}
+
+	input, err := myabi.Pack(functionName, convertParameters(myabi.Methods[functionName], parameters)...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	toAddress := common.HexToAddress(address)
+	res, err := client.Call(ctx, CallMsg{Data: input, To: &toAddress})
+	err = myabi.Unpack(&out, functionName, res)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, address, privateKeyHex, functionName string, amount int, parameters ...interface{}) (*Transaction, error) {
+
+	input, err := myabi.Pack(functionName, convertParameters(myabi.Methods[functionName], parameters)...)
+	if err != nil {
+		return nil, err
+	}
+	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
+		privateKeyHex = privateKeyHex[2:]
+	}
+	privateKey, err := crypto.HexToECDSA(privateKeyHex)
+	if err != nil {
+		return nil, fmt.Errorf("invalid private key: %v", err)
+	}
+	gasPrice, err := client.GetGasPrice(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get gas price: %v", err)
+	}
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return nil, errors.New("error casting public key to ECDSA")
+	}
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	nonce, err := client.GetPendingTransactionCount(ctx, fromAddress)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get nonce: %v", err)
+	}
+	toAddress := common.HexToAddress(address)
+	tx := types.NewTransaction(nonce, toAddress, big.NewInt(int64(amount)), 20000000, gasPrice, input)
+	signedTx, err := types.SignTx(tx, types.HomesteadSigner{}, privateKey)
+	if err != nil {
+		return nil, fmt.Errorf("cannot sign transaction: %v", err)
+	}
+	raw, err := rlp.EncodeToBytes(signedTx)
+	if err != nil {
+		return nil, err
+	}
+	err = client.SendRawTransaction(ctx, raw)
+	if err != nil {
+		return nil, fmt.Errorf("cannot send transaction: %v", err)
+	}
+	return convertTx(signedTx, fromAddress), nil
+}
 func DeployContract(ctx context.Context, client Client, privateKeyHex string, contractData string) (*Transaction, error) {
 	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
 		privateKeyHex = privateKeyHex[2:]
@@ -84,14 +162,16 @@ func DeployContract(ctx context.Context, client Client, privateKeyHex string, co
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign transaction: %v", err)
 	}
-
-	rtx := convertTx(signedTx, fromAddress)
-	err = client.SendTransaction(ctx, rtx)
+	raw, err := rlp.EncodeToBytes(signedTx)
+	if err != nil {
+		return nil, err
+	}
+	err = client.SendRawTransaction(ctx, raw)
 	if err != nil {
 		return nil, fmt.Errorf("cannot send transaction: %v", err)
 	}
 
-	return rtx, nil
+	return convertTx(signedTx, fromAddress), nil
 }
 
 func convertTx(tx *types.Transaction, from common.Address) *Transaction {
@@ -104,11 +184,31 @@ func convertTx(tx *types.Transaction, from common.Address) *Transaction {
 	rtx.Input = tx.Data()
 	rtx.Hash = tx.Hash()
 	rtx.From = from
-	v, r, s := tx.RawSignatureValues()
-	rtx.V = v
-	rtx.R.SetBytes(r.Bytes())
-	rtx.S.SetBytes(s.Bytes())
+	rtx.V, rtx.R, rtx.S = tx.RawSignatureValues()
 	return rtx
+}
+
+func convertParameters(method abi.Method, inputParams []interface{}) []interface{} {
+	var convertedParams []interface{}
+	for i, input := range method.Inputs {
+		switch input.Type.T {
+		case abi.BoolTy:
+			val, _ := strconv.ParseBool(inputParams[i].(string))
+			convertedParams = append(convertedParams, val)
+		case abi.UintTy:
+			val := new(big.Int)
+			fmt.Sscan(inputParams[i].(string), val)
+			convertedParams = append(convertedParams, val)
+		case abi.AddressTy:
+			val := common.HexToAddress(inputParams[i].(string))
+			convertedParams = append(convertedParams, val)
+		default:
+			val := inputParams[i].(string)
+			convertedParams = append(convertedParams, val)
+		}
+
+	}
+	return convertedParams
 }
 
 func WaitForReceipt(ctx context.Context, client Client, tx *Transaction) (*Receipt, error) {

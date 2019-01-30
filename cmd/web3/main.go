@@ -13,6 +13,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gochain-io/gochain/v3/accounts/abi"
+
 	"github.com/gochain-io/gochain/v3/common"
 	"github.com/urfave/cli"
 
@@ -38,7 +40,8 @@ func main() {
 	}()
 
 	// Flags
-	var network, rpcUrl, function, contractAddress, privateKey string
+	var network, rpcUrl, function, contractAddress, contractFile, privateKey string
+	var amount int
 	var testnet bool
 
 	app := cli.NewApp()
@@ -134,8 +137,11 @@ func main() {
 					Name:  "call",
 					Usage: "Call the specified function of the contract",
 					Action: func(c *cli.Context) {
-						println("calling the function of the deployed contract")
-						fmt.Println("calling the function of the deployed contract from:", network)
+						args := make([]interface{}, len(c.Args()))
+						for i, v := range c.Args() {
+							args[i] = v
+						}
+						CallContract(ctx, rpcUrl, privateKey, contractAddress, contractFile, function, amount, args...)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -148,6 +154,22 @@ func main() {
 							Destination: &contractAddress,
 							Usage:       "The address of the deployed contract",
 							Hidden:      false},
+						cli.StringFlag{
+							Name:        "contract-abi",
+							Destination: &contractFile,
+							Usage:       "The abi file of the deployed contract",
+							Hidden:      false},
+						cli.IntFlag{
+							Name:        "amount",
+							Destination: &amount,
+							Usage:       "Amount in wei that you want to send to the transaction",
+							Hidden:      false},
+						cli.StringFlag{
+							Name:        "private-key",
+							Usage:       "The private key",
+							EnvVar:      "PRIVATE_KEY",
+							Destination: &privateKey,
+							Hidden:      true},
 					},
 				},
 			},
@@ -443,7 +465,7 @@ func BuildSol(ctx context.Context, filename string) {
 	var filenames []string
 	for contractName, v := range compileData {
 		filename := contractName[8:]
-		err := ioutil.WriteFile(filename+".bin", []byte(v.RuntimeCode), 0600)
+		err := ioutil.WriteFile(filename+".bin", []byte(v.Code), 0600)
 		if err != nil {
 			log.Fatalf("Cannot write the bin file: %v", err)
 		}
@@ -504,6 +526,47 @@ func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string) {
 
 	fmt.Println("Contract has been successfully deployed with transaction:", tx.Hash.Hex())
 	fmt.Println("Contract address is:", receipt.ContractAddress.Hex())
+}
+
+func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, contractFile, functionName string, amount int, parameters ...interface{}) {
+	client, err := web3.NewClient(rpcURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
+	}
+	defer client.Close()
+	if _, err := os.Stat(contractFile); os.IsNotExist(err) {
+		log.Fatalf("Cannot find the abi file: %v", err)
+	}
+	jsonReader, err := os.Open(contractFile)
+	if err != nil {
+		log.Fatalf("Cannot read the abi file: %v", err)
+	}
+	myabi, err := abi.JSON(jsonReader)
+	if err != nil {
+		log.Fatalf("Cannot initialize ABI: %v", err)
+	}
+	if _, ok := myabi.Methods[functionName]; ok {
+		if myabi.Methods[functionName].Const {
+			res, err := web3.CallConstantFunction(ctx, client, myabi, contractAddress, functionName, parameters...)
+			if err != nil {
+				log.Fatalf("Cannot call the contract: %v", err)
+			}
+			fmt.Println("Call results:", res)
+		} else {
+			tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, functionName, amount, parameters...)
+			if err != nil {
+				log.Fatalf("Cannot call the contract: %v", err)
+			}
+			receipt, err := web3.WaitForReceipt(ctx, client, tx)
+			if err != nil {
+				log.Fatalf("Cannot get the receipt: %v", err)
+			}
+			fmt.Println("Transaction address:", receipt.TxHash.Hex())
+		}
+
+	} else {
+		fmt.Println("There is no such function:", functionName)
+	}
 }
 
 func marshalJSON(data interface{}) string {

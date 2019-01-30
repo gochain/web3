@@ -10,7 +10,6 @@ import (
 	"github.com/gochain-io/gochain/v3/common"
 	"github.com/gochain-io/gochain/v3/common/hexutil"
 	"github.com/gochain-io/gochain/v3/core/types"
-	"github.com/gochain-io/gochain/v3/rlp"
 	"github.com/gochain-io/gochain/v3/rpc"
 )
 
@@ -29,7 +28,8 @@ type Client interface {
 	// GetPendingTransactionCount returns the transaction count including pending txs.
 	// This value is also the next legal nonce.
 	GetPendingTransactionCount(ctx context.Context, account common.Address) (uint64, error)
-	SendTransaction(ctx context.Context, tx *Transaction) error
+	SendRawTransaction(ctx context.Context, tx []byte) error
+	Call(ctx context.Context, msg CallMsg) ([]byte, error)
 	Close()
 }
 
@@ -47,6 +47,15 @@ type client struct {
 
 func (c *client) Close() {
 	c.r.Close()
+}
+
+func (c *client) Call(ctx context.Context, msg CallMsg) ([]byte, error) {
+	var result hexutil.Bytes
+	err := c.r.CallContext(ctx, &result, "eth_call", toCallArg(msg), "latest")
+	if err != nil {
+		return nil, err
+	}
+	return result, err
 }
 
 func (c *client) GetBalance(ctx context.Context, address string, blockNumber *big.Int) (*big.Int, error) {
@@ -158,12 +167,8 @@ func (c *client) getTransactionCount(ctx context.Context, account common.Address
 	return uint64(result), err
 }
 
-func (c *client) SendTransaction(ctx context.Context, tx *Transaction) error {
-	data, err := rlp.EncodeToBytes(tx)
-	if err != nil {
-		return err
-	}
-	return c.r.CallContext(ctx, nil, "eth_sendRawTransaction", common.ToHex(data))
+func (c *client) SendRawTransaction(ctx context.Context, tx []byte) error {
+	return c.r.CallContext(ctx, nil, "eth_sendRawTransaction", common.ToHex(tx))
 }
 
 func (c *client) getBlock(ctx context.Context, method string, hashOrNum string, includeTxs bool) (*Block, error) {
@@ -223,4 +228,24 @@ func toBlockNumArg(number *big.Int) string {
 		return "latest"
 	}
 	return hexutil.EncodeBig(number)
+}
+
+func toCallArg(msg CallMsg) interface{} {
+	arg := map[string]interface{}{
+		"from": msg.From,
+		"to":   msg.To,
+	}
+	if len(msg.Data) > 0 {
+		arg["data"] = hexutil.Bytes(msg.Data)
+	}
+	if msg.Value != nil {
+		arg["value"] = (*hexutil.Big)(msg.Value)
+	}
+	if msg.Gas != 0 {
+		arg["gas"] = hexutil.Uint64(msg.Gas)
+	}
+	if msg.GasPrice != nil {
+		arg["gasPrice"] = (*hexutil.Big)(msg.GasPrice)
+	}
+	return arg
 }
