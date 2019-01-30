@@ -123,3 +123,13 @@ none
 - FUNCTION_PARAMETERS - the list of the function parameters
 - AMOUNT - amount of wei to be send with transaction (require only for paid transact functions)
 - $PRIVATE_KEY as env variable or -private-key as command parameter - the private key of the wallet
+
+### The list of the functions from ABI
+
+```sh
+./web3 contract list --contract-abi CONTRACT_ABI_FILE
+```
+
+**Parameters:**
+
+- CONTRACT_ABI_FILE - the abi file of the compiled contract

@@ -134,6 +134,20 @@ func main() {
 					},
 				},
 				{
+					Name:  "list",
+					Usage: "List of the functions of the contract",
+					Action: func(c *cli.Context) {
+						ListContract(contractFile)
+					},
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:        "contract-abi",
+							Destination: &contractFile,
+							Usage:       "The abi file of the deployed contract",
+							Hidden:      false},
+					},
+				},
+				{
 					Name:  "call",
 					Usage: "Call the specified function of the contract",
 					Action: func(c *cli.Context) {
@@ -526,6 +540,30 @@ func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string) {
 
 	fmt.Println("Contract has been successfully deployed with transaction:", tx.Hash.Hex())
 	fmt.Println("Contract address is:", receipt.ContractAddress.Hex())
+}
+func ListContract(contractFile string) {
+	if _, err := os.Stat(contractFile); os.IsNotExist(err) {
+		log.Fatalf("Cannot find the abi file: %v", err)
+	}
+	jsonReader, err := os.Open(contractFile)
+	if err != nil {
+		log.Fatalf("Cannot read the abi file: %v", err)
+	}
+	myabi, err := abi.JSON(jsonReader)
+	if err != nil {
+		log.Fatalf("Cannot initialize ABI: %v", err)
+	}
+
+	switch format {
+	case "json":
+		fmt.Println(marshalJSON(myabi.Methods))
+		return
+	}
+
+	for _, method := range myabi.Methods {
+		fmt.Println(method)
+	}
+
 }
 
 func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, contractFile, functionName string, amount int, parameters ...interface{}) {
