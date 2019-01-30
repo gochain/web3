@@ -36,7 +36,7 @@ Run:
  ```sh
  ./web3 help
  ```
- 
+
  Note: Some commands require [Docker](https://docs.docker.com/install/linux/docker-ce/ubuntu/).
 
 ## List of available commands
@@ -78,7 +78,6 @@ none
 
 - TX_HASH - hash of the transaction
 
-
 ### Show information about the address
 
 ```sj
@@ -108,4 +107,19 @@ none
 **Parameters:**
 
 - FILENAME - the name of the .bin file
+- $PRIVATE_KEY as env variable or -private-key as command parameter - the private key of the wallet
+
+### Call the function of the deployed contract
+
+```sh
+./web3 contract call --amount AMOUNT --contract CONTRACT_ADDRESS --contract-abi CONTRACT_ABI_FILE --function FUNCTION_NAME FUNCTION_PARAMETERS
+```
+
+**Parameters:**
+
+- CONTRACT_ADDRESS - the address of the deployed contract
+- CONTRACT_ABI_FILE - the abi file of the deployed contract
+- FUNCTION_NAME - the name of the function you want to call
+- FUNCTION_PARAMETERS - the list of the function parameters
+- AMOUNT - amount of wei to be send with transaction (require only for paid transact functions)
 - $PRIVATE_KEY as env variable or -private-key as command parameter - the private key of the wallet
