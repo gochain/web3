@@ -6,7 +6,7 @@ jobs:
  build:
   docker:   
     - image: circleci/golang:1.11      
-  working_directory: /web3
+  working_directory: /go/web3
   steps: 
     - checkout
     - run: make test    
