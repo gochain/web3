@@ -57,8 +57,14 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 	switch myabi.Methods[functionName].Outputs[0].Type.T {
 	case abi.BoolTy:
 		out = new(bool)
-	case abi.UintTy:
+	case abi.UintTy, abi.IntTy:
 		out = new(big.Int)
+	case abi.StringTy:
+		out = new(string)
+	case abi.AddressTy:
+		out = new(common.Address)
+	case abi.BytesTy, abi.FixedBytesTy:
+		out = new([]byte)
 	default:
 		out = new(string)
 	}
@@ -195,6 +201,9 @@ func convertParameters(method abi.Method, inputParams []interface{}) []interface
 			convertedParams = append(convertedParams, val)
 		case abi.AddressTy:
 			val := common.HexToAddress(inputParams[i].(string))
+			convertedParams = append(convertedParams, val)
+		default:
+			val := inputParams[i].(string)
 			convertedParams = append(convertedParams, val)
 		}
 

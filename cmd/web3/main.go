@@ -162,7 +162,7 @@ func main() {
 						cli.IntFlag{
 							Name:        "amount",
 							Destination: &amount,
-							Usage:       "Amount that you want to send to the transaction",
+							Usage:       "Amount in wei that you want to send to the transaction",
 							Hidden:      false},
 						cli.StringFlag{
 							Name:        "private-key",
