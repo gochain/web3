@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"reflect"
 	"strconv"
 	"time"
 
@@ -52,36 +53,55 @@ func WeiAsGwei(w *big.Int) string {
 	return new(big.Rat).SetFrac(w, weiPerGwei).FloatString(9)
 }
 
-func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, address, functionName string, parameters ...interface{}) (interface{}, error) {
-	var out interface{}
-	switch myabi.Methods[functionName].Outputs[0].Type.T {
+func convertOutputParameter(t abi.Argument) interface{} {
+	switch t.Type.T {
 	case abi.BoolTy:
-		out = new(bool)
+		return new(bool)
 	case abi.UintTy, abi.IntTy:
-		out = new(big.Int)
+		return new(big.Int)
 	case abi.StringTy:
-		out = new(string)
+		return new(string)
 	case abi.AddressTy:
-		out = new(common.Address)
+		return new(common.Address)
 	case abi.BytesTy, abi.FixedBytesTy:
-		out = new([]byte)
+		return new([]byte)
 	default:
-		out = new(string)
+		return new(string)
 	}
+}
 
+func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, address, functionName string, parameters ...interface{}) (interface{}, error) {
+	var out []interface{}
+	for _, t := range myabi.Methods[functionName].Outputs {
+		out = append(out, convertOutputParameter(t))
+	}
 	input, err := myabi.Pack(functionName, convertParameters(myabi.Methods[functionName], parameters)...)
-
 	if err != nil {
 		return nil, err
 	}
 
 	toAddress := common.HexToAddress(address)
+
 	res, err := client.Call(ctx, CallMsg{Data: input, To: &toAddress})
-	err = myabi.Unpack(&out, functionName, res)
+	if err != nil {
+		return nil, err
+
+	}
+	if len(myabi.Methods[functionName].Outputs) > 1 {
+		err = myabi.Unpack(&out, functionName, res)
+		if err != nil {
+			return nil, err
+		}
+		for i, o := range out {
+			out[i] = reflect.ValueOf(o).Elem()
+		}
+		return out, nil
+	}
+	err = myabi.Unpack(&out[0], functionName, res)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	return out[0], nil
 }
 
 func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, address, privateKeyHex, functionName string, amount int, parameters ...interface{}) (*Transaction, error) {
