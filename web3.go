@@ -70,7 +70,7 @@ func convertOutputParameter(t abi.Argument) interface{} {
 	}
 }
 
-func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, address, functionName string, parameters ...interface{}) ([]interface{}, error) {
+func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, address, functionName string, parameters ...interface{}) (interface{}, error) {
 	var out []interface{}
 	var ret []interface{}
 	for _, t := range myabi.Methods[functionName].Outputs {
@@ -80,8 +80,14 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 	if err != nil {
 		return nil, err
 	}
+
 	toAddress := common.HexToAddress(address)
+
 	res, err := client.Call(ctx, CallMsg{Data: input, To: &toAddress})
+	if err != nil {
+		return nil, err
+
+	}
 	if len(myabi.Methods[functionName].Outputs) > 1 {
 		err = myabi.Unpack(&out, functionName, res)
 		for _, o := range out {
@@ -90,7 +96,7 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 		}
 	} else {
 		err = myabi.Unpack(&out[0], functionName, res)
-		ret = append(ret, out[0])
+		return out[0], nil
 
 	}
 	if err != nil {
