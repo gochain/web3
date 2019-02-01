@@ -72,7 +72,6 @@ func convertOutputParameter(t abi.Argument) interface{} {
 
 func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, address, functionName string, parameters ...interface{}) (interface{}, error) {
 	var out []interface{}
-	var ret []interface{}
 	for _, t := range myabi.Methods[functionName].Outputs {
 		out = append(out, convertOutputParameter(t))
 	}
@@ -90,19 +89,19 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 	}
 	if len(myabi.Methods[functionName].Outputs) > 1 {
 		err = myabi.Unpack(&out, functionName, res)
-		for _, o := range out {
-			valueof := reflect.ValueOf(o)
-			ret = append(ret, valueof.Elem())
+		if err != nil {
+			return nil, err
 		}
-	} else {
-		err = myabi.Unpack(&out[0], functionName, res)
-		return out[0], nil
-
+		for i, o := range out {
+			out[i] = reflect.ValueOf(o).Elem()
+		}
+		return out, nil
 	}
+	err = myabi.Unpack(&out[0], functionName, res)
 	if err != nil {
 		return nil, err
 	}
-	return ret, nil
+	return out[0], nil
 }
 
 func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, address, privateKeyHex, functionName string, amount int, parameters ...interface{}) (*Transaction, error) {
