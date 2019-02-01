@@ -91,17 +91,17 @@ none
 ### Build a smart contract
 
 ```sh
-./web3 contract build FILENAME
+./web3 contract build FILENAME.sol
 ```
 
 **Parameters:**
 
-- FILENAME - the name of the .sol file
+- FILENAME - the name of the .sol file, eg: `hello.sol`
 
 ### Deploy a smart contract to a network
 
 ```sh
-./web3 contract deploy FILENAME
+./web3 contract deploy FILENAME.bin
 ```
 
 **Parameters:**
