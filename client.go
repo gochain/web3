@@ -17,7 +17,7 @@ type Client interface {
 	GetBalance(ctx context.Context, address string, blockNumber *big.Int) (*big.Int, error)
 	GetCode(ctx context.Context, address string, blockNumber *big.Int) ([]byte, error)
 	GetBlockByNumber(ctx context.Context, number *big.Int, includeTxs bool) (*Block, error)
-	GetTransactionByHash(ctx context.Context, hash string) (*Transaction, error)
+	GetTransactionByHash(ctx context.Context, hash common.Hash) (*Transaction, error)
 	GetSnapshot(ctx context.Context) (*Snapshot, error)
 	GetID(ctx context.Context) (*ID, error)
 	GetTransactionReceipt(ctx context.Context, hash common.Hash) (*Receipt, error)
@@ -74,9 +74,9 @@ func (c *client) GetBlockByNumber(ctx context.Context, number *big.Int, includeT
 	return c.getBlock(ctx, "eth_getBlockByNumber", toBlockNumArg(number), includeTxs)
 }
 
-func (c *client) GetTransactionByHash(ctx context.Context, hash string) (*Transaction, error) {
+func (c *client) GetTransactionByHash(ctx context.Context, hash common.Hash) (*Transaction, error) {
 	var tx *Transaction
-	err := c.r.CallContext(ctx, &tx, "eth_getTransactionByHash", hash)
+	err := c.r.CallContext(ctx, &tx, "eth_getTransactionByHash", hash.String())
 	if err != nil {
 		return nil, err
 	} else if tx == nil {

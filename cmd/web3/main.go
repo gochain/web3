@@ -99,6 +99,14 @@ func main() {
 			},
 		},
 		{
+			Name:    "receipt",
+			Aliases: []string{"rc"},
+			Usage:   "Show the transaction receipt",
+			Action: func(c *cli.Context) {
+				GetTransactionReceipt(ctx, rpcUrl, c.Args().First())
+			},
+		},
+		{
 			Name:    "address",
 			Aliases: []string{"addr"},
 			Usage:   "Show information about the address",
@@ -306,7 +314,7 @@ func GetTransactionDetails(ctx context.Context, rpcURL, txhash string) {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
 	}
 	defer client.Close()
-	tx, err := client.GetTransactionByHash(ctx, txhash)
+	tx, err := client.GetTransactionByHash(ctx, common.HexToHash(txhash))
 	if err != nil {
 		log.Fatalf("Cannot get transaction details from the network: %v", err)
 	}
@@ -334,6 +342,38 @@ func GetTransactionDetails(ctx context.Context, rpcURL, txhash string) {
 		fmt.Println("Block Number:", tx.BlockNumber)
 		fmt.Println("Block Hash:", tx.BlockHash.String())
 	}
+}
+
+func GetTransactionReceipt(ctx context.Context, rpcURL, txhash string) {
+	client, err := web3.NewClient(rpcURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
+	}
+	defer client.Close()
+	r, err := client.GetTransactionReceipt(ctx, common.HexToHash(txhash))
+	if err != nil {
+		log.Fatalf("Failed to get transaction receipt: %v", err)
+	}
+	if verbose {
+		fmt.Println("Transaction Receipt Details:")
+	}
+
+	switch format {
+	case "json":
+		fmt.Println(marshalJSON(r))
+		return
+	}
+
+	fmt.Println("TxHash:", r.TxHash.String())
+	if r.ContractAddress != (common.Address{}) {
+		fmt.Println("Contract Address:", r.ContractAddress.String())
+	}
+	fmt.Println("GasUsed:", r.GasUsed)
+	fmt.Println("Cumulative Gas Used:", r.CumulativeGasUsed)
+	fmt.Println("Status:", r.Status)
+	fmt.Println("Post State:", "0x"+common.Bytes2Hex(r.PostState))
+	fmt.Println("Bloom:", "0x"+common.Bytes2Hex(r.Bloom.Bytes()))
+	fmt.Println("Logs:", r.Logs)
 }
 
 func GetAddressDetails(ctx context.Context, rpcURL, addrHash string) {
