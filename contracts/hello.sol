@@ -12,4 +12,8 @@ contract HelloWorld {
     function hello() public view returns (string, string) {
         return ("Hello", name);
     }
+
+    function setName(string _name) public {
+        name = _name;
+    }
 }
