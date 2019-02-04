@@ -53,7 +53,7 @@ func main() {
 			Name:        "network, n",
 			Usage:       "The name of the network (mainnet/testnet/ethereum/ropsten/localhost). Default is mainnet.",
 			Destination: &network,
-			EnvVar:      "NETWORK",
+			EnvVar:      "WEB3_NETWORK",
 			Hidden:      false},
 		cli.BoolFlag{
 			Name:        "testnet",
@@ -64,7 +64,7 @@ func main() {
 			Name:        "rpc-url",
 			Usage:       "The network RPC URL",
 			Destination: &rpcUrl,
-			EnvVar:      "RPC_URL",
+			EnvVar:      "WEB3_RPC_URL",
 			Hidden:      false},
 		cli.BoolFlag{
 			Name:        "verbose",
@@ -136,7 +136,7 @@ func main() {
 						cli.StringFlag{
 							Name:        "private-key",
 							Usage:       "The private key",
-							EnvVar:      "PRIVATE_KEY",
+							EnvVar:      "WEB3_PRIVATE_KEY",
 							Destination: &privateKey,
 							Hidden:      true},
 					},
@@ -149,7 +149,7 @@ func main() {
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
-							Name:        "contract-abi",
+							Name:        "abi",
 							Destination: &contractFile,
 							Usage:       "The abi file of the deployed contract",
 							Hidden:      false},
@@ -172,12 +172,12 @@ func main() {
 							Destination: &function,
 							Hidden:      false},
 						cli.StringFlag{
-							Name:        "contract",
+							Name:        "address",
 							Destination: &contractAddress,
 							Usage:       "The address of the deployed contract",
 							Hidden:      false},
 						cli.StringFlag{
-							Name:        "contract-abi",
+							Name:        "abi",
 							Destination: &contractFile,
 							Usage:       "The abi file of the deployed contract",
 							Hidden:      false},
@@ -189,7 +189,7 @@ func main() {
 						cli.StringFlag{
 							Name:        "private-key",
 							Usage:       "The private key",
-							EnvVar:      "PRIVATE_KEY",
+							EnvVar:      "WEB3_PRIVATE_KEY",
 							Destination: &privateKey,
 							Hidden:      true},
 					},
