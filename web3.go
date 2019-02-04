@@ -20,22 +20,38 @@ import (
 
 var NotFoundErr = errors.New("not found")
 
-//TODO instead return a rich Network struct w/ netId/chainId/baseUnit
-func NetworkURL(network string) string {
-	switch network {
-	case "testnet":
-		return "https://testnet-rpc.gochain.io"
-	case "mainnet", "":
-		return "https://rpc.gochain.io"
-	case "localhost":
-		return "http://localhost:8545"
-	case "ethereum":
-		return "https://main-rpc.linkpool.io"
-	case "ropsten":
-		return "https://ropsten-rpc.linkpool.io"
-	default:
-		return ""
-	}
+const (
+	testnetURL = "https://testnet-rpc.gochain.io"
+	mainnetURL = "https://rpc.gochain.io"
+)
+
+var Networks = map[string]Network{
+	"testnet": {
+		URL:  testnetURL,
+		Unit: "GO",
+	},
+	"mainnet": {
+		URL:  mainnetURL,
+		Unit: "GO",
+	},
+	"localhost": {
+		URL:  "http://localhost:8545",
+		Unit: "GO",
+	},
+	"ethereum": {
+		URL:  "https://main-rpc.linkpool.io",
+		Unit: "ETH",
+	},
+	"ropsten": {
+		URL:  "https://ropsten-rpc.linkpool.io",
+		Unit: "ETH",
+	},
+}
+
+type Network struct {
+	URL  string
+	Unit string
+	//TODO net_id, chain_id
 }
 
 var (

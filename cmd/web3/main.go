@@ -40,7 +40,7 @@ func main() {
 	}()
 
 	// Flags
-	var network, rpcUrl, function, contractAddress, contractFile, privateKey string
+	var netName, rpcUrl, function, contractAddress, contractFile, privateKey string
 	var amount int
 	var testnet bool
 
@@ -52,7 +52,7 @@ func main() {
 		cli.StringFlag{
 			Name:        "network, n",
 			Usage:       "The name of the network (mainnet/testnet/ethereum/ropsten/localhost). Default is mainnet.",
-			Destination: &network,
+			Destination: &netName,
 			EnvVar:      "WEB3_NETWORK",
 			Hidden:      false},
 		cli.BoolFlag{
@@ -77,8 +77,9 @@ func main() {
 			Destination: &format,
 			Hidden:      false},
 	}
+	var network web3.Network
 	app.Before = func(*cli.Context) error {
-		rpcUrl = getRPCURL(network, rpcUrl, testnet)
+		network = getNetwork(netName, rpcUrl, testnet)
 		return nil
 	}
 	app.Commands = []cli.Command{
@@ -87,7 +88,7 @@ func main() {
 			Usage:   "Show information about the block",
 			Aliases: []string{"bl"},
 			Action: func(c *cli.Context) {
-				GetBlockDetails(ctx, rpcUrl, c.Args().First())
+				GetBlockDetails(ctx, network.URL, c.Args().First())
 			},
 		},
 		{
@@ -95,7 +96,7 @@ func main() {
 			Aliases: []string{"tx"},
 			Usage:   "Show information about the transaction",
 			Action: func(c *cli.Context) {
-				GetTransactionDetails(ctx, rpcUrl, c.Args().First())
+				GetTransactionDetails(ctx, network, c.Args().First())
 			},
 		},
 		{
@@ -103,7 +104,7 @@ func main() {
 			Aliases: []string{"rc"},
 			Usage:   "Show the transaction receipt",
 			Action: func(c *cli.Context) {
-				GetTransactionReceipt(ctx, rpcUrl, c.Args().First())
+				GetTransactionReceipt(ctx, network.URL, c.Args().First())
 			},
 		},
 		{
@@ -111,7 +112,7 @@ func main() {
 			Aliases: []string{"addr"},
 			Usage:   "Show information about the address",
 			Action: func(c *cli.Context) {
-				GetAddressDetails(ctx, rpcUrl, c.Args().First())
+				GetAddressDetails(ctx, network, c.Args().First())
 			},
 		},
 		{
@@ -130,7 +131,7 @@ func main() {
 					Name:  "deploy",
 					Usage: "Build and deploy the specified contract to the network",
 					Action: func(c *cli.Context) {
-						DeploySol(ctx, rpcUrl, privateKey, c.Args().First())
+						DeploySol(ctx, network.URL, privateKey, c.Args().First())
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -163,7 +164,7 @@ func main() {
 						for i, v := range c.Args() {
 							args[i] = v
 						}
-						CallContract(ctx, rpcUrl, privateKey, contractAddress, contractFile, function, amount, args...)
+						CallContract(ctx, network.URL, privateKey, contractAddress, contractFile, function, amount, args...)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -201,7 +202,7 @@ func main() {
 			Aliases: []string{"sn"},
 			Usage:   "Show the clique snapshot",
 			Action: func(c *cli.Context) {
-				GetSnapshot(ctx, rpcUrl)
+				GetSnapshot(ctx, network.URL)
 			},
 		},
 		{
@@ -209,41 +210,47 @@ func main() {
 			Aliases: []string{"id"},
 			Usage:   "Show chain id information",
 			Action: func(c *cli.Context) {
-				GetID(ctx, rpcUrl)
+				GetID(ctx, network.URL)
 			},
 		},
 	}
 	app.Run(os.Args)
 }
 
-// getRPCURL resolves the rpcUrl from the user specified options, or quits if an illegal combination or value is found.
-func getRPCURL(network, rpcURL string, testnet bool) string {
+// getNetwork resolves the rpcUrl from the user specified options, or quits if an illegal combination or value is found.
+func getNetwork(name, rpcURL string, testnet bool) web3.Network {
+	var network web3.Network
 	if rpcURL != "" {
-		if network != "" {
+		if name != "" {
 			log.Fatalf("Cannot set both rpcURL %q and network %q", rpcURL, network)
 		}
 		if testnet {
 			log.Fatalf("Cannot set both rpcURL %q and testnet", rpcURL)
 		}
+		network.URL = rpcURL
+		network.Unit = "GO"
 	} else {
 		if testnet {
-			if network != "" {
+			if name != "" {
 				log.Fatalf("Cannot set both network %q and testnet", network)
 			}
-			network = "testnet"
+			name = "testnet"
+		} else if name == "" {
+			name = "mainnet"
 		}
-		rpcURL = web3.NetworkURL(network)
-		if rpcURL == "" {
-			log.Fatal("Unrecognized network:", network)
+		var ok bool
+		network, ok = web3.Networks[name]
+		if !ok {
+			log.Fatal("Unrecognized network:", name)
 		}
 		if verbose {
-			log.Println("Network:", network)
+			log.Printf("Network %q: %v", name, network)
 		}
 	}
 	if verbose {
-		log.Println("RPC URL:", rpcURL)
+		log.Println("Network Info:", network)
 	}
-	return rpcURL
+	return network
 }
 
 func parseBigInt(value string) (*big.Int, error) {
@@ -308,10 +315,10 @@ func GetBlockDetails(ctx context.Context, rpcURL, blockNumber string) {
 	}
 }
 
-func GetTransactionDetails(ctx context.Context, rpcURL, txhash string) {
-	client, err := web3.NewClient(rpcURL)
+func GetTransactionDetails(ctx context.Context, network web3.Network, txhash string) {
+	client, err := web3.NewClient(network.URL)
 	if err != nil {
-		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
+		log.Fatalf("Failed to connect to %q: %v", network.URL, err)
 	}
 	defer client.Close()
 	tx, err := client.GetTransactionByHash(ctx, common.HexToHash(txhash))
@@ -331,8 +338,7 @@ func GetTransactionDetails(ctx context.Context, rpcURL, txhash string) {
 	fmt.Println("Hash:", tx.Hash.String())
 	fmt.Println("From:", tx.From.String())
 	fmt.Println("To:", tx.To.String())
-	//TODO lookup base unit for network?
-	fmt.Println("Value:", web3.WeiAsBase(tx.Value), "GO")
+	fmt.Println("Value:", web3.WeiAsBase(tx.Value), network.Unit)
 	fmt.Println("Nonce:", uint64(tx.Nonce))
 	fmt.Println("Gas Limit:", tx.GasLimit)
 	fmt.Println("Gas Price:", web3.WeiAsGwei(tx.GasPrice), "gwei")
@@ -376,10 +382,10 @@ func GetTransactionReceipt(ctx context.Context, rpcURL, txhash string) {
 	fmt.Println("Logs:", r.Logs)
 }
 
-func GetAddressDetails(ctx context.Context, rpcURL, addrHash string) {
-	client, err := web3.NewClient(rpcURL)
+func GetAddressDetails(ctx context.Context, network web3.Network, addrHash string) {
+	client, err := web3.NewClient(network.URL)
 	if err != nil {
-		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
+		log.Fatalf("Failed to connect to %q: %v", network.URL, err)
 	}
 	defer client.Close()
 	bal, err := client.GetBalance(ctx, addrHash, nil)
@@ -408,8 +414,10 @@ func GetAddressDetails(ctx context.Context, rpcURL, addrHash string) {
 		return
 	}
 
-	fmt.Println("Balance:", bal)
-	fmt.Println("Code:", string(code))
+	fmt.Println("Balance:", web3.WeiAsBase(bal), network.Unit)
+	if len(code) > 0 {
+		fmt.Println("Code:", string(code))
+	}
 }
 
 func GetSnapshot(ctx context.Context, rpcURL string) {
