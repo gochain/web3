@@ -1,12 +1,12 @@
 # Quickstart
 
-Get some Testnet tokens [TODO: LINK TO HOW TO GET TOKENS PAGE, should have telegram, create wallet on explorer wallet, /send tokens from tg to new address].
+First, [get yourself some GO testnet tokens](https://help.gochain.io/en/article/getting-started-4tlo7a/) so you can deploy and interact with your contract.
 
-Set `PRIVATE_KEY` and `NETWORK` env vars:
+Set `WEB3_PRIVATE_KEY` and `WEB3_NETWORK` env vars:
 
 ```sh
-export NETWORK=testnet
-export PRIVATE_KEY=0x...
+export WEB3_NETWORK=testnet
+export WEB3_PRIVATE_KEY=0x...
 ```
 
 Copy [hello.sol](hello.sol) into your current directory.
