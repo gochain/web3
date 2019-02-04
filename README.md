@@ -107,12 +107,12 @@ none
 **Parameters:**
 
 - FILENAME - the name of the .bin file
-- $PRIVATE_KEY as env variable or -private-key as command parameter - the private key of the wallet
+- $WEB3_PRIVATE_KEY as env variable or -private-key as command parameter - the private key of the wallet
 
 ### Call the function of the deployed contract
 
 ```sh
-./web3 contract call --amount AMOUNT --contract CONTRACT_ADDRESS --contract-abi CONTRACT_ABI_FILE --function FUNCTION_NAME FUNCTION_PARAMETERS
+./web3 contract call --amount AMOUNT --address CONTRACT_ADDRESS --abi CONTRACT_ABI_FILE --function FUNCTION_NAME FUNCTION_PARAMETERS
 ```
 
 **Parameters:**
@@ -122,12 +122,12 @@ none
 - FUNCTION_NAME - the name of the function you want to call
 - FUNCTION_PARAMETERS - the list of the function parameters
 - AMOUNT - amount of wei to be send with transaction (require only for paid transact functions)
-- $PRIVATE_KEY as env variable or -private-key as command parameter - the private key of the wallet
+- $WEB3_PRIVATE_KEY as env variable or -private-key as command parameter - the private key of the wallet
 
 ### The list of the functions from ABI
 
 ```sh
-./web3 contract list --contract-abi CONTRACT_ABI_FILE
+./web3 contract list --abi CONTRACT_ABI_FILE
 ```
 
 **Parameters:**
