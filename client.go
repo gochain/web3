@@ -17,6 +17,7 @@ type Client interface {
 	GetBalance(ctx context.Context, address string, blockNumber *big.Int) (*big.Int, error)
 	GetCode(ctx context.Context, address string, blockNumber *big.Int) ([]byte, error)
 	GetBlockByNumber(ctx context.Context, number *big.Int, includeTxs bool) (*Block, error)
+	GetBlockByHash(ctx context.Context, hash string, includeTxs bool) (*Block, error)
 	GetTransactionByHash(ctx context.Context, hash common.Hash) (*Transaction, error)
 	GetSnapshot(ctx context.Context) (*Snapshot, error)
 	GetID(ctx context.Context) (*ID, error)
@@ -72,6 +73,10 @@ func (c *client) GetCode(ctx context.Context, address string, blockNumber *big.I
 
 func (c *client) GetBlockByNumber(ctx context.Context, number *big.Int, includeTxs bool) (*Block, error) {
 	return c.getBlock(ctx, "eth_getBlockByNumber", toBlockNumArg(number), includeTxs)
+}
+
+func (c *client) GetBlockByHash(ctx context.Context, hash string, includeTxs bool) (*Block, error) {
+	return c.getBlock(ctx, "eth_getBlockByHash", hash, includeTxs)
 }
 
 func (c *client) GetTransactionByHash(ctx context.Context, hash common.Hash) (*Transaction, error) {

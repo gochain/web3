@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -10,11 +11,11 @@ import (
 	"os"
 	"os/signal"
 	"sort"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/gochain-io/gochain/v3/accounts/abi"
-
 	"github.com/gochain-io/gochain/v3/common"
 	"github.com/urfave/cli"
 
@@ -85,10 +86,9 @@ func main() {
 	app.Commands = []cli.Command{
 		{
 			Name:    "block",
-			Usage:   "Block details for a block number (decimal integer). Omit for latest.",
+			Usage:   "Block details for a block number (decimal integer) or hash (hexadecimal with 0x prefix). Omit for latest.",
 			Aliases: []string{"bl"},
 			Action: func(c *cli.Context) {
-				//TODO accept block hash as well
 				GetBlockDetails(ctx, network.URL, c.Args().First())
 			},
 		},
@@ -258,24 +258,35 @@ func parseBigInt(value string) (*big.Int, error) {
 	if value == "" {
 		return nil, nil
 	}
-	i := big.Int{}
-	_, err := fmt.Sscan(value, &i)
-	return &i, err
+	i, ok := new(big.Int).SetString(value, 10)
+	if !ok {
+		return nil, errors.New("failed to parse integer")
+	}
+	return i, nil
 }
 
-func GetBlockDetails(ctx context.Context, rpcURL, blockNumber string) {
+func GetBlockDetails(ctx context.Context, rpcURL, numberOrHash string) {
 	client, err := web3.NewClient(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
 	}
 	defer client.Close()
-	blockN, err := parseBigInt(blockNumber)
-	if err != nil {
-		log.Fatalf("Block number must be integer %q: %v", blockNumber, err)
-	}
-	block, err := client.GetBlockByNumber(ctx, blockN, false)
-	if err != nil {
-		log.Fatalf("Cannot get block details from the network: %v", err)
+	var block *web3.Block
+	if strings.HasPrefix(numberOrHash, "0x") {
+		var err error
+		block, err = client.GetBlockByHash(ctx, numberOrHash, false)
+		if err != nil {
+			log.Fatalf("Cannot get block details from the network: %v", err)
+		}
+	} else {
+		blockN, err := parseBigInt(numberOrHash)
+		if err != nil {
+			log.Fatalf("Block argument must be a number (decimal integer) or hash (hexadecimal with 0x prefix) %q: %v", numberOrHash, err)
+		}
+		block, err = client.GetBlockByNumber(ctx, blockN, false)
+		if err != nil {
+			log.Fatalf("Cannot get block details from the network: %v", err)
+		}
 	}
 	if verbose {
 		log.Println("Block details:")
