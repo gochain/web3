@@ -7,7 +7,7 @@ import (
 )
 
 func ExampleRPCClient_GetBlockByNumber() {
-	for _, network := range []string{"mainnet", "testnet"} {
+	for _, network := range []string{mainnetURL, testnetURL} {
 		exampleRPCClient_GetBlockByNumber(network)
 	}
 	// Output:
@@ -23,10 +23,10 @@ func ExampleRPCClient_GetBlockByNumber() {
 	// Got initial alloc balance.
 }
 
-func exampleRPCClient_GetBlockByNumber(network string) {
-	c, err := NewClient(NetworkURL(network))
+func exampleRPCClient_GetBlockByNumber(url string) {
+	c, err := NewClient(url)
 	if err != nil {
-		fmt.Printf("Failed to connect to network %q: %v\n", network, err)
+		fmt.Printf("Failed to connect to network %q: %v\n", url, err)
 		return
 	}
 	defer c.Close()
@@ -76,7 +76,7 @@ func exampleRPCClient_GetBlockByNumber(network string) {
 	if !ok {
 		panic("failed to parse big.Int string")
 	}
-	bal, err := c.GetBalance(ctx, testAddr(network), big.NewInt(0))
+	bal, err := c.GetBalance(ctx, testAddr(url), big.NewInt(0))
 	if err != nil {
 		fmt.Printf("Failed to get balance: %v\n", err)
 	}
@@ -91,9 +91,9 @@ func exampleRPCClient_GetBlockByNumber(network string) {
 
 func testAddr(network string) string {
 	switch network {
-	case "mainnet":
+	case mainnetURL:
 		return "0xf75b6e2d2d69da07f2940e239e25229350f8103f"
-	case "testnet":
+	case testnetURL:
 		return "0x2fe70f1df222c85ad6dd24a3376eb5ac32136978"
 	default:
 		panic("unsupported network: " + network)
