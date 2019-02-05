@@ -19,7 +19,9 @@ go install github.com/gochain-io/web3/cmd/web3
 
 #### a) Download a prebuilt release binary
 
-Coming soon.
+```sh
+./install.sh
+```
 
 #### a) Build from source
 

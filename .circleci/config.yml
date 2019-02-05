@@ -8,5 +8,16 @@ jobs:
     - image: circleci/golang:1.11      
   working_directory: /go/web3
   steps: 
+    - setup_remote_docker:
+          docker_layer_caching: true
     - checkout
     - run: make test    
+    - deploy:
+          command: |
+            if [[ "${CIRCLE_BRANCH}" == "master" && -z "${CIRCLE_PR_REPONAME}" ]]; then
+              git config --global user.email "ci@gochain.io"
+              git config --global user.name "CI"
+              git branch --set-upstream-to=origin/${CIRCLE_BRANCH} ${CIRCLE_BRANCH}
+              echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+              ./release.sh
+            fi
