@@ -49,7 +49,6 @@ fi
 
 url='https://github.com/gochain-io/web3/releases/download'
 
-echo "$curl /tmp/web3_linux $url/$version/web3_linux"
 # perform some very rudimentary platform detection
 case "$(uname)" in
   Linux)
