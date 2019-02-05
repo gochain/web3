@@ -140,7 +140,7 @@ func main() {
 							Usage:       "The private key",
 							EnvVar:      "WEB3_PRIVATE_KEY",
 							Destination: &privateKey,
-							Hidden:      true},
+							Hidden:      false},
 					},
 				},
 				{
@@ -193,7 +193,7 @@ func main() {
 							Usage:       "Private key",
 							EnvVar:      "WEB3_PRIVATE_KEY",
 							Destination: &privateKey,
-							Hidden:      true},
+							Hidden:      false},
 					},
 				},
 			},
