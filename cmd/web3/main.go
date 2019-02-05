@@ -46,7 +46,7 @@ func main() {
 
 	app := cli.NewApp()
 	app.Name = "web3"
-	app.Version = "0.0.3"
+	app.Version = Version
 	app.Usage = "web3 cli tool"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
