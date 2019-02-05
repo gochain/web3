@@ -14,8 +14,11 @@ fi
 git pull
 
 version_file="cmd/web3/version.go"
+docker create -v /data --name file alpine /bin/true
+docker cp $version_file file:/data/version.go
 # Bump version, patch by default - also checks if previous commit message contains `[bump X]`, and if so, bumps the appropriate semver number - https://github.com/treeder/dockers/tree/master/bump
-docker run --rm -it -v $PWD:/app -w /app treeder/bump --filename $version_file "$(git log -1 --pretty=%B)"
+docker run --rm -it --volumes-from file -w / treeder/bump --filename /data/version.go "$(git log -1 --pretty=%B)"
+docker cp file:/data/version.go $version_file
 version=$(grep -m1 -Eo "[0-9]+\.[0-9]+\.[0-9]+" $version_file)
 echo "Version: $version"
 
@@ -31,11 +34,11 @@ git push origin $tag
 
 # For GitHub
 url='https://api.github.com/repos/gochain-io/web3/releases'
-output=$(curl -s -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY -d "{\"tag_name\": \"$version\", \"name\": \"v$version\"}" $url)
+output=$(curl -s -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY -d "{\"tag_name\": \"v$version\", \"name\": \"v$version\"}" $url)
 upload_url=$(echo "$output" | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["upload_url"]' | sed -E "s/\{.*//")
 html_url=$(echo "$output" | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["html_url"]')
 curl --data-binary "@web3_linux"  -H "Content-Type: application/octet-stream" -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY $upload_url\?name\=web3_linux >/dev/null
-curl --data-binary "@web3_alpine" -H "Content-Type: application/octet-stream" -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY $upload_url\?name\=web3_alpine >/dev/null
+# curl --data-binary "@web3_alpine" -H "Content-Type: application/octet-stream" -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY $upload_url\?name\=web3_alpine >/dev/null
 
 
 docker build -t gochain/web3:latest .
