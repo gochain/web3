@@ -85,16 +85,17 @@ func main() {
 	app.Commands = []cli.Command{
 		{
 			Name:    "block",
-			Usage:   "Show information about the block",
+			Usage:   "Block details for a block number (decimal integer). Omit for latest.",
 			Aliases: []string{"bl"},
 			Action: func(c *cli.Context) {
+				//TODO accept block hash as well
 				GetBlockDetails(ctx, network.URL, c.Args().First())
 			},
 		},
 		{
 			Name:    "transaction",
 			Aliases: []string{"tx"},
-			Usage:   "Show information about the transaction",
+			Usage:   "Transaction details for a tx hash",
 			Action: func(c *cli.Context) {
 				GetTransactionDetails(ctx, network, c.Args().First())
 			},
@@ -102,7 +103,7 @@ func main() {
 		{
 			Name:    "receipt",
 			Aliases: []string{"rc"},
-			Usage:   "Show the transaction receipt",
+			Usage:   "Transaction receipt for a tx hash",
 			Action: func(c *cli.Context) {
 				GetTransactionReceipt(ctx, network.URL, c.Args().First())
 			},
@@ -110,7 +111,7 @@ func main() {
 		{
 			Name:    "address",
 			Aliases: []string{"addr"},
-			Usage:   "Show information about the address",
+			Usage:   "Address details",
 			Action: func(c *cli.Context) {
 				GetAddressDetails(ctx, network, c.Args().First())
 			},
@@ -118,7 +119,7 @@ func main() {
 		{
 			Name:    "contract",
 			Aliases: []string{"c"},
-			Usage:   "actions with contracts",
+			Usage:   "Contract operations",
 			Subcommands: []cli.Command{
 				{
 					Name:  "build",
@@ -144,7 +145,7 @@ func main() {
 				},
 				{
 					Name:  "list",
-					Usage: "List of the functions of the contract",
+					Usage: "List contract functions",
 					Action: func(c *cli.Context) {
 						ListContract(contractFile)
 					},
@@ -158,7 +159,7 @@ func main() {
 				},
 				{
 					Name:  "call",
-					Usage: "Call the specified function of the contract",
+					Usage: "Call contract function",
 					Action: func(c *cli.Context) {
 						args := make([]interface{}, len(c.Args()))
 						for i, v := range c.Args() {
@@ -169,18 +170,18 @@ func main() {
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:        "function",
-							Usage:       "The name of the function to call",
+							Usage:       "Target function name",
 							Destination: &function,
 							Hidden:      false},
 						cli.StringFlag{
 							Name:        "address",
 							Destination: &contractAddress,
-							Usage:       "The address of the deployed contract",
+							Usage:       "Deployed contract address",
 							Hidden:      false},
 						cli.StringFlag{
 							Name:        "abi",
 							Destination: &contractFile,
-							Usage:       "The abi file of the deployed contract",
+							Usage:       "ABI file matching deployed contract",
 							Hidden:      false},
 						cli.IntFlag{
 							Name:        "amount",
@@ -189,7 +190,7 @@ func main() {
 							Hidden:      false},
 						cli.StringFlag{
 							Name:        "private-key",
-							Usage:       "The private key",
+							Usage:       "Private key",
 							EnvVar:      "WEB3_PRIVATE_KEY",
 							Destination: &privateKey,
 							Hidden:      true},
@@ -200,7 +201,7 @@ func main() {
 		{
 			Name:    "snapshot",
 			Aliases: []string{"sn"},
-			Usage:   "Show the clique snapshot",
+			Usage:   "Clique snapshot",
 			Action: func(c *cli.Context) {
 				GetSnapshot(ctx, network.URL)
 			},
@@ -208,7 +209,7 @@ func main() {
 		{
 			Name:    "id",
 			Aliases: []string{"id"},
-			Usage:   "Show chain id information",
+			Usage:   "Network/Chain information",
 			Action: func(c *cli.Context) {
 				GetID(ctx, network.URL)
 			},
@@ -244,7 +245,7 @@ func getNetwork(name, rpcURL string, testnet bool) web3.Network {
 			log.Fatal("Unrecognized network:", name)
 		}
 		if verbose {
-			log.Printf("Network %q: %v", name, network)
+			log.Printf("Network: %v", name)
 		}
 	}
 	if verbose {
@@ -270,7 +271,7 @@ func GetBlockDetails(ctx context.Context, rpcURL, blockNumber string) {
 	defer client.Close()
 	blockN, err := parseBigInt(blockNumber)
 	if err != nil {
-		log.Fatalf("block number must be integer %q: %v", blockNumber, err)
+		log.Fatalf("Block number must be integer %q: %v", blockNumber, err)
 	}
 	block, err := client.GetBlockByNumber(ctx, blockN, false)
 	if err != nil {
