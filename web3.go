@@ -109,7 +109,7 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 			return nil, err
 		}
 		for i, o := range out {
-			out[i] = reflect.ValueOf(o).Elem()
+			out[i] = fmt.Sprintf("%v", reflect.ValueOf(o).Elem())
 		}
 		return out, nil
 	}
