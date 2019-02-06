@@ -18,6 +18,13 @@ curl -LSs https://raw.githubusercontent.com/gochain-io/web3/mast
 er/install.sh | sh
 ```
 
+or you could select a version you want to install
+
+```sh
+curl -LSs https://raw.githubusercontent.com/gochain-io/web3/mast
+er/install.sh | sh -s v0.0.9
+```
+
 ### b) I have the Go language installed
 
 ```sh
