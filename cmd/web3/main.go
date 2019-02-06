@@ -649,6 +649,13 @@ func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 			if err != nil {
 				log.Fatalf("Cannot call the contract: %v", err)
 			}
+			switch format {
+			case "json":
+				m := make(map[string]interface{})
+				m["response"] = res
+				fmt.Println(marshalJSON(m))
+				return
+			}
 			fmt.Println("Call results:", res)
 		} else {
 			tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, functionName, amount, parameters...)
