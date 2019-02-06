@@ -37,14 +37,44 @@ web3 help
 
 ## Quickstart
 
-First, [get yourself some GO testnet tokens](https://help.gochain.io/en/article/getting-started-4tlo7a/) so you can deploy and interact with your contract. Or you can run a local GoChain node
+If you just plan to read from the blockchain, you do not need any GO tokens and you do not need to set your `PRIVATE_KEY`. If you plan to deploy contracts or write anything to the blockchain, you'll need tokens and you'll need to set your `PRIVATE_KEY` for the account that has those tokens.
 
-Set `WEB3_PRIVATE_KEY` and `WEB3_NETWORK` env vars:
+### Pick a network to use
+
+#### a) Use the GoChain testnet
 
 ```sh
 export WEB3_NETWORK=testnet
+```
+
+To do any write operations, [get yourself some GO testnet tokens](https://help.gochain.io/en/article/getting-started-4tlo7a/) so you can deploy and interact with your contract.
+
+#### b) Run a local node
+
+Run this command to start a local node. It will print 10 addresses with keys upon starting that you can use to deploy and interact.
+
+```sh
+docker run --name local_node -p 8545:8545 gochain/gochain:local gochain --local
+export WEB3_NETWORK=localhost
+```
+
+#### c) Use the mainnet
+
+```sh
+export WEB3_NETWORK=mainnet
+```
+
+You'll need mainnet GO for this which you can [buy on various exchanges](https://help.gochain.io/en/article/how-to-buy-go-tokens-z12xkb/).
+
+### Set Private Key (optional)
+
+Required if you plan to deploy or write transactions.
+
+```sh
 export WEB3_PRIVATE_KEY=0x...
 ```
+
+### Deploy a contract
 
 Copy [contracts/hello.sol](contracts/hello.sol) into your current directory.
 
@@ -57,6 +87,8 @@ web3 contract deploy Hello.bin
 
 This will return a contract address, copy it and use below.
 
+### Read from a contract
+
 Let's call a read function (which is free):
 
 ```sh
@@ -64,6 +96,8 @@ web3 contract call --address 0xCONTRACT_ADDRESS --abi Hello.abi --function hello
 ```
 
 That should return: `[Hello World]`.
+
+### Write to a contract
 
 Now let's change the name:
 
