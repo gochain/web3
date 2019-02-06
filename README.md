@@ -14,8 +14,7 @@ Note: Some commands require [Docker](https://docs.docker.com/install/).
 ### a) One line install script
 
 ```sh
-curl -LSs https://raw.githubusercontent.com/gochain-io/web3/mast
-er/install.sh | sh
+curl -LSs https://raw.githubusercontent.com/gochain-io/web3/master/install.sh | sh
 ```
 
 ### b) I have the Go language installed
