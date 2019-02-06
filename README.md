@@ -17,7 +17,7 @@ Quick one line install:
 curl -LSs https://raw.githubusercontent.com/gochain-io/web3/master/install.sh | sh
 ```
 
-[More options](More-installation-options)
+[More options](#More-installation-options)
 
 ## Quickstart
 
