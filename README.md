@@ -53,7 +53,7 @@ To do any write operations, [get yourself some GO testnet tokens](https://help.g
 Run this command to start a local node. It will print 10 addresses with keys upon starting that you can use to deploy and interact.
 
 ```sh
-docker run --name local_node -p 8545:8545 gochain/gochain:local gochain --local
+docker run --name local_node -p 8545:8545 gochain/gochain gochain --local
 export WEB3_NETWORK=localhost
 ```
 
