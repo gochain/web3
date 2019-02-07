@@ -43,7 +43,7 @@ func main() {
 	// Flags
 	var netName, rpcUrl, function, contractAddress, contractFile, privateKey string
 	var amount int
-	var testnet bool
+	var testnet, waitForReceipt bool
 
 	app := cli.NewApp()
 	app.Name = "web3"
@@ -165,7 +165,7 @@ func main() {
 						for i, v := range c.Args() {
 							args[i] = v
 						}
-						CallContract(ctx, network.URL, privateKey, contractAddress, contractFile, function, amount, args...)
+						CallContract(ctx, network.URL, privateKey, contractAddress, contractFile, function, amount, waitForReceipt, args...)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -193,6 +193,11 @@ func main() {
 							Usage:       "Private key",
 							EnvVar:      "WEB3_PRIVATE_KEY",
 							Destination: &privateKey,
+							Hidden:      false},
+						cli.BoolFlag{
+							Name:        "wait-for-receipt",
+							Usage:       "Wait for the receipt for transact functions",
+							Destination: &waitForReceipt,
 							Hidden:      false},
 					},
 				},
@@ -626,7 +631,7 @@ func ListContract(contractFile string) {
 
 }
 
-func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, contractFile, functionName string, amount int, parameters ...interface{}) {
+func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, contractFile, functionName string, amount int, waitForReceipt bool, parameters ...interface{}) {
 	client, err := web3.NewClient(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
@@ -662,11 +667,15 @@ func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 			if err != nil {
 				log.Fatalf("Cannot call the contract: %v", err)
 			}
-			receipt, err := web3.WaitForReceipt(ctx, client, tx)
-			if err != nil {
-				log.Fatalf("Cannot get the receipt: %v", err)
+			if waitForReceipt {
+				receipt, err := web3.WaitForReceipt(ctx, client, tx)
+				if err != nil {
+					log.Fatalf("Cannot get the receipt: %v", err)
+				}
+				fmt.Println("Transaction receipt address:", receipt.TxHash.Hex())
+			} else {
+				fmt.Println("Transaction address:", tx.Hash.Hex())
 			}
-			fmt.Println("Transaction address:", receipt.TxHash.Hex())
 		}
 
 	} else {
