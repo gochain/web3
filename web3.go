@@ -86,6 +86,7 @@ func convertOutputParameter(t abi.Argument) interface{} {
 	}
 }
 
+// CallConstantFunction executes a contract function call without submitting a transaction.
 func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, address, functionName string, parameters ...interface{}) (interface{}, error) {
 	var out []interface{}
 	for _, t := range myabi.Methods[functionName].Outputs {
@@ -120,6 +121,7 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 	return out[0], nil
 }
 
+// CallTransactFunction submits a transaction to execute a smart contract function call.
 func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, address, privateKeyHex, functionName string, amount int, parameters ...interface{}) (*Transaction, error) {
 
 	input, err := myabi.Pack(functionName, convertParameters(myabi.Methods[functionName], parameters)...)
@@ -163,6 +165,8 @@ func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, add
 	}
 	return convertTx(signedTx, fromAddress), nil
 }
+
+// DeployContract submits a contract creation transaction.
 func DeployContract(ctx context.Context, client Client, privateKeyHex string, contractData string) (*Transaction, error) {
 	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
 		privateKeyHex = privateKeyHex[2:]
@@ -247,9 +251,10 @@ func convertParameters(method abi.Method, inputParams []interface{}) []interface
 	return convertedParams
 }
 
-func WaitForReceipt(ctx context.Context, client Client, tx *Transaction) (*Receipt, error) {
+// WaitForReceipt polls for a transaction receipt until it is available, or ctx is cancelled.
+func WaitForReceipt(ctx context.Context, client Client, hash common.Hash) (*Receipt, error) {
 	for i := 0; ; i++ {
-		receipt, err := client.GetTransactionReceipt(ctx, tx.Hash)
+		receipt, err := client.GetTransactionReceipt(ctx, hash)
 		if err == nil {
 			return receipt, nil
 		}
