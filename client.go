@@ -40,7 +40,7 @@ type Client interface {
 	// GetPendingTransactionCount returns the transaction count including pending txs.
 	// This value is also the next legal nonce.
 	GetPendingTransactionCount(ctx context.Context, account common.Address) (uint64, error)
-	//SendRawTransaction sends the signed raw transaction bytes.
+	// SendRawTransaction sends the signed raw transaction bytes.
 	SendRawTransaction(ctx context.Context, tx []byte) error
 	// Call executes a call without submitting a transaction.
 	Call(ctx context.Context, msg CallMsg) ([]byte, error)
