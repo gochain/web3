@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -317,14 +318,29 @@ func GetBlockDetails(ctx context.Context, rpcURL, numberOrHash string) {
 	fmt.Println("Bloom:", "0x"+common.Bytes2Hex(block.LogsBloom.Bytes()))
 	fmt.Println("MixDigest:", block.MixHash.String())
 	if len(block.Signers) > 0 {
-		fmt.Println("Signers:", block.Signers)
+		fmt.Println("Signers:", fmtAddresses(block.Signers).String())
 	}
 	if len(block.Voters) > 0 {
-		fmt.Println("Voters:", block.Voters)
+		fmt.Println("Voters:", fmtAddresses(block.Voters).String())
 	}
 	if len(block.Signer) > 0 {
-		fmt.Printf("Signer: %X\n", block.Signer)
+		fmt.Println("Signer:", "0x"+common.Bytes2Hex(block.Signer))
 	}
+}
+
+type fmtAddresses []common.Address
+
+func (fa fmtAddresses) String() string {
+	var b bytes.Buffer
+	fmt.Fprint(&b,"[")
+	for i, a := range fa {
+		if i > 0 {
+			fmt.Fprint(&b, ", ")
+		}
+		fmt.Fprint(&b, a.Hex())
+	}
+	fmt.Fprint(&b,"]")
+	return b.String()
 }
 
 func GetTransactionDetails(ctx context.Context, network web3.Network, txhash string) {
