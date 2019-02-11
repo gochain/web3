@@ -2,8 +2,12 @@
 set -e
 
 # Install script to install web3
+if [ "$1" != "" ]; then
+    version="$1"
+else
+    version=`curl --silent https://api.github.com/repos/gochain-io/web3/releases/latest  | grep tag_name | cut -f 2 -d : | cut -f 2 -d '"'`
+fi
 
-version=`curl --silent https://api.github.com/repos/gochain-io/web3/releases/latest  | grep tag_name | cut -f 2 -d : | cut -f 2 -d '"'`
 
 command_exists() {
   command -v "$@" > /dev/null 2>&1

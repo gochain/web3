@@ -11,29 +11,13 @@ Note: Some commands require [Docker](https://docs.docker.com/install/).
 
 ## Install web3
 
-### a) One line install script
+Quick one line install:
 
 ```sh
-curl -LSs https://raw.githubusercontent.com/gochain-io/web3/mast
-er/install.sh | sh
+curl -LSs https://raw.githubusercontent.com/gochain-io/web3/master/install.sh | sh
 ```
 
-### b) I have the Go language installed
-
-```sh
-go install github.com/gochain-io/web3/cmd/web3
-```
-
-### c) Build from source
-
-Clone the repo:
-
-```sh
-git clone https://github.com/gochain-io/web3
-cd web3
-make build
-web3 help
-```
+[More options](#More-installation-options)
 
 ## Quickstart
 
@@ -54,7 +38,7 @@ To do any write operations, [get yourself some GO testnet tokens](https://help.g
 Run this command to start a local node. It will print 10 addresses with keys upon starting that you can use to deploy and interact.
 
 ```sh
-docker run --name local_node -p 8545:8545 gochain/gochain:local gochain --local
+docker run --name local_node -p 8545:8545 gochain/gochain gochain --local
 export WEB3_NETWORK=localhost
 ```
 
@@ -234,3 +218,30 @@ web3 contract list --abi CONTRACT_ABI_FILE
 **Parameters:**
 
 - CONTRACT_ABI_FILE - the abi file of the compiled contract
+
+## More installation options
+
+### Install a specific version
+
+You can use the script to install a specific version:
+
+```sh
+curl -LSs https://raw.githubusercontent.com/gochain-io/web3/master/install.sh | sh -s v0.0.9
+```
+
+### Install using the Go language
+
+```sh
+go install github.com/gochain-io/web3/cmd/web3
+```
+
+### Build from source
+
+Clone this repo:
+
+```sh
+git clone https://github.com/gochain-io/web3
+cd web3
+make build
+./web3 help
+```
