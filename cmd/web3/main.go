@@ -215,6 +215,31 @@ func main() {
 				GetID(ctx, network.URL)
 			},
 		},
+		{
+			Name: "start",
+			// Aliases: []string{""},
+			Usage:  "Start a local GoChain development node",
+			Action: start,
+			Flags: []cli.Flag{
+				// cli.StringFlag{
+				// 	Name:  "log-level",
+				// 	Usage: "--log-level debug to enable debugging",
+				// },
+				cli.BoolFlag{
+					Name:  "detach, d",
+					Usage: "Run container in background.",
+				},
+				cli.StringFlag{
+					Name:  "env-file",
+					Usage: "Path to custom configuration file.",
+				},
+				// cli.IntFlag{
+				// 	Name:  "port, p",
+				// 	Value: 8080,
+				// 	Usage: "Specify port number to bind to on the host.",
+				// },
+			},
+		},
 	}
 	app.Run(os.Args)
 }
