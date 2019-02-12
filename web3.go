@@ -92,6 +92,10 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 	for _, t := range myabi.Methods[functionName].Outputs {
 		out = append(out, convertOutputParameter(t))
 	}
+	if len(myabi.Methods[functionName].Inputs) != len(parameters) {
+		return nil, errors.New("Wrong number of arguments expected:" + strconv.Itoa(len(myabi.Methods[functionName].Inputs)) + " given:" + strconv.Itoa(len(parameters)))
+	}
+
 	input, err := myabi.Pack(functionName, convertParameters(myabi.Methods[functionName], parameters)...)
 	if err != nil {
 		return nil, err
@@ -123,6 +127,10 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 
 // CallTransactFunction submits a transaction to execute a smart contract function call.
 func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, address, privateKeyHex, functionName string, amount int, parameters ...interface{}) (*Transaction, error) {
+
+	if len(myabi.Methods[functionName].Inputs) != len(parameters) {
+		return nil, errors.New("Wrong number of arguments expected:" + strconv.Itoa(len(myabi.Methods[functionName].Inputs)) + " given:" + strconv.Itoa(len(parameters)))
+	}
 
 	input, err := myabi.Pack(functionName, convertParameters(myabi.Methods[functionName], parameters)...)
 	if err != nil {
