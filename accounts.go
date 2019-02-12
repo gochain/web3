@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"strings"
 
-	"github.com/gochain-io/gochain/crypto"
+	"github.com/gochain-io/gochain/v3/crypto"
 )
 
 func CreateAccount() (*Account, error) {
@@ -36,7 +36,7 @@ func (a *Account) PublicKey() string {
 	return crypto.PubkeyToAddress(a.key.PublicKey).Hex()
 }
 func (a *Account) PrivateKey() string {
-	return hex.EncodeToString(a.key.D.Bytes())
+	return "0x" + hex.EncodeToString(a.key.D.Bytes())
 }
 
 func Strip0x(pk string) string {

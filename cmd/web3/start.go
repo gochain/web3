@@ -22,10 +22,6 @@ func start(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		err = os.Setenv("WEB3_PRIVATE_KEY", acc.PrivateKey())
-		if err != nil {
-			return err
-		}
 	} else {
 		acc, err = web3.ParsePrivateKey(privateKey)
 		if err != nil {
@@ -53,7 +49,6 @@ func start(c *cli.Context) error {
 		fmt.Println("Restarting existing container 'gochain'...")
 		cmd = exec.Command("docker", "start", "gochain")
 	} else {
-
 		args := []string{"run",
 			// todo: // should use the `--rm` flag if we allow user to mount a local data dir
 			// It's a much better experience than having to do docker rm or switch to docker start.
@@ -80,8 +75,16 @@ func start(c *cli.Context) error {
 		args = append(args, "gochain/gochain", "--local")
 		args = append(args, "--local.fund", acc.PublicKey())
 		cmd = exec.Command("docker", args...)
-	}
+		fmt.Println("Starting your own, personal GoChain instance...")
+		fmt.Println(asciiLogo)
+		fmt.Println()
+		if privateKey == "" {
+			fmt.Printf("We created an account for you to get started quickly.\n\nYour private key is:\n\n%v\n\n"+
+				"Type: `export WEB3_PRIVATE_KEY=%v` to get make using this tool easier.\n\n", acc.PrivateKey(), acc.PrivateKey())
 
+		}
+		fmt.Printf("You're account %v is pre-funded with %v GO.\n", acc.PublicKey(), 1000)
+	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err = cmd.Start()
