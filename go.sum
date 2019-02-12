@@ -45,6 +45,8 @@ github.com/go-ole/go-ole v1.2.1/go.mod h1:7FAglXiTm7HKlQRDeOQ6ZNUHidzCWXuZWq/1dT
 github.com/go-stack/stack v1.7.0/go.mod h1:v0f6uXyyMGvRgIKkXu+yp6POWl0qKG85gN/melR3HDY=
 github.com/go-stack/stack v1.8.0 h1:5SgMzNM5HxrEjV0ww2lTmX6E2Izsfxas4+YHWRs3Lsk=
 github.com/go-stack/stack v1.8.0/go.mod h1:v0f6uXyyMGvRgIKkXu+yp6POWl0qKG85gN/melR3HDY=
+github.com/gochain-io/gochain v2.2.26+incompatible h1:rmVGz8wCSyP7R869iCe2s1+VmpgFNP/pA5VWT+KKxzY=
+github.com/gochain-io/gochain v2.2.26+incompatible/go.mod h1:Ka3R7w3BBA2ZQnr7PkBTX8ktVW1hidoo8QutcctSANI=
 github.com/gochain-io/gochain/v3 v3.0.1 h1:hevNuMpL2oKylBh9TrHmI32AcSOOxT/NRVLZDk7oeOg=
 github.com/gochain-io/gochain/v3 v3.0.1/go.mod h1:xRdBjRRJIxpvWfBcykVu6ySjr2jnwhBw5pYs2hHrjnM=
 github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b/go.mod h1:SBH7ygxi8pfUlaOkMMuAQtPIUF8ecWP5IEl/CR7VP2Q=

@@ -6,6 +6,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/edsrzf/mmap-go v1.0.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
+	github.com/gochain-io/gochain v2.2.26+incompatible
 	github.com/gochain-io/gochain/v3 v3.0.1
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/hashicorp/golang-lru v0.5.0 // indirect

@@ -8,10 +8,28 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/gochain-io/web3"
 	"github.com/urfave/cli"
 )
 
 func start(c *cli.Context) error {
+
+	privateKey := os.Getenv("WEB3_PRIVATE_KEY")
+	var acc *web3.Account
+	var err error
+	if privateKey == "" {
+		acc, err = web3.CreateAccount()
+		if err != nil {
+			return err
+		}
+		err = os.Setenv("WEB3_PRIVATE_KEY", acc.PrivateKey())
+		if err != nil {
+			return err
+		}
+	} else {
+		acc = 
+	}
+
 	// var dDir string
 	// home := config.GetHomeDir()
 	// if c.String("data-dir") != "" {
@@ -57,6 +75,7 @@ func start(c *cli.Context) error {
 			args = append(args, "-d")
 		}
 		args = append(args, "gochain/gochain", "--local")
+		args = append(args, "--local.fund")
 		cmd = exec.Command("docker", args...)
 	}
 
