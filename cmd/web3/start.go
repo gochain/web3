@@ -14,7 +14,7 @@ import (
 
 func start(c *cli.Context) error {
 
-	privateKey := os.Getenv("WEB3_PRIVATE_KEY")
+	privateKey := c.String("private-key")
 	var acc *web3.Account
 	var err error
 	if privateKey == "" {
@@ -27,7 +27,10 @@ func start(c *cli.Context) error {
 			return err
 		}
 	} else {
-		acc = 
+		acc, err = web3.ParsePrivateKey(privateKey)
+		if err != nil {
+			return err
+		}
 	}
 
 	// var dDir string
@@ -75,7 +78,7 @@ func start(c *cli.Context) error {
 			args = append(args, "-d")
 		}
 		args = append(args, "gochain/gochain", "--local")
-		args = append(args, "--local.fund")
+		args = append(args, "--local.fund", acc.PublicKey())
 		cmd = exec.Command("docker", args...)
 	}
 

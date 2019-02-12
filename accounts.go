@@ -3,6 +3,7 @@ package web3
 import (
 	"crypto/ecdsa"
 	"encoding/hex"
+	"strings"
 
 	"github.com/gochain-io/gochain/crypto"
 )
@@ -16,9 +17,9 @@ func CreateAccount() (*Account, error) {
 		key: key,
 	}, nil
 }
-func ParsePrivateKey(pk string) (*Account, error) {
-
-	key, err := crypto.GenerateKey()
+func ParsePrivateKey(pkHex string) (*Account, error) {
+	fromPK := Strip0x(pkHex)
+	key, err := crypto.HexToECDSA(fromPK)
 	if err != nil {
 		return nil, err
 	}
@@ -36,4 +37,11 @@ func (a *Account) PublicKey() string {
 }
 func (a *Account) PrivateKey() string {
 	return hex.EncodeToString(a.key.D.Bytes())
+}
+
+func Strip0x(pk string) string {
+	if strings.HasPrefix(pk, "0x") {
+		return pk[2:len(pk)]
+	}
+	return pk
 }

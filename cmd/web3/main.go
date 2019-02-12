@@ -137,7 +137,7 @@ func main() {
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
-							Name:        "private-key",
+							Name:        "private-key, pk",
 							Usage:       "The private key",
 							EnvVar:      "WEB3_PRIVATE_KEY",
 							Destination: &privateKey,
@@ -190,7 +190,7 @@ func main() {
 							Usage:       "Amount in wei that you want to send to the transaction",
 							Hidden:      false},
 						cli.StringFlag{
-							Name:        "private-key",
+							Name:        "private-key, pk",
 							Usage:       "Private key",
 							EnvVar:      "WEB3_PRIVATE_KEY",
 							Destination: &privateKey,
@@ -216,15 +216,10 @@ func main() {
 			},
 		},
 		{
-			Name: "start",
-			// Aliases: []string{""},
+			Name:   "start",
 			Usage:  "Start a local GoChain development node",
 			Action: start,
 			Flags: []cli.Flag{
-				// cli.StringFlag{
-				// 	Name:  "log-level",
-				// 	Usage: "--log-level debug to enable debugging",
-				// },
 				cli.BoolFlag{
 					Name:  "detach, d",
 					Usage: "Run container in background.",
@@ -233,11 +228,11 @@ func main() {
 					Name:  "env-file",
 					Usage: "Path to custom configuration file.",
 				},
-				// cli.IntFlag{
-				// 	Name:  "port, p",
-				// 	Value: 8080,
-				// 	Usage: "Specify port number to bind to on the host.",
-				// },
+				cli.StringFlag{
+					Name:   "private-key,pk",
+					Usage:  "Private key",
+					EnvVar: "WEB3_PRIVATE_KEY",
+				},
 			},
 		},
 	}
