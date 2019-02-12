@@ -332,14 +332,14 @@ type fmtAddresses []common.Address
 
 func (fa fmtAddresses) String() string {
 	var b bytes.Buffer
-	fmt.Fprint(&b,"[")
+	fmt.Fprint(&b, "[")
 	for i, a := range fa {
 		if i > 0 {
 			fmt.Fprint(&b, ", ")
 		}
 		fmt.Fprint(&b, a.Hex())
 	}
-	fmt.Fprint(&b,"]")
+	fmt.Fprint(&b, "]")
 	return b.String()
 }
 
@@ -554,7 +554,7 @@ func BuildSol(ctx context.Context, filename string) {
 
 	var filenames []string
 	for contractName, v := range compileData {
-		filename := contractName[8:]
+		filename := strings.Split(contractName, ":")[1]
 		err := ioutil.WriteFile(filename+".bin", []byte(v.Code), 0600)
 		if err != nil {
 			log.Fatalf("Cannot write the bin file: %v", err)

@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -57,8 +59,12 @@ type solcOutput struct {
 }
 
 func (s *Solidity) makeArgs() []string {
+	dir, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
 	return []string{
-		"run", "-i", "ethereum/solc:" + strconv.Itoa(s.Major) + "." + strconv.Itoa(s.Minor) + "." + strconv.Itoa(s.Patch),
+		"run", "-i", "-v", dir + ":/workdir", "-w", "/workdir", "ethereum/solc:" + strconv.Itoa(s.Major) + "." + strconv.Itoa(s.Minor) + "." + strconv.Itoa(s.Patch),
 		"--combined-json",
 		"bin,bin-runtime,srcmap,srcmap-runtime,abi,userdoc,devdoc,metadata",
 		"--optimize", // code optimizer switched on
