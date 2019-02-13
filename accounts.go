@@ -17,8 +17,9 @@ func CreateAccount() (*Account, error) {
 		key: key,
 	}, nil
 }
+
 func ParsePrivateKey(pkHex string) (*Account, error) {
-	fromPK := strings.TrimPrefix(pkHex,"0x")
+	fromPK := strings.TrimPrefix(pkHex, "0x")
 	key, err := crypto.HexToECDSA(fromPK)
 	if err != nil {
 		return nil, err
@@ -35,13 +36,7 @@ type Account struct {
 func (a *Account) PublicKey() string {
 	return crypto.PubkeyToAddress(a.key.PublicKey).Hex()
 }
+
 func (a *Account) PrivateKey() string {
 	return "0x" + hex.EncodeToString(a.key.D.Bytes())
-}
-
-func Strip0x(pk string) string {
-	if strings.HasPrefix(pk, "0x") {
-		return pk[2:len(pk)]
-	}
-	return pk
 }
