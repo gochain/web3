@@ -30,7 +30,7 @@ var Networks = map[string]Network{
 		URL:  testnetURL,
 		Unit: "GO",
 	},
-	"mainnet": {
+	"gochain": {
 		URL:  mainnetURL,
 		Unit: "GO",
 	},

@@ -53,7 +53,8 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:        "network, n",
-			Usage:       "The name of the network (mainnet/testnet/ethereum/ropsten/localhost). Default is mainnet.",
+			Usage:       "The name of the network. Options: gochain/testnet/ethereum/ropsten/localhost. Default: gochain.",
+			Value:       "gochain",
 			Destination: &netName,
 			EnvVar:      "WEB3_NETWORK",
 			Hidden:      false},
@@ -75,7 +76,7 @@ func main() {
 			Hidden:      false},
 		cli.StringFlag{
 			Name:        "format, f",
-			Usage:       "Output format (json). Default is human readable log lines.",
+			Usage:       "Output format. Options: json. Default: human readable output.",
 			Destination: &format,
 			Hidden:      false},
 	}
@@ -238,7 +239,7 @@ func getNetwork(name, rpcURL string, testnet bool) web3.Network {
 			}
 			name = "testnet"
 		} else if name == "" {
-			name = "mainnet"
+			name = "gochain"
 		}
 		var ok bool
 		network, ok = web3.Networks[name]
