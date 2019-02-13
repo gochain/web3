@@ -45,7 +45,7 @@ export WEB3_NETWORK=localhost
 #### c) Use the mainnet
 
 ```sh
-export WEB3_NETWORK=mainnet
+export WEB3_NETWORK=gochain
 ```
 
 You'll need mainnet GO for this which you can [buy on various exchanges](https://help.gochain.io/en/article/how-to-buy-go-tokens-z12xkb/).
@@ -133,7 +133,7 @@ And you'll get a JSON response like this:
 
 `$NETWORK as env variable or -network as command parameter` - the name of the network. Available networks are:
 
-* mainnet (default)
+* gochain (default)
 * testnet
 * ethereum
 * ropsten
