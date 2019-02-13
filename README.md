@@ -7,8 +7,6 @@ This repository also exports the backing golang `package web3`.
 https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/68747470733a2f2f676f646f632e6f72672f6769746875622e636f6d2f676f6c616e672f6764646f3f7374617475732e737667
 )](https://godoc.org/github.com/gochain-io/web3)
 
-Note: Some commands require [Docker](https://docs.docker.com/install/).
-
 ## Install web3
 
 Quick one line install:
@@ -16,6 +14,8 @@ Quick one line install:
 ```sh
 curl -LSs https://raw.githubusercontent.com/gochain-io/web3/master/install.sh | sh
 ```
+
+[Install Docker](https://docs.docker.com/install/) (optional) - While not required for all commands, many of the developer commands require Docker so we recommend installing it.
 
 [More options](#More-installation-options)
 
@@ -25,7 +25,16 @@ If you just plan to read from the blockchain, you do not need any GO tokens and 
 
 ### Pick a network to use
 
-#### a) Use the GoChain testnet
+#### a) Run a local node
+
+Run this command to start a local node. It will print 10 addresses with keys upon starting that you can use to deploy and interact.
+
+```sh
+web3 start
+export WEB3_NETWORK=localhost
+```
+
+#### b) Use the GoChain testnet
 
 ```sh
 export WEB3_NETWORK=testnet
@@ -33,22 +42,16 @@ export WEB3_NETWORK=testnet
 
 To do any write operations, [get yourself some GO testnet tokens](https://help.gochain.io/en/article/getting-started-4tlo7a/) so you can deploy and interact with your contract.
 
-#### b) Run a local node
-
-Run this command to start a local node. It will print 10 addresses with keys upon starting that you can use to deploy and interact.
-
-```sh
-docker run --name local_node -p 8545:8545 gochain/gochain gochain --local
-export WEB3_NETWORK=localhost
-```
-
-#### c) Use the mainnet
+#### c) Use the GoChain mainnet or another web3 network
 
 ```sh
 export WEB3_NETWORK=gochain
 ```
 
 You'll need mainnet GO for this which you can [buy on various exchanges](https://help.gochain.io/en/article/how-to-buy-go-tokens-z12xkb/).
+
+You can also point this to other web3 based networks such as Ethereum. Ethereum is supported by default and you
+can use one of the following: `ethereum` or `ropsten`.
 
 ### Set Private Key (optional)
 

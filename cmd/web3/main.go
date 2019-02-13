@@ -29,6 +29,16 @@ var (
 	format  string
 )
 
+const (
+	asciiLogo = `  ___  _____  ___  _   _    __    ____  _  _ 
+/ __)(  _  )/ __)( )_( )  /__\  (_  _)( \( )
+( (_-. )(_)(( (__  ) _ (  /(__)\  _)(_  )  ( 
+\___/(_____)\___)(_) (_)(__)(__)(____)(_)\_)`
+
+	pkVarName   = "WEB3_PRIVATE_KEY"
+	addrVarName = "WEB3_ADDRESS"
+)
+
 func main() {
 	// Interrupt cancellation.
 	ctx, cancelFn := context.WithCancel(context.Background())
@@ -138,9 +148,9 @@ func main() {
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
-							Name:        "private-key",
+							Name:        "private-key, pk",
 							Usage:       "The private key",
-							EnvVar:      "WEB3_PRIVATE_KEY",
+							EnvVar:      pkVarName,
 							Destination: &privateKey,
 							Hidden:      false},
 					},
@@ -177,6 +187,7 @@ func main() {
 							Hidden:      false},
 						cli.StringFlag{
 							Name:        "address",
+							EnvVar:      addrVarName,
 							Destination: &contractAddress,
 							Usage:       "Deployed contract address",
 							Hidden:      false},
@@ -191,9 +202,9 @@ func main() {
 							Usage:       "Amount in wei that you want to send to the transaction",
 							Hidden:      false},
 						cli.StringFlag{
-							Name:        "private-key",
+							Name:        "private-key, pk",
 							Usage:       "Private key",
-							EnvVar:      "WEB3_PRIVATE_KEY",
+							EnvVar:      pkVarName,
 							Destination: &privateKey,
 							Hidden:      false},
 					},
@@ -214,6 +225,68 @@ func main() {
 			Usage:   "Network/Chain information",
 			Action: func(c *cli.Context) {
 				GetID(ctx, network.URL)
+			},
+		},
+		{
+			Name:  "start",
+			Usage: "Start a local GoChain development node",
+			Flags: []cli.Flag{
+				cli.BoolTFlag{
+					Name:  "detach, d",
+					Usage: "Run container in background.",
+				},
+				cli.StringFlag{
+					Name:  "env-file",
+					Usage: "Path to custom configuration file.",
+				},
+				cli.StringFlag{
+					Name:   "private-key,pk",
+					Usage:  "Private key",
+					EnvVar: pkVarName,
+				},
+			},
+			Action: start,
+		},
+		{
+			Name:  "myaddress",
+			Usage: fmt.Sprintf("Returns the address associated with %v", pkVarName),
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:   "private-key,pk",
+					Usage:  "Private key",
+					EnvVar: pkVarName,
+				},
+			},
+			Action: func(c *cli.Context) {
+				pk := c.String("private-key")
+				if pk == "" {
+					fmt.Printf("%v not set", pkVarName)
+					return
+				}
+				acc, err := web3.ParsePrivateKey(pk)
+				if err != nil {
+					log.Fatalln(err)
+				}
+				fmt.Print(acc.PublicKey())
+			},
+		},
+		{
+			Name:    "account",
+			Aliases: []string{"a"},
+			Usage:   "Account operations",
+			Subcommands: []cli.Command{
+				{
+					Name:  "create",
+					Usage: "Create a new account",
+					Action: func(c *cli.Context) {
+						acc, err := web3.CreateAccount()
+						if err != nil {
+							log.Fatalln(err)
+						}
+						fmt.Printf("Private key: %v\n", acc.PrivateKey())
+						fmt.Printf("Public address: %v\n", acc.PublicKey())
+					},
+				},
 			},
 		},
 	}
