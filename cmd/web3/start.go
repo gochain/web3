@@ -80,7 +80,7 @@ func start(c *cli.Context) error {
 		fmt.Println()
 		if privateKey == "" {
 			fmt.Printf("We created an account for you to get started quickly.\n\nYour private key is:\n\n%v\n\n"+
-				"Type: `export WEB3_PRIVATE_KEY=%v` to get make using this tool easier.\n\n", acc.PrivateKey(), acc.PrivateKey())
+				"Type: `export WEB3_PRIVATE_KEY=%v` to make using this tool easier.\n\n", acc.PrivateKey(), acc.PrivateKey())
 
 		}
 		fmt.Printf("Your account %v is pre-funded with %v GO.\n", acc.PublicKey(), 1000)
