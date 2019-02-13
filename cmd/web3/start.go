@@ -83,7 +83,7 @@ func start(c *cli.Context) error {
 				"Type: `export WEB3_PRIVATE_KEY=%v` to get make using this tool easier.\n\n", acc.PrivateKey(), acc.PrivateKey())
 
 		}
-		fmt.Printf("You're account %v is pre-funded with %v GO.\n", acc.PublicKey(), 1000)
+		fmt.Printf("Your account %v is pre-funded with %v GO.\n", acc.PublicKey(), 1000)
 	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

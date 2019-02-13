@@ -18,7 +18,7 @@ func CreateAccount() (*Account, error) {
 	}, nil
 }
 func ParsePrivateKey(pkHex string) (*Account, error) {
-	fromPK := Strip0x(pkHex)
+	fromPK := strings.TrimPrefix(pkHex,"0x")
 	key, err := crypto.HexToECDSA(fromPK)
 	if err != nil {
 		return nil, err
