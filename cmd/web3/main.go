@@ -692,6 +692,11 @@ func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 				if err != nil {
 					log.Fatalf("Cannot parse the receipt logs: %v", err)
 				}
+				switch format {
+				case "json":
+					fmt.Println(marshalJSON(logs))
+					return
+				}
 				fmt.Println("Logs of the receipt", marshalJSON(logs))
 				fmt.Println("Transaction receipt address:", receipt.TxHash.Hex())
 			} else {
