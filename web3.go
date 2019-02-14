@@ -268,3 +268,55 @@ func WaitForReceipt(ctx context.Context, client Client, hash common.Hash) (*Rece
 		}
 	}
 }
+
+func FindEventById(abi abi.ABI, id common.Hash) *abi.Event {
+	for _, event := range abi.Events {
+		if event.Id() == id {
+			return &event
+		}
+	}
+	return nil
+}
+func getInputs(args abi.Arguments, indexed bool) []abi.Argument {
+	var out []abi.Argument
+	for _, arg := range args {
+		if arg.Indexed == indexed {
+			out = append(out, arg)
+		}
+	}
+	return out
+}
+
+func ParseReceipt(myabi abi.ABI, receipt *Receipt) (map[string]map[string]interface{}, error) {
+	var output map[string]map[string]interface{}
+	output = make(map[string]map[string]interface{})
+	for _, log := range receipt.Logs {
+		var out []interface{}
+		//event id is always in the first topic
+		event := FindEventById(myabi, log.Topics[0])
+		output[event.Name] = make(map[string]interface{})
+		nonIndexed := getInputs(event.Inputs, false)
+		for _, t := range nonIndexed {
+			out = append(out, convertOutputParameter(t))
+		}
+		if len(nonIndexed) > 1 {
+			err := myabi.Unpack(&out, event.Name, log.Data)
+			if err != nil {
+				return nil, err
+			}
+			for i, o := range out {
+				output[event.Name][nonIndexed[i].Name] = reflect.ValueOf(o).Elem().Interface()
+			}
+		} else {
+			err := myabi.Unpack(&out[0], event.Name, log.Data)
+			if err != nil {
+				return nil, err
+			}
+			output[event.Name][nonIndexed[0].Name] = out[0]
+		}
+		for i, input := range getInputs(event.Inputs, true) {
+			output[event.Name][input.Name] = log.Topics[i+1].String()
+		}
+	}
+	return output, nil
+}
