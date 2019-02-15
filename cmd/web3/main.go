@@ -63,8 +63,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:        "network, n",
-			Usage:       "The name of the network. Options: gochain/testnet/ethereum/ropsten/localhost. Default: gochain.",
-			Value:       "gochain",
+			Usage:       `The name of the network. Options: gochain/testnet/ethereum/ropsten/localhost. (default: "gochain")`,
 			Destination: &netName,
 			EnvVar:      "WEB3_NETWORK",
 			Hidden:      false},
@@ -308,7 +307,7 @@ func getNetwork(name, rpcURL string, testnet bool) web3.Network {
 	} else {
 		if testnet {
 			if name != "" {
-				log.Fatalf("Cannot set both network %q and testnet", network)
+				log.Fatalf("Cannot set both network %q and testnet", name)
 			}
 			name = "testnet"
 		} else if name == "" {
