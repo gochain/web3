@@ -1,3 +1,4 @@
 *.sol
 *.bin
 bin/
+lib/

@@ -33,3 +33,4 @@ bin/
 *.abi
 /web3_*
 /*.sol
+lib/
