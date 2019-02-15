@@ -106,7 +106,14 @@ func main() {
 			Aliases: []string{"rc"},
 			Usage:   "Transaction receipt for a tx hash",
 			Action: func(c *cli.Context) {
-				GetTransactionReceipt(ctx, network.URL, c.Args().First())
+				GetTransactionReceipt(ctx, network.URL, c.Args().First(), contractFile)
+			},
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "abi",
+					Destination: &contractFile,
+					Usage:       "ABI file matching deployed contract",
+					Hidden:      false},
 			},
 		},
 		{
@@ -383,12 +390,16 @@ func GetTransactionDetails(ctx context.Context, network web3.Network, txhash str
 	}
 }
 
-func GetTransactionReceipt(ctx context.Context, rpcURL, txhash string) {
+func GetTransactionReceipt(ctx context.Context, rpcURL, txhash, contractFile string) {
+	var myabi *abi.ABI
 	client, err := web3.NewClient(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
 	}
 	defer client.Close()
+	if contractFile != "" {
+		myabi = getAbi(contractFile)
+	}
 	r, err := client.GetTransactionReceipt(ctx, common.HexToHash(txhash))
 	if err != nil {
 		log.Fatalf("Failed to get transaction receipt: %v", err)
@@ -397,22 +408,7 @@ func GetTransactionReceipt(ctx context.Context, rpcURL, txhash string) {
 		fmt.Println("Transaction Receipt Details:")
 	}
 
-	switch format {
-	case "json":
-		fmt.Println(marshalJSON(r))
-		return
-	}
-
-	fmt.Println("TxHash:", r.TxHash.String())
-	if r.ContractAddress != (common.Address{}) {
-		fmt.Println("Contract Address:", r.ContractAddress.String())
-	}
-	fmt.Println("GasUsed:", r.GasUsed)
-	fmt.Println("Cumulative Gas Used:", r.CumulativeGasUsed)
-	fmt.Println("Status:", r.Status)
-	fmt.Println("Post State:", "0x"+common.Bytes2Hex(r.PostState))
-	fmt.Println("Bloom:", "0x"+common.Bytes2Hex(r.Bloom.Bytes()))
-	fmt.Println("Logs:", r.Logs)
+	printReceiptDetails(r, myabi)
 }
 
 func GetAddressDetails(ctx context.Context, network web3.Network, addrHash string) {
@@ -623,17 +619,8 @@ func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string) {
 	fmt.Println("Contract address is:", receipt.ContractAddress.Hex())
 }
 func ListContract(contractFile string) {
-	if _, err := os.Stat(contractFile); os.IsNotExist(err) {
-		log.Fatalf("Cannot find the abi file: %v", err)
-	}
-	jsonReader, err := os.Open(contractFile)
-	if err != nil {
-		log.Fatalf("Cannot read the abi file: %v", err)
-	}
-	myabi, err := abi.JSON(jsonReader)
-	if err != nil {
-		log.Fatalf("Cannot initialize ABI: %v", err)
-	}
+
+	myabi := getAbi(contractFile)
 
 	switch format {
 	case "json":
@@ -653,23 +640,13 @@ func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
 	}
 	defer client.Close()
-	if _, err := os.Stat(contractFile); os.IsNotExist(err) {
-		log.Fatalf("Cannot find the abi file: %v", err)
-	}
-	jsonReader, err := os.Open(contractFile)
-	if err != nil {
-		log.Fatalf("Cannot read the abi file: %v", err)
-	}
-	myabi, err := abi.JSON(jsonReader)
-	if err != nil {
-		log.Fatalf("Cannot initialize ABI: %v", err)
-	}
+	myabi := getAbi(contractFile)
 	if _, ok := myabi.Methods[functionName]; !ok {
 		fmt.Println("There is no such function:", functionName)
 		return
 	}
 	if myabi.Methods[functionName].Const {
-		res, err := web3.CallConstantFunction(ctx, client, myabi, contractAddress, functionName, parameters...)
+		res, err := web3.CallConstantFunction(ctx, client, *myabi, contractAddress, functionName, parameters...)
 		if err != nil {
 			log.Fatalf("Cannot call the contract: %v", err)
 		}
@@ -683,7 +660,7 @@ func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 		fmt.Println("Call results:", res)
 		return
 	}
-	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, functionName, amount, parameters...)
+	tx, err := web3.CallTransactFunction(ctx, client, *myabi, contractAddress, privateKey, functionName, amount, parameters...)
 	if err != nil {
 		log.Fatalf("Cannot call the contract: %v", err)
 	}
@@ -695,18 +672,54 @@ func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 	if err != nil {
 		log.Fatalf("Cannot get the receipt: %v", err)
 	}
-	logs, err := web3.ParseReceipt(myabi, receipt)
-	if err != nil {
-		log.Fatalf("Cannot parse the receipt logs: %v", err)
+	printReceiptDetails(receipt, myabi)
+
+}
+
+func printReceiptDetails(r *web3.Receipt, myabi *abi.ABI) {
+	var logs []web3.Event
+	var err error
+	if myabi != nil {
+		logs, err = web3.ParseLogs(*myabi, r.Logs)
+		r.ParsedLogs = logs
+		if err != nil {
+			log.Fatalf("Cannot parse the receipt logs: %v", err)
+		}
 	}
 	switch format {
 	case "json":
-		fmt.Println(marshalJSON(logs))
+		fmt.Println(marshalJSON(r))
 		return
 	}
-	fmt.Println("Logs of the receipt:", marshalJSON(logs))
-	fmt.Println("Transaction receipt address:", receipt.TxHash.Hex())
 
+	fmt.Println("Transaction receipt address:", r.TxHash.Hex())
+	fmt.Println("TxHash:", r.TxHash.String())
+	if r.ContractAddress != (common.Address{}) {
+		fmt.Println("Contract Address:", r.ContractAddress.String())
+	}
+	fmt.Println("GasUsed:", r.GasUsed)
+	fmt.Println("Cumulative Gas Used:", r.CumulativeGasUsed)
+	fmt.Println("Status:", r.Status)
+	fmt.Println("Post State:", "0x"+common.Bytes2Hex(r.PostState))
+	fmt.Println("Bloom:", "0x"+common.Bytes2Hex(r.Bloom.Bytes()))
+	fmt.Println("Logs:", r.Logs)
+	if myabi != nil {
+		fmt.Println("Logs of the receipt:", marshalJSON(r.ParsedLogs))
+	}
+}
+func getAbi(contractFile string) *abi.ABI {
+	if _, err := os.Stat(contractFile); os.IsNotExist(err) {
+		log.Fatalf("Cannot find the abi file: %v", err)
+	}
+	jsonReader, err := os.Open(contractFile)
+	if err != nil {
+		log.Fatalf("Cannot read the abi file: %v", err)
+	}
+	abi, err := abi.JSON(jsonReader)
+	if err != nil {
+		log.Fatalf("Cannot initialize ABI: %v", err)
+	}
+	return &abi
 }
 
 func marshalJSON(data interface{}) string {

@@ -54,6 +54,7 @@ type Receipt struct {
 	TxHash            common.Hash
 	ContractAddress   common.Address
 	GasUsed           uint64
+	ParsedLogs        []Event
 }
 
 func (r *Receipt) UnmarshalJSON(data []byte) error {
@@ -137,6 +138,10 @@ type Transaction struct {
 	BlockNumber      *big.Int
 	BlockHash        common.Hash
 	TransactionIndex uint64
+}
+type Event struct {
+	Name   string                 `json:"name"`
+	Fields map[string]interface{} `json:"fields"`
 }
 
 func (t *Transaction) UnmarshalJSON(data []byte) error {

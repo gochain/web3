@@ -287,13 +287,15 @@ func getInputs(args abi.Arguments, indexed bool) []abi.Argument {
 	return out
 }
 
-func ParseReceipt(myabi abi.ABI, receipt *Receipt) (map[string]map[string]interface{}, error) {
-	output := make(map[string]map[string]interface{})
-	for _, log := range receipt.Logs {
+// func ParseReceipt(myabi abi.ABI, receipt *Receipt) (map[string]map[string]interface{}, error) {
+func ParseLogs(myabi abi.ABI, logs []*types.Log) ([]Event, error) {
+	var output []Event
+	// output := make(map[string]map[string]interface{})
+	for _, log := range logs {
 		var out []interface{}
 		//event id is always in the first topic
 		event := FindEventById(myabi, log.Topics[0])
-		output[event.Name] = make(map[string]interface{})
+		fields := make(map[string]interface{})
 		nonIndexed := getInputs(event.Inputs, false)
 		for _, t := range nonIndexed {
 			out = append(out, convertOutputParameter(t))
@@ -304,18 +306,19 @@ func ParseReceipt(myabi abi.ABI, receipt *Receipt) (map[string]map[string]interf
 				return nil, err
 			}
 			for i, o := range out {
-				output[event.Name][nonIndexed[i].Name] = reflect.ValueOf(o).Elem().Interface()
+				fields[nonIndexed[i].Name] = reflect.ValueOf(o).Elem().Interface()
 			}
 		} else {
 			err := myabi.Unpack(&out[0], event.Name, log.Data)
 			if err != nil {
 				return nil, err
 			}
-			output[event.Name][nonIndexed[0].Name] = out[0]
+			fields[nonIndexed[0].Name] = out[0]
 		}
 		for i, input := range getInputs(event.Inputs, true) {
-			output[event.Name][input.Name] = log.Topics[i+1].String()
+			fields[input.Name] = log.Topics[i+1].String()
 		}
+		output = append(output, Event{Name: event.Name, Fields: fields})
 	}
 	return output, nil
 }
