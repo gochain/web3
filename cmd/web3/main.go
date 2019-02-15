@@ -196,7 +196,7 @@ func main() {
 							Destination: &privateKey,
 							Hidden:      false},
 						cli.BoolFlag{
-							Name:        "wait-for-receipt",
+							Name:        "wait",
 							Usage:       "Wait for the receipt for transact functions",
 							Destination: &waitForReceipt,
 							Hidden:      false},
@@ -664,48 +664,47 @@ func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 	if err != nil {
 		log.Fatalf("Cannot initialize ABI: %v", err)
 	}
-	if _, ok := myabi.Methods[functionName]; ok {
-		if myabi.Methods[functionName].Const {
-			res, err := web3.CallConstantFunction(ctx, client, myabi, contractAddress, functionName, parameters...)
-			if err != nil {
-				log.Fatalf("Cannot call the contract: %v", err)
-			}
-			switch format {
-			case "json":
-				m := make(map[string]interface{})
-				m["response"] = res
-				fmt.Println(marshalJSON(m))
-				return
-			}
-			fmt.Println("Call results:", res)
-		} else {
-			tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, functionName, amount, parameters...)
-			if err != nil {
-				log.Fatalf("Cannot call the contract: %v", err)
-			}
-			if waitForReceipt {
-				receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
-				if err != nil {
-					log.Fatalf("Cannot get the receipt: %v", err)
-				}
-				logs, err := web3.ParseReceipt(myabi, receipt)
-				if err != nil {
-					log.Fatalf("Cannot parse the receipt logs: %v", err)
-				}
-				switch format {
-				case "json":
-					fmt.Println(marshalJSON(logs))
-					return
-				}
-				fmt.Println("Logs of the receipt", marshalJSON(logs))
-				fmt.Println("Transaction receipt address:", receipt.TxHash.Hex())
-			} else {
-				fmt.Println("Transaction address:", tx.Hash.Hex())
-			}
-		}
-
-	} else {
+	if _, ok := myabi.Methods[functionName]; !ok {
 		fmt.Println("There is no such function:", functionName)
+		return
+	}
+	if myabi.Methods[functionName].Const {
+		res, err := web3.CallConstantFunction(ctx, client, myabi, contractAddress, functionName, parameters...)
+		if err != nil {
+			log.Fatalf("Cannot call the contract: %v", err)
+		}
+		switch format {
+		case "json":
+			m := make(map[string]interface{})
+			m["response"] = res
+			fmt.Println(marshalJSON(m))
+			return
+		}
+		fmt.Println("Call results:", res)
+	} else {
+		tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, functionName, amount, parameters...)
+		if err != nil {
+			log.Fatalf("Cannot call the contract: %v", err)
+		}
+		if !waitForReceipt {
+			fmt.Println("Transaction address:", tx.Hash.Hex())
+			return
+		}
+		receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
+		if err != nil {
+			log.Fatalf("Cannot get the receipt: %v", err)
+		}
+		logs, err := web3.ParseReceipt(myabi, receipt)
+		if err != nil {
+			log.Fatalf("Cannot parse the receipt logs: %v", err)
+		}
+		switch format {
+		case "json":
+			fmt.Println(marshalJSON(logs))
+			return
+		}
+		fmt.Println("Logs of the receipt:", marshalJSON(logs))
+		fmt.Println("Transaction receipt address:", receipt.TxHash.Hex())
 	}
 }
 
