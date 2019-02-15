@@ -288,8 +288,7 @@ func getInputs(args abi.Arguments, indexed bool) []abi.Argument {
 }
 
 func ParseReceipt(myabi abi.ABI, receipt *Receipt) (map[string]map[string]interface{}, error) {
-	var output map[string]map[string]interface{}
-	output = make(map[string]map[string]interface{})
+	output := make(map[string]map[string]interface{})
 	for _, log := range receipt.Logs {
 		var out []interface{}
 		//event id is always in the first topic
