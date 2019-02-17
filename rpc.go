@@ -1,7 +1,9 @@
 package web3
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/gochain-io/gochain/v3/common"
@@ -30,10 +32,8 @@ type rpcBlock struct {
 	MixHash         *common.Hash      `json:"mixHash"`
 	Nonce           *types.BlockNonce `json:"nonce"`
 	Hash            *common.Hash      `json:"hash"`
-
-	// TODO support full Transactions
-	Txs    []common.Hash `json:"transactions,omitempty"`
-	Uncles []common.Hash `json:"uncles"`
+	Txs             json.RawMessage   `json:"transactions,omitempty"`
+	Uncles          []common.Hash     `json:"uncles"`
 }
 
 // copyTo copies the fields from r to b.
@@ -110,13 +110,26 @@ func (r *rpcBlock) copyTo(b *Block) error {
 		return errors.New("missing 'hash'")
 	}
 	b.Hash = *r.Hash
-	b.Txs = r.Txs
+
+	// Try tx hashes first.
+	var hashes []common.Hash
+	if err := json.Unmarshal(r.Txs, &hashes); err == nil {
+		b.TxHashes = hashes
+	} else {
+		// Try full transactions.
+		var details []*Transaction
+		if err := json.Unmarshal(r.Txs, &details); err != nil {
+			return fmt.Errorf("failed to unmarshal transactions as either hahes or details %q: %s", err, string(r.Txs))
+		}
+		b.TxDetails = details
+	}
+
 	b.Uncles = r.Uncles
 	return nil
 }
 
 // copyFrom copies the fields from b to r.
-func (r *rpcBlock) copyFrom(b *Block) {
+func (r *rpcBlock) copyFrom(b *Block) error {
 	r.ParentHash = &b.ParentHash
 	r.Sha3Uncles = &b.Sha3Uncles
 	r.Miner = &b.Miner
@@ -138,8 +151,21 @@ func (r *rpcBlock) copyFrom(b *Block) {
 	r.MixHash = &b.MixHash
 	r.Nonce = &b.Nonce
 	r.Hash = &b.Hash
-	r.Txs = b.Txs
+	if b.TxHashes != nil {
+		data, err := json.Marshal(b.TxHashes)
+		if err != nil {
+			return fmt.Errorf("failed to marshal tx hashes to json: %v", err)
+		}
+		r.Txs = data
+	} else {
+		data, err := json.Marshal(b.TxDetails)
+		if err != nil {
+			return fmt.Errorf("failed to marshal tx details to json: %v", err)
+		}
+		r.Txs = data
+	}
 	r.Uncles = b.Uncles
+	return nil
 }
 
 type rpcTransaction struct {

@@ -94,8 +94,10 @@ type Block struct {
 	Nonce           types.BlockNonce
 	Hash            common.Hash
 
-	// TODO support full Transactions
-	Txs    []common.Hash
+	// Only one of TxHashes or TxDetails will be populated.
+	TxHashes  []common.Hash
+	TxDetails []*Transaction
+
 	Uncles []common.Hash
 }
 
@@ -110,7 +112,9 @@ func (b *Block) UnmarshalJSON(data []byte) error {
 
 func (b *Block) MarshalJSON() ([]byte, error) {
 	var r rpcBlock
-	r.copyFrom(b)
+	if err := r.copyFrom(b); err != nil {
+		return nil, err
+	}
 	return json.Marshal(&r)
 }
 
@@ -120,6 +124,13 @@ func (b *Block) ExtraVanity() string {
 		l = 32
 	}
 	return string(b.ExtraData[:l])
+}
+
+func (b *Block) TxCount() int {
+	if b.TxHashes != nil {
+		return len(b.TxHashes)
+	}
+	return len(b.TxDetails)
 }
 
 type Transaction struct {
