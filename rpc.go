@@ -242,6 +242,7 @@ type rpcReceipt struct {
 	TxHash            *common.Hash    `json:"transactionHash"`
 	ContractAddress   *common.Address `json:"contractAddress"`
 	GasUsed           *hexutil.Uint64 `json:"gasUsed" `
+	ParsedLogs        *[]Event        `json:"parsedLogs" `
 }
 
 func (rr *rpcReceipt) copyTo(r *Receipt) error {
@@ -283,4 +284,5 @@ func (rr *rpcReceipt) copyFrom(r *Receipt) {
 	rr.TxHash = &r.TxHash
 	rr.ContractAddress = &r.ContractAddress
 	rr.GasUsed = (*hexutil.Uint64)(&r.GasUsed)
+	rr.ParsedLogs = &r.ParsedLogs
 }
