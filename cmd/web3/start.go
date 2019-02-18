@@ -1,19 +1,17 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
-	"os/signal"
-	"syscall"
 
 	"github.com/gochain-io/web3"
 	"github.com/urfave/cli"
 )
 
-func start(c *cli.Context) error {
-
+func start(ctx context.Context, c *cli.Context) error {
 	privateKey := c.String("private-key")
 	var acc *web3.Account
 	var err error
@@ -39,7 +37,7 @@ func start(c *cli.Context) error {
 
 	// check if the container already exists
 	// docker ps -a --filter name=gochain --format "{{.Names}}"
-	cmd := exec.Command("docker", "ps", "-a", "--filter", "name=gochain", "--format", "{{.Names}}")
+	cmd := exec.CommandContext(ctx, "docker", "ps", "-a", "--filter", "name=gochain", "--format", "{{.Names}}")
 	stdoutStderr, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Fatal(err)
@@ -47,7 +45,7 @@ func start(c *cli.Context) error {
 	if len(stdoutStderr) != 0 {
 		// then already exists, so just start it again
 		fmt.Println("Restarting existing container 'gochain'...")
-		cmd = exec.Command("docker", "start", "gochain")
+		cmd = exec.CommandContext(ctx, "docker", "start", "gochain")
 	} else {
 		args := []string{"run",
 			// todo: // should use the `--rm` flag if we allow user to mount a local data dir
@@ -74,7 +72,7 @@ func start(c *cli.Context) error {
 		}
 		args = append(args, "gochain/gochain", "--local")
 		args = append(args, "--local.fund", acc.PublicKey())
-		cmd = exec.Command("docker", args...)
+		cmd = exec.CommandContext(ctx, "docker", args...)
 		fmt.Println("Starting your own, personal GoChain instance...")
 		fmt.Println(asciiLogo)
 		fmt.Println()
@@ -87,33 +85,9 @@ func start(c *cli.Context) error {
 	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	err = cmd.Start()
+	err = cmd.Run()
 	if err != nil {
-		log.Fatalln("Starting command failed:", err)
+		log.Fatalln("Failed to run command:", err)
 	}
-
-	done := make(chan error, 1)
-	go func() {
-		done <- cmd.Wait()
-	}()
-	// catch ctrl-c and kill
-	sigC := make(chan os.Signal, 2)
-	signal.Notify(sigC, os.Interrupt, syscall.SIGTERM)
-
-	for {
-		select {
-		case <-sigC:
-			log.Println("Interrupt caught, exiting")
-			err = cmd.Process.Signal(syscall.SIGTERM)
-			if err != nil {
-				log.Println("Error: could not kill process:", err)
-				return err
-			}
-		case err := <-done:
-			if err != nil {
-				log.Println("Error: processed finished with error", err)
-			}
-		}
-		return err
-	}
+	return nil
 }

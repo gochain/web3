@@ -31,9 +31,9 @@ var (
 
 const (
 	asciiLogo = `  ___  _____  ___  _   _    __    ____  _  _ 
-/ __)(  _  )/ __)( )_( )  /__\  (_  _)( \( )
+ / __)(  _  )/ __)( )_( )  /__\  (_  _)( \( )
 ( (_-. )(_)(( (__  ) _ (  /(__)\  _)(_  )  ( 
-\___/(_____)\___)(_) (_)(__)(__)(____)(_)\_)`
+ \___/(_____)\___)(_) (_)(__)(__)(____)(_)\_)`
 
 	pkVarName   = "WEB3_PRIVATE_KEY"
 	addrVarName = "WEB3_ADDRESS"
@@ -256,7 +256,9 @@ func main() {
 					EnvVar: pkVarName,
 				},
 			},
-			Action: start,
+			Action: func(c *cli.Context) error {
+				return start(ctx, c)
+			},
 		},
 		{
 			Name:  "myaddress",
