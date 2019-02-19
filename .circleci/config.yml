@@ -31,7 +31,7 @@ jobs:
   - restore_cache:
       key: golang-cache-{{ checksum "go.sum" }}
   - run:
-    command: |
+      command: |
         go mod download
   - save_cache:
       key: golang-cache-{{ checksum "go.sum" }}
