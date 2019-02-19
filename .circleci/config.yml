@@ -42,8 +42,8 @@ jobs:
         paths:
           - .
     - run:
-      command: |
-        go build -o web3_mac ./cmd/web3      
+        command: |
+          go build -o web3_mac ./cmd/web3      
 workflows:
   version: 2
 
