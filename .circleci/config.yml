@@ -31,13 +31,13 @@ jobs:
   - restore_cache:
       key: golang-cache-{{ checksum "go.sum" }}
   - run:
-      command: >
+    command: >
         go mod download
   - save_cache:
       key: golang-cache-{{ checksum "go.sum" }}
   - run:
-    command: >
-      go build -o web3_mac ./cmd/web3      
+      command: >
+        go build -o web3_mac ./cmd/web3      
 workflows:
   version: 2
 
