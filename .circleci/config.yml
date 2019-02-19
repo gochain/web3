@@ -21,3 +21,20 @@ jobs:
               echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
               ./release.sh
             fi
+ build_mac:
+  environment:    
+    SOFTWARE: /tmp/circleci-artifacts/software_versions.json
+  macos:
+    xcode: 10.2.0
+  steps:
+  - checkout
+  - restore_cache:
+      key: golang-cache-{{ checksum "go.sum" }}
+  - run:
+      command: >
+        go mod download
+  - save_cache:
+      key: golang-cache-{{ checksum "go.sum" }}
+  - run:
+    command: >
+      go build -o web3_mac ./cmd/web3      
