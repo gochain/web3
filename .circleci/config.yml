@@ -38,3 +38,15 @@ jobs:
   - run:
     command: >
       go build -o web3_mac ./cmd/web3      
+workflows:
+  version: 2
+
+  build_mac_linux:
+    jobs:
+      - build
+      - build_mac:
+          requires:
+            - build
+          # filters:
+          #   branches:
+          #     only: master
