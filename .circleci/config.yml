@@ -54,6 +54,6 @@ workflows:
       - build_mac:
           requires:
             - build
-          # filters:
-          #   branches:
-          #     only: master
+          filters:
+            branches:
+              only: master
