@@ -25,7 +25,7 @@ jobs:
   environment:    
     SOFTWARE: /tmp/circleci-artifacts/software_versions.json
   macos:
-    xcode: 10.2.0
+    xcode: 10.1.0
   steps:
     - checkout
     - restore_cache:
