@@ -44,8 +44,7 @@ jobs:
           - .
     - run:
         command: |
-          go build -o web3_mac ./cmd/web3      
-          web3_mac
+          ./release_mac.sh
 workflows:
   version: 2
 
