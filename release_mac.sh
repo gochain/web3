@@ -1,7 +1,11 @@
 #!/bin/bash
 set -ex
 
-version=$(grep -m1 -Eo "[0-9]+\.[0-9]+\.[0-9]+" cmd/web3/version.go)
+#need to autoincrement because circle ci use the same git revision as on the previous step
+majorVersion=$(grep -m1 -Eo "[0-9]+\.[0-9]+" cmd/web3/version.go)
+minorVersion=$(grep -m1 -Eo ".[0-9]+\"" cmd/web3/version.go|grep -m1 -Eo "[0-9]+")
+version="$majorVersion.$(($minorVersion + 1))"
+
 echo "Version: $version"
 
 make release
