@@ -209,7 +209,7 @@ func (c *client) getBlock(ctx context.Context, method string, hashOrNum string, 
 	if block.Sha3Uncles != types.EmptyUncleHash && len(block.Uncles) == 0 {
 		return nil, fmt.Errorf("server returned empty uncle list but block header indicates uncles")
 	}
-	if block.TxsRoot == types.EmptyRootHash && len(block.Txs) > 0 {
+	if block.TxsRoot == types.EmptyRootHash && block.TxCount() > 0 {
 		return nil, fmt.Errorf("server returned non-empty transaction list but block header indicates no transactions")
 	}
 	if block.TxsRoot != types.EmptyRootHash && len(block.TxsRoot) == 0 {
