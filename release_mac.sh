@@ -1,11 +1,13 @@
 #!/bin/bash
 set -ex
 
-#need to autoincrement because circle ci use the same git revision as on the previous step
-majorVersion=$(grep -m1 -Eo "[0-9]+\.[0-9]+" cmd/web3/version.go)
-minorVersion=$(grep -m1 -Eo ".[0-9]+\"" cmd/web3/version.go|grep -m1 -Eo "[0-9]+")
-version="$majorVersion.$(($minorVersion + 1))"
-
+version_file="cmd/web3/version.go"
+docker create -v /data --name file alpine /bin/true
+docker cp $version_file file:/data/version.go
+# Bump version, patch by default - also checks if previous commit message contains `[bump X]`, and if so, bumps the appropriate semver number - https://github.com/treeder/dockers/tree/master/bump
+docker run --rm -it --volumes-from file -w / treeder/bump --filename /data/version.go "$(git log -1 --pretty=%B)"
+docker cp file:/data/version.go $version_file
+version=$(grep -m1 -Eo "[0-9]+\.[0-9]+\.[0-9]+" $version_file)
 echo "Version: $version"
 
 make release

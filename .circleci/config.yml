@@ -29,6 +29,7 @@ jobs:
   steps:
     - checkout
     - run: brew install go
+    - run: brew cask install docker
     - restore_cache:
         key: go-mod-v1-macos-{{ checksum "go.sum" }}
         paths:
@@ -54,6 +55,6 @@ workflows:
       - build_mac:
           requires:
             - build
-          filters:
-            branches:
-              only: master
+          # filters:
+          #   branches:
+          #     only: master
