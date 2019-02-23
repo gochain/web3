@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gochain-io/gochain/v3/accounts/abi"
@@ -222,6 +223,44 @@ func DeployContract(ctx context.Context, client Client, privateKeyHex string, co
 	return convertTx(signedTx, fromAddress), nil
 }
 
+func SendGo(ctx context.Context, client Client, privateKeyHex string, address common.Address, amount *big.Int) (*Transaction, error) {
+	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
+		privateKeyHex = privateKeyHex[2:]
+	}
+	privateKey, err := crypto.HexToECDSA(privateKeyHex)
+	if err != nil {
+		return nil, fmt.Errorf("invalid private key: %v", err)
+	}
+	gasPrice, err := client.GetGasPrice(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get gas price: %v", err)
+	}
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return nil, errors.New("error casting public key to ECDSA")
+	}
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	nonce, err := client.GetPendingTransactionCount(ctx, fromAddress)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get nonce: %v", err)
+	}
+	tx := types.NewTransaction(nonce, address, amount, 20000000, gasPrice, nil)
+	signedTx, err := types.SignTx(tx, types.HomesteadSigner{}, privateKey)
+	if err != nil {
+		return nil, fmt.Errorf("cannot sign transaction: %v", err)
+	}
+	raw, err := rlp.EncodeToBytes(signedTx)
+	if err != nil {
+		return nil, err
+	}
+	err = client.SendRawTransaction(ctx, raw)
+	if err != nil {
+		return nil, fmt.Errorf("cannot send transaction: %v", err)
+	}
+	return convertTx(signedTx, fromAddress), nil
+}
+
 func convertTx(tx *types.Transaction, from common.Address) *Transaction {
 	rtx := &Transaction{}
 	rtx.Nonce = tx.Nonce()
@@ -329,4 +368,82 @@ func ParseLogs(myabi abi.ABI, logs []*types.Log) ([]Event, error) {
 		output = append(output, Event{Name: event.Name, Fields: fields})
 	}
 	return output, nil
+}
+
+func ParseAmount(amount string) (*big.Int, error) {
+	var ret = new(big.Int)
+	amount = strings.ToLower(amount)
+	switch {
+	case strings.Contains(amount, "nanogo"):
+		arr := strings.Split(amount, "nanogo")
+		if len(arr) != 2 || arr[0] == "" {
+			return nil, errors.New("Cannot parse the amount, use 'Xnanogo' where X is a number")
+		}
+		val, err := ParseBigInt(arr[0])
+		if err != nil {
+			return nil, err
+		}
+		return ret.Mul(val, weiPerGwei), nil
+	case strings.Contains(amount, "gwei"):
+		arr := strings.Split(amount, "gwei")
+
+		if len(arr) != 2 || arr[0] == "" {
+			return nil, errors.New("Cannot parse the amount, use 'Xgwei' where X is a number")
+		}
+		val, err := ParseBigInt(arr[0])
+		if err != nil {
+			return nil, err
+		}
+		return ret.Mul(val, weiPerGwei), nil
+	case strings.Contains(amount, "attogo"):
+		arr := strings.Split(amount, "attogo")
+		if len(arr) != 2 || arr[0] == "" {
+			return nil, errors.New("Cannot parse the amount, use 'Xattogo' where X is a number")
+		}
+		val, err := ParseBigInt(arr[0])
+		if err != nil {
+			return nil, err
+		}
+		return val, nil
+	case strings.Contains(amount, "wei"):
+		arr := strings.Split(amount, "wei")
+		if len(arr) != 2 || arr[0] == "" {
+			return nil, errors.New("Cannot parse the amount, use 'Xwei' where X is a number")
+		}
+		val, err := ParseBigInt(arr[0])
+		if err != nil {
+			return nil, err
+		}
+		return val, nil
+	default:
+		arr := strings.Split(amount, "go")
+		if len(arr) == 2 && arr[0] != "" {
+			val, err := ParseBigInt(arr[0])
+			if err != nil {
+				return nil, err
+			}
+			return ret.Mul(val, weiPerGO), nil
+		}
+		arr = strings.Split(amount, "eth")
+		if len(arr) == 2 && arr[0] != "" {
+
+			val, err := ParseBigInt(arr[0])
+			if err != nil {
+				return nil, err
+			}
+			return ret.Mul(val, weiPerGO), nil
+		}
+		return nil, errors.New("Cannot parse the amount, use 'Xgo' or 'Xeth' where X is a number")
+	}
+}
+
+func ParseBigInt(value string) (*big.Int, error) {
+	if value == "" {
+		return nil, nil
+	}
+	i, ok := new(big.Int).SetString(value, 10)
+	if !ok {
+		return nil, errors.New("failed to parse integer")
+	}
+	return i, nil
 }
