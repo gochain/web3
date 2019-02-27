@@ -88,6 +88,9 @@ func convertOutputParameter(t abi.Argument) interface{} {
 
 // CallConstantFunction executes a contract function call without submitting a transaction.
 func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, address, functionName string, parameters ...interface{}) (interface{}, error) {
+	if address == "" {
+		return nil, errors.New("no contract address specified")
+	}
 	var out []interface{}
 	for _, t := range myabi.Methods[functionName].Outputs {
 		out = append(out, convertOutputParameter(t))
@@ -127,6 +130,9 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 
 // CallTransactFunction submits a transaction to execute a smart contract function call.
 func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, address, privateKeyHex, functionName string, amount int, parameters ...interface{}) (*Transaction, error) {
+	if address == "" {
+		return nil, errors.New("no contract address specified")
+	}
 
 	if len(myabi.Methods[functionName].Inputs) != len(parameters) {
 		return nil, errors.New("Wrong number of arguments expected:" + strconv.Itoa(len(myabi.Methods[functionName].Inputs)) + " given:" + strconv.Itoa(len(parameters)))
