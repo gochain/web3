@@ -19,6 +19,7 @@ import (
 	"github.com/gochain-io/gochain/v3/accounts/abi"
 	"github.com/gochain-io/gochain/v3/common"
 	"github.com/gochain-io/gochain/v3/common/hexutil"
+	"github.com/gochain-io/gochain/v3/core/types"
 	"github.com/urfave/cli"
 
 	"github.com/gochain-io/web3"
@@ -847,7 +848,16 @@ func printReceiptDetails(r *web3.Receipt, myabi *abi.ABI) {
 	}
 	fmt.Println("GasUsed:", r.GasUsed)
 	fmt.Println("Cumulative Gas Used:", r.CumulativeGasUsed)
-	fmt.Println("Status:", r.Status)
+	var status string
+	switch r.Status {
+	case types.ReceiptStatusFailed:
+		status = "Failed"
+	case types.ReceiptStatusSuccessful:
+		status = "Successful"
+	default:
+		status = fmt.Sprintf("%d (unrecognized status)", r.Status)
+	}
+	fmt.Println("Status:", status)
 	fmt.Println("Post State:", "0x"+common.Bytes2Hex(r.PostState))
 	fmt.Println("Bloom:", "0x"+common.Bytes2Hex(r.Bloom.Bytes()))
 	fmt.Println("Logs:", r.Logs)
