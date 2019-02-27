@@ -508,7 +508,9 @@ func GetTransactionDetails(ctx context.Context, network web3.Network, txhash, in
 
 	fmt.Println("Hash:", tx.Hash.String())
 	fmt.Println("From:", tx.From.String())
-	fmt.Println("To:", tx.To.String())
+	if tx.To != nil {
+		fmt.Println("To:", tx.To.String())
+	}
 	fmt.Println("Value:", web3.WeiAsBase(tx.Value), network.Unit)
 	fmt.Println("Nonce:", uint64(tx.Nonce))
 	fmt.Println("Gas Limit:", tx.GasLimit)
