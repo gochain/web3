@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -55,7 +56,7 @@ func main() {
 	}()
 
 	// Flags
-	var netName, rpcUrl, function, contractAddress, contractFile, privateKey, txFormat, txInputFormat,recepientAddress string
+	var netName, rpcUrl, function, contractAddress, contractFile, privateKey, txFormat, txInputFormat, recepientAddress string
 	var amount int
 	var testnet, waitForReceipt bool
 
@@ -348,7 +349,8 @@ func main() {
 			},
 			Action: func(c *cli.Context) {
 				SendGo(ctx, network.URL, privateKey, recepientAddress, c.Args().First())
-			}
+			},
+		},
 		{
 			Name:  "env",
 			Usage: "List environment variables",
