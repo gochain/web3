@@ -443,13 +443,14 @@ func ParseAmount(amount string) (*big.Int, error) {
 	}
 }
 
+// ParseBigInt parses a string (base 10 only) and returns big.Int value of this string in wei/atto
 func ParseBigInt(value string) (*big.Int, error) {
 	if value == "" {
-		return nil, nil
+		return nil, errors.New("Cannot parse empty string")
 	}
 	i, ok := new(big.Int).SetString(value, 10)
 	if !ok {
-		return nil, errors.New("failed to parse integer")
+		return nil, errors.New("Failed to parse integer")
 	}
 	return i, nil
 }
