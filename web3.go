@@ -251,7 +251,7 @@ func Send(ctx context.Context, client Client, privateKeyHex string, address comm
 	if err != nil {
 		return nil, fmt.Errorf("cannot get nonce: %v", err)
 	}
-	tx := types.NewTransaction(nonce, address, amount, 20000000, gasPrice, nil)
+	tx := types.NewTransaction(nonce, address, amount, 21000, gasPrice, nil)
 	signedTx, err := types.SignTx(tx, types.HomesteadSigner{}, privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign transaction: %v", err)
