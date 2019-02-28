@@ -37,8 +37,10 @@ const (
 ( (_-. )(_)(( (__  ) _ (  /(__)\  _)(_  )  ( 
  \___/(_____)\___)(_) (_)(__)(__)(____)(_)\_)`
 
-	pkVarName   = "WEB3_PRIVATE_KEY"
-	addrVarName = "WEB3_ADDRESS"
+	pkVarName      = "WEB3_PRIVATE_KEY"
+	addrVarName    = "WEB3_ADDRESS"
+	networkVarName = "WEB3_NETWORK"
+	rpcURLVarName  = "WEB3_RPC_URL"
 )
 
 func main() {
@@ -67,7 +69,7 @@ func main() {
 			Name:        "network, n",
 			Usage:       `The name of the network. Options: gochain/testnet/ethereum/ropsten/localhost. (default: "gochain")`,
 			Destination: &netName,
-			EnvVar:      "WEB3_NETWORK",
+			EnvVar:      networkVarName,
 			Hidden:      false},
 		cli.BoolFlag{
 			Name:        "testnet",
@@ -78,7 +80,7 @@ func main() {
 			Name:        "rpc-url",
 			Usage:       "The network RPC URL",
 			Destination: &rpcUrl,
-			EnvVar:      "WEB3_RPC_URL",
+			EnvVar:      rpcURLVarName,
 			Hidden:      false},
 		cli.BoolFlag{
 			Name:        "verbose",
@@ -324,6 +326,17 @@ func main() {
 						fmt.Printf("Public address: %v\n", acc.PublicKey())
 					},
 				},
+			},
+		},
+		{
+			Name:  "env",
+			Usage: "List environment variables",
+			Action: func(c *cli.Context) {
+				varNames := []string{addrVarName, pkVarName, networkVarName, rpcURLVarName}
+				sort.Strings(varNames)
+				for _, name := range varNames {
+					fmt.Printf("%s=%s\n", name, os.Getenv(name))
+				}
 			},
 		},
 	}
