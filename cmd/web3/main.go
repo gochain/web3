@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -400,17 +399,6 @@ func getNetwork(name, rpcURL string, testnet bool) web3.Network {
 		log.Println("Network Info:", network)
 	}
 	return network
-}
-
-func parseBigInt(value string) (*big.Int, error) {
-	if value == "" {
-		return nil, nil
-	}
-	i, ok := new(big.Int).SetString(value, 10)
-	if !ok {
-		return nil, errors.New("failed to parse integer")
-	}
-	return i, nil
 }
 
 func GetBlockDetails(ctx context.Context, network web3.Network, numberOrHash string, txFormat, txInputFormat string) {
