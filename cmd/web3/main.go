@@ -347,7 +347,7 @@ func main() {
 					Hidden:      false},
 			},
 			Action: func(c *cli.Context) {
-				SendGo(ctx, network.URL, privateKey, recepientAddress, c.Args().First())
+				Send(ctx, network.URL, privateKey, recepientAddress, c.Args().First())
 			},
 		},
 		{
@@ -851,7 +851,7 @@ func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 
 }
 
-func SendGo(ctx context.Context, rpcURL, privateKey, toAddress, amount string) {
+func Send(ctx context.Context, rpcURL, privateKey, toAddress, amount string) {
 	client, err := web3.NewClient(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
@@ -859,15 +859,13 @@ func SendGo(ctx context.Context, rpcURL, privateKey, toAddress, amount string) {
 	defer client.Close()
 	nAmount, err := web3.ParseAmount(amount)
 	if err != nil {
-		fmt.Println("Cannot parse amount:", err)
-		return
+		log.Fatalf("Cannot parse amount: %v", err)
 	}
 	if toAddress == "" {
-		fmt.Println("To address cannot be empty")
-		return
+		log.Fatalln("The recepient address cannot be empty")
 	}
 	address := common.HexToAddress(toAddress)
-	tx, err := web3.SendGo(ctx, client, privateKey, address, nAmount)
+	tx, err := web3.Send(ctx, client, privateKey, address, nAmount)
 	if err != nil {
 		log.Fatalf("Cannot create transaction: %v", err)
 	}

@@ -229,7 +229,7 @@ func DeployContract(ctx context.Context, client Client, privateKeyHex string, co
 	return convertTx(signedTx, fromAddress), nil
 }
 
-func SendGo(ctx context.Context, client Client, privateKeyHex string, address common.Address, amount *big.Int) (*Transaction, error) {
+func Send(ctx context.Context, client Client, privateKeyHex string, address common.Address, amount *big.Int) (*Transaction, error) {
 	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
 		privateKeyHex = privateKeyHex[2:]
 	}
