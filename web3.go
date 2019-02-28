@@ -376,6 +376,7 @@ func ParseLogs(myabi abi.ABI, logs []*types.Log) ([]Event, error) {
 	return output, nil
 }
 
+// ParseAmount parses a string (human readable amount with units ie 1go, 1nanogo...) and returns big.Int value of this string in wei/atto
 func ParseAmount(amount string) (*big.Int, error) {
 	var ret = new(big.Int)
 	amount = strings.ToLower(amount)
