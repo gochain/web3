@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -56,7 +55,7 @@ func main() {
 	}()
 
 	// Flags
-	var netName, rpcUrl, function, contractAddress, contractFile, privateKey, txFormat, txInputFormat string
+	var netName, rpcUrl, function, contractAddress, contractFile, privateKey, txFormat, txInputFormat, recepientAddress string
 	var amount int
 	var testnet, waitForReceipt bool
 
@@ -329,6 +328,29 @@ func main() {
 			},
 		},
 		{
+			Name:    "send",
+			Usage:   fmt.Sprintf("Transfer GO to an account (web3 send -to 0xb 10go/eth/nanogo/gwei/attogo/wei)"),
+			Aliases: []string{"transfer"},
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "private-key,pk",
+					Usage:       "Private key",
+					EnvVar:      pkVarName,
+					Destination: &privateKey,
+					Hidden:      false,
+				},
+				cli.StringFlag{
+					Name:        "to",
+					EnvVar:      addrVarName,
+					Destination: &recepientAddress,
+					Usage:       "The recepient address",
+					Hidden:      false},
+			},
+			Action: func(c *cli.Context) {
+				Send(ctx, network.URL, privateKey, recepientAddress, c.Args().First())
+			},
+		},
+		{
 			Name:  "env",
 			Usage: "List environment variables",
 			Action: func(c *cli.Context) {
@@ -379,17 +401,6 @@ func getNetwork(name, rpcURL string, testnet bool) web3.Network {
 	return network
 }
 
-func parseBigInt(value string) (*big.Int, error) {
-	if value == "" {
-		return nil, nil
-	}
-	i, ok := new(big.Int).SetString(value, 10)
-	if !ok {
-		return nil, errors.New("failed to parse integer")
-	}
-	return i, nil
-}
-
 func GetBlockDetails(ctx context.Context, network web3.Network, numberOrHash string, txFormat, txInputFormat string) {
 	client, err := web3.NewClient(network.URL)
 	if err != nil {
@@ -412,7 +423,7 @@ func GetBlockDetails(ctx context.Context, network web3.Network, numberOrHash str
 			log.Fatalf("Cannot get block details from the network: %v", err)
 		}
 	} else {
-		blockN, err := parseBigInt(numberOrHash)
+		blockN, err := web3.ParseBigInt(numberOrHash)
 		if err != nil {
 			log.Fatalf("Block argument must be a number (decimal integer) or hash (hexadecimal with 0x prefix) %q: %v", numberOrHash, err)
 		}
@@ -838,6 +849,27 @@ func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 	}
 	printReceiptDetails(receipt, myabi)
 
+}
+
+func Send(ctx context.Context, rpcURL, privateKey, toAddress, amount string) {
+	client, err := web3.NewClient(rpcURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
+	}
+	defer client.Close()
+	nAmount, err := web3.ParseAmount(amount)
+	if err != nil {
+		log.Fatalf("Cannot parse amount: %v", err)
+	}
+	if toAddress == "" {
+		log.Fatalln("The recepient address cannot be empty")
+	}
+	address := common.HexToAddress(toAddress)
+	tx, err := web3.Send(ctx, client, privateKey, address, nAmount)
+	if err != nil {
+		log.Fatalf("Cannot create transaction: %v", err)
+	}
+	fmt.Println("Transaction address:", tx.Hash.Hex())
 }
 
 func printReceiptDetails(r *web3.Receipt, myabi *abi.ABI) {

@@ -222,6 +222,17 @@ web3 contract list --abi CONTRACT_ABI_FILE
 
 - CONTRACT_ABI_FILE - the abi file of the compiled contract
 
+### Transfer amount to the address
+
+```sh
+web3 send --to RECIPIENT_ADDRESS AMOUNT
+```
+
+**Parameters:**
+
+- RECIPIENT_ADDRESS - the address of the recepient
+- AMOUNT - the amount that should be send in the transaction ie - 1go (allowed units: go,eth,nanogo,gwei,attogo,wei)
+
 ## More installation options
 
 ### Install a specific version
