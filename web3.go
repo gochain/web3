@@ -379,69 +379,31 @@ func ParseLogs(myabi abi.ABI, logs []*types.Log) ([]Event, error) {
 // ParseAmount parses a string (human readable amount with units ie 1go, 1nanogo...) and returns big.Int value of this string in wei/atto
 func ParseAmount(amount string) (*big.Int, error) {
 	var ret = new(big.Int)
+	var mul = big.NewInt(1)
 	amount = strings.ToLower(amount)
 	switch {
-	case strings.Contains(amount, "nanogo"):
-		arr := strings.Split(amount, "nanogo")
-		if len(arr) != 2 || arr[0] == "" {
-			return nil, errors.New("Cannot parse the amount, use 'Xnanogo' where X is a number")
-		}
-		val, err := ParseBigInt(arr[0])
-		if err != nil {
-			return nil, err
-		}
-		return ret.Mul(val, weiPerGwei), nil
-	case strings.Contains(amount, "gwei"):
-		arr := strings.Split(amount, "gwei")
-
-		if len(arr) != 2 || arr[0] == "" {
-			return nil, errors.New("Cannot parse the amount, use 'Xgwei' where X is a number")
-		}
-		val, err := ParseBigInt(arr[0])
-		if err != nil {
-			return nil, err
-		}
-		return ret.Mul(val, weiPerGwei), nil
-	case strings.Contains(amount, "attogo"):
-		arr := strings.Split(amount, "attogo")
-		if len(arr) != 2 || arr[0] == "" {
-			return nil, errors.New("Cannot parse the amount, use 'Xattogo' where X is a number")
-		}
-		val, err := ParseBigInt(arr[0])
-		if err != nil {
-			return nil, err
-		}
-		return val, nil
-	case strings.Contains(amount, "wei"):
-		arr := strings.Split(amount, "wei")
-		if len(arr) != 2 || arr[0] == "" {
-			return nil, errors.New("Cannot parse the amount, use 'Xwei' where X is a number")
-		}
-		val, err := ParseBigInt(arr[0])
-		if err != nil {
-			return nil, err
-		}
-		return val, nil
+	case strings.HasSuffix(amount, "nanogo"):
+		amount = strings.TrimSuffix(amount, "nanogo")
+		mul = weiPerGwei
+	case strings.HasSuffix(amount, "gwei"):
+		amount = strings.TrimSuffix(amount, "gwei")
+		mul = weiPerGwei
+	case strings.HasSuffix(amount, "attogo"):
+		amount = strings.TrimSuffix(amount, "attogo")
+	case strings.HasSuffix(amount, "wei"):
+		amount = strings.TrimSuffix(amount, "wei")
+	case strings.HasSuffix(amount, "eth"):
+		amount = strings.TrimSuffix(amount, "eth")
+		mul = weiPerGO
 	default:
-		arr := strings.Split(amount, "go")
-		if len(arr) == 2 && arr[0] != "" {
-			val, err := ParseBigInt(arr[0])
-			if err != nil {
-				return nil, err
-			}
-			return ret.Mul(val, weiPerGO), nil
-		}
-		arr = strings.Split(amount, "eth")
-		if len(arr) == 2 && arr[0] != "" {
-
-			val, err := ParseBigInt(arr[0])
-			if err != nil {
-				return nil, err
-			}
-			return ret.Mul(val, weiPerGO), nil
-		}
-		return nil, errors.New("Cannot parse the amount, use 'Xgo' or 'Xeth' where X is a number")
+		amount = strings.TrimSuffix(amount, "go")
+		mul = weiPerGO
 	}
+	val, err := ParseBigInt(amount)
+	if err != nil {
+		return nil, err
+	}
+	return ret.Mul(val, mul), nil
 }
 
 // ParseBigInt parses a string (base 10 only) and returns big.Int value of this string in wei/atto
