@@ -28,7 +28,7 @@ jobs:
     xcode: 10.1.0
   steps:
     - checkout
-    - run: brew install go
+    - run: brew install go    
     - restore_cache:
         key: go-mod-v1-macos-{{ checksum "go.sum" }}
         paths:

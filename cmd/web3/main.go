@@ -17,6 +17,8 @@ import (
 
 	"github.com/gochain-io/gochain/v3/accounts/abi"
 	"github.com/gochain-io/gochain/v3/common"
+	"github.com/gochain-io/gochain/v3/common/hexutil"
+	"github.com/gochain-io/gochain/v3/core/types"
 	"github.com/urfave/cli"
 
 	"github.com/gochain-io/web3"
@@ -34,8 +36,10 @@ const (
 ( (_-. )(_)(( (__  ) _ (  /(__)\  _)(_  )  ( 
  \___/(_____)\___)(_) (_)(__)(__)(____)(_)\_)`
 
-	pkVarName   = "WEB3_PRIVATE_KEY"
-	addrVarName = "WEB3_ADDRESS"
+	pkVarName      = "WEB3_PRIVATE_KEY"
+	addrVarName    = "WEB3_ADDRESS"
+	networkVarName = "WEB3_NETWORK"
+	rpcURLVarName  = "WEB3_RPC_URL"
 )
 
 func main() {
@@ -51,7 +55,7 @@ func main() {
 	}()
 
 	// Flags
-	var netName, rpcUrl, function, contractAddress, recepientAddress, contractFile, privateKey string
+	var netName, rpcUrl, function, contractAddress, contractFile, privateKey, txFormat, txInputFormat,recepientAddress string
 	var amount int
 	var testnet, waitForReceipt bool
 
@@ -64,7 +68,7 @@ func main() {
 			Name:        "network, n",
 			Usage:       `The name of the network. Options: gochain/testnet/ethereum/ropsten/localhost. (default: "gochain")`,
 			Destination: &netName,
-			EnvVar:      "WEB3_NETWORK",
+			EnvVar:      networkVarName,
 			Hidden:      false},
 		cli.BoolFlag{
 			Name:        "testnet",
@@ -75,7 +79,7 @@ func main() {
 			Name:        "rpc-url",
 			Usage:       "The network RPC URL",
 			Destination: &rpcUrl,
-			EnvVar:      "WEB3_RPC_URL",
+			EnvVar:      rpcURLVarName,
 			Hidden:      false},
 		cli.BoolFlag{
 			Name:        "verbose",
@@ -98,16 +102,38 @@ func main() {
 			Name:    "block",
 			Usage:   "Block details for a block number (decimal integer) or hash (hexadecimal with 0x prefix). Omit for latest.",
 			Aliases: []string{"bl"},
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "tx",
+					Usage:       "Transaction format: count/hash/detail",
+					Destination: &txFormat,
+					Value:       "count",
+				},
+				cli.StringFlag{
+					Name:        "input",
+					Usage:       "Transaction input data format: len/hex/utf8",
+					Destination: &txInputFormat,
+					Value:       "len",
+				},
+			},
 			Action: func(c *cli.Context) {
-				GetBlockDetails(ctx, network.URL, c.Args().First())
+				GetBlockDetails(ctx, network, c.Args().First(), txFormat, txInputFormat)
 			},
 		},
 		{
 			Name:    "transaction",
 			Aliases: []string{"tx"},
 			Usage:   "Transaction details for a tx hash",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "input",
+					Usage:       "Transaction input data format: len/hex/utf8",
+					Destination: &txInputFormat,
+					Value:       "len",
+				},
+			},
 			Action: func(c *cli.Context) {
-				GetTransactionDetails(ctx, network, c.Args().First())
+				GetTransactionDetails(ctx, network, c.Args().First(), txInputFormat)
 			},
 		},
 		{
@@ -322,7 +348,16 @@ func main() {
 			},
 			Action: func(c *cli.Context) {
 				SendGo(ctx, network.URL, privateKey, recepientAddress, c.Args().First())
-
+			}
+		{
+			Name:  "env",
+			Usage: "List environment variables",
+			Action: func(c *cli.Context) {
+				varNames := []string{addrVarName, pkVarName, networkVarName, rpcURLVarName}
+				sort.Strings(varNames)
+				for _, name := range varNames {
+					fmt.Printf("%s=%s\n", name, os.Getenv(name))
+				}
 			},
 		},
 	}
@@ -365,16 +400,35 @@ func getNetwork(name, rpcURL string, testnet bool) web3.Network {
 	return network
 }
 
-func GetBlockDetails(ctx context.Context, rpcURL, numberOrHash string) {
-	client, err := web3.NewClient(rpcURL)
+func parseBigInt(value string) (*big.Int, error) {
+	if value == "" {
+		return nil, nil
+	}
+	i, ok := new(big.Int).SetString(value, 10)
+	if !ok {
+		return nil, errors.New("failed to parse integer")
+	}
+	return i, nil
+}
+
+func GetBlockDetails(ctx context.Context, network web3.Network, numberOrHash string, txFormat, txInputFormat string) {
+	client, err := web3.NewClient(network.URL)
 	if err != nil {
-		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
+		log.Fatalf("Failed to connect to %q: %v", network.URL, err)
 	}
 	defer client.Close()
 	var block *web3.Block
+	var includeTxs bool
+	switch txFormat {
+	case "detail":
+		includeTxs = true
+	case "count", "hash":
+	default:
+		log.Fatalf(`Unrecognized transaction format %q: must be "count", "hash", or "detail"`, txFormat)
+	}
 	if strings.HasPrefix(numberOrHash, "0x") {
 		var err error
-		block, err = client.GetBlockByHash(ctx, numberOrHash, false)
+		block, err = client.GetBlockByHash(ctx, numberOrHash, includeTxs)
 		if err != nil {
 			log.Fatalf("Cannot get block details from the network: %v", err)
 		}
@@ -383,7 +437,7 @@ func GetBlockDetails(ctx context.Context, rpcURL, numberOrHash string) {
 		if err != nil {
 			log.Fatalf("Block argument must be a number (decimal integer) or hash (hexadecimal with 0x prefix) %q: %v", numberOrHash, err)
 		}
-		block, err = client.GetBlockByNumber(ctx, blockN, false)
+		block, err = client.GetBlockByNumber(ctx, blockN, includeTxs)
 		if err != nil {
 			log.Fatalf("Cannot get block details from the network: %v", err)
 		}
@@ -399,7 +453,7 @@ func GetBlockDetails(ctx context.Context, rpcURL, numberOrHash string) {
 
 	fmt.Println("Number:", block.Number)
 	fmt.Println("Time:", block.Timestamp.Format(time.RFC3339))
-	fmt.Println("Transactions:", len(block.Txs))
+	fmt.Println("Transactions:", block.TxCount())
 	gasPct := big.NewRat(int64(block.GasUsed), int64(block.GasLimit))
 	gasPct = gasPct.Mul(gasPct, big.NewRat(100, 1))
 	fmt.Printf("Gas Used: %d/%d (%s%%)\n", block.GasUsed, block.GasLimit, gasPct.FloatString(2))
@@ -425,6 +479,30 @@ func GetBlockDetails(ctx context.Context, rpcURL, numberOrHash string) {
 	if len(block.Signer) > 0 {
 		fmt.Println("Signer:", "0x"+common.Bytes2Hex(block.Signer))
 	}
+	if block.TxCount() > 0 {
+		switch txFormat {
+		case "hash":
+			fmt.Println("Transaction Hashes:")
+			for i, hash := range block.TxHashes {
+				fmt.Printf("\t%d\t%s\n", i, hash.Hex())
+			}
+		case "detail":
+			fmt.Println("Transaction Details:")
+			for i, tx := range block.TxDetails {
+				fmt.Printf("\t%d\t", i)
+				fmt.Print("Hash: ", tx.Hash.Hex())
+				fmt.Print(" From: ", tx.From.Hex())
+				fmt.Print(" To: ", tx.To.Hex())
+				fmt.Print(" Value: ", web3.WeiAsBase(tx.Value), " ", network.Unit)
+				fmt.Print(" Nonce: ", tx.Nonce)
+				fmt.Print(" Gas Limit: ", tx.GasLimit)
+				fmt.Print(" Gas Price: ", web3.WeiAsGwei(tx.GasPrice), " gwei")
+				fmt.Print(" ")
+				printInputData(tx.Input, txInputFormat)
+				fmt.Println()
+			}
+		}
+	}
 }
 
 type fmtAddresses []common.Address
@@ -442,7 +520,7 @@ func (fa fmtAddresses) String() string {
 	return b.String()
 }
 
-func GetTransactionDetails(ctx context.Context, network web3.Network, txhash string) {
+func GetTransactionDetails(ctx context.Context, network web3.Network, txhash, inputFormat string) {
 	client, err := web3.NewClient(network.URL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", network.URL, err)
@@ -464,7 +542,9 @@ func GetTransactionDetails(ctx context.Context, network web3.Network, txhash str
 
 	fmt.Println("Hash:", tx.Hash.String())
 	fmt.Println("From:", tx.From.String())
-	fmt.Println("To:", tx.To.String())
+	if tx.To != nil {
+		fmt.Println("To:", tx.To.String())
+	}
 	fmt.Println("Value:", web3.WeiAsBase(tx.Value), network.Unit)
 	fmt.Println("Nonce:", uint64(tx.Nonce))
 	fmt.Println("Gas Limit:", tx.GasLimit)
@@ -474,6 +554,21 @@ func GetTransactionDetails(ctx context.Context, network web3.Network, txhash str
 	} else {
 		fmt.Println("Block Number:", tx.BlockNumber)
 		fmt.Println("Block Hash:", tx.BlockHash.String())
+	}
+	printInputData(tx.Input, inputFormat)
+	fmt.Println()
+}
+
+func printInputData(data []byte, format string) {
+	switch format {
+	case "len":
+		fmt.Print("Input Length: ", len(data), " bytes")
+	case "hex":
+		fmt.Print("Input: ", hexutil.Encode(data))
+	case "utf8":
+		fmt.Print("Input: ", string(data))
+	default:
+		log.Fatalf(`unrecognized input data format %q: expected "len", "hex", or "utf8"`, format)
 	}
 }
 
@@ -812,7 +907,16 @@ func printReceiptDetails(r *web3.Receipt, myabi *abi.ABI) {
 	}
 	fmt.Println("GasUsed:", r.GasUsed)
 	fmt.Println("Cumulative Gas Used:", r.CumulativeGasUsed)
-	fmt.Println("Status:", r.Status)
+	var status string
+	switch r.Status {
+	case types.ReceiptStatusFailed:
+		status = "Failed"
+	case types.ReceiptStatusSuccessful:
+		status = "Successful"
+	default:
+		status = fmt.Sprintf("%d (unrecognized status)", r.Status)
+	}
+	fmt.Println("Status:", status)
 	fmt.Println("Post State:", "0x"+common.Bytes2Hex(r.PostState))
 	fmt.Println("Bloom:", "0x"+common.Bytes2Hex(r.Bloom.Bytes()))
 	fmt.Println("Logs:", r.Logs)

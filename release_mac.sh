@@ -1,7 +1,10 @@
 #!/bin/bash
 set -ex
 
-version=$(grep -m1 -Eo "[0-9]+\.[0-9]+\.[0-9]+" cmd/web3/version.go)
+version_file="cmd/web3/version.go"
+go get github.com/treeder/dockers/bump
+$HOME/go/bin/bump --filename $version_file "$(git log -1 --pretty=%B)"
+version=$(grep -m1 -Eo "[0-9]+\.[0-9]+\.[0-9]+" $version_file)
 echo "Version: $version"
 
 make release
