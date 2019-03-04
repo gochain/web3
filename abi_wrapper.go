@@ -1,6 +1,7 @@
 package web3
 
 import (
+	"errors"
 	"io"
 	"log"
 	"os"
@@ -9,34 +10,42 @@ import (
 	"github.com/gochain-io/gochain/v3/accounts/abi"
 )
 
-var bundledContracts map[string]string
-
-func getReader(contractFile string) io.Reader {
-	initializeBundledContracts()
+func ABIBuiltIn(contractFile string) (io.Reader, error) {
 	if val, ok := bundledContracts[contractFile]; ok {
-		return strings.NewReader(val)
+		return strings.NewReader(val), nil
 	}
+	return nil, errors.New("Cannot find bundled contract")
+}
+
+func ABIOpenFile(contractFile string) (io.Reader, error) {
 	if _, err := os.Stat(contractFile); os.IsNotExist(err) {
-		log.Fatalf("Cannot find the abi file: %v", err)
+		return nil, err
 	}
 	jsonReader, err := os.Open(contractFile)
 	if err != nil {
-		log.Fatalf("Cannot read the abi file: %v", err)
+		return nil, err
 	}
-	return jsonReader
+	return jsonReader, nil
 }
 
 func GetAbi(contractFile string) *abi.ABI {
-	abi, err := abi.JSON(getReader(contractFile))
+	var reader io.Reader
+	reader, err := ABIBuiltIn(contractFile)
+	if err != nil {
+		reader, err = ABIOpenFile(contractFile)
+		if err != nil {
+			log.Fatalf("Cannot find the file: %v", err)
+		}
+	}
+	abi, err := abi.JSON(reader)
 	if err != nil {
 		log.Fatalf("Cannot initialize ABI: %v", err)
 	}
 	return &abi
 }
 
-func initializeBundledContracts() {
-	bundledContracts = make(map[string]string)
-	bundledContracts["erc20"] = `[
+var bundledContracts = map[string]string{
+	"erc20": `[
 		{
 			"constant": true,
 			"inputs": [],
@@ -258,8 +267,8 @@ func initializeBundledContracts() {
 			"type": "event"
 		}
 	]
-	`
-	bundledContracts["erc721"] = `[
+	`,
+	"erc721": `[
 		{
 			"constant": true,
 			"inputs": [],
@@ -593,5 +602,4 @@ func initializeBundledContracts() {
 			"name": "Approval",
 			"type": "event"
 		}
-	]`
-}
+	]`}
