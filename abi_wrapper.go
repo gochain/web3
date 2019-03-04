@@ -9,13 +9,11 @@ import (
 	"github.com/gochain-io/gochain/v3/accounts/abi"
 )
 
-func getReader(contractFile string) io.Reader {
-	BundledContracts := map[string]string{
-		"erc20":  "[\n    {\n        \"constant\": true,\n        \"inputs\": [],\n        \"name\": \"name\",\n        \"outputs\": [\n            {\n                \"name\": \"\",\n                \"type\": \"string\"\n            }\n        ],\n        \"payable\": false,\n        \"stateMutability\": \"view\",\n        \"type\": \"function\"\n    },\n    {\n        \"constant\": false,\n        \"inputs\": [\n            {\n                \"name\": \"_spender\",\n                \"type\": \"address\"\n            },\n            {\n                \"name\": \"_value\",\n                \"type\": \"uint256\"\n            }\n        ],\n        \"name\": \"approve\",\n        \"outputs\": [\n            {\n                \"name\": \"\",\n                \"type\": \"bool\"\n            }\n        ],\n        \"payable\": false,\n        \"stateMutability\": \"nonpayable\",\n        \"type\": \"function\"\n    },\n    {\n        \"constant\": true,\n        \"inputs\": [],\n        \"name\": \"totalSupply\",\n        \"outputs\": [\n            {\n                \"name\": \"\",\n                \"type\": \"uint256\"\n            }\n        ],\n        \"payable\": false,\n        \"stateMutability\": \"view\",\n        \"type\": \"function\"\n    },\n    {\n        \"constant\": false,\n        \"inputs\": [\n            {\n                \"name\": \"_from\",\n                \"type\": \"address\"\n            },\n            {\n                \"name\": \"_to\",\n                \"type\": \"address\"\n            },\n            {\n                \"name\": \"_value\",\n                \"type\": \"uint256\"\n            }\n        ],\n        \"name\": \"transferFrom\",\n        \"outputs\": [\n            {\n                \"name\": \"\",\n                \"type\": \"bool\"\n            }\n        ],\n        \"payable\": false,\n        \"stateMutability\": \"nonpayable\",\n        \"type\": \"function\"\n    },\n    {\n        \"constant\": true,\n        \"inputs\": [],\n        \"name\": \"decimals\",\n        \"outputs\": [\n            {\n                \"name\": \"\",\n                \"type\": \"uint8\"\n            }\n        ],\n        \"payable\": false,\n        \"stateMutability\": \"view\",\n        \"type\": \"function\"\n    },\n    {\n        \"constant\": true,\n        \"inputs\": [\n            {\n                \"name\": \"_owner\",\n                \"type\": \"address\"\n            }\n        ],\n        \"name\": \"balanceOf\",\n        \"outputs\": [\n            {\n                \"name\": \"balance\",\n                \"type\": \"uint256\"\n            }\n        ],\n        \"payable\": false,\n        \"stateMutability\": \"view\",\n        \"type\": \"function\"\n    },\n    {\n        \"constant\": true,\n        \"inputs\": [],\n        \"name\": \"symbol\",\n        \"outputs\": [\n            {\n                \"name\": \"\",\n                \"type\": \"string\"\n            }\n        ],\n        \"payable\": false,\n        \"stateMutability\": \"view\",\n        \"type\": \"function\"\n    },\n    {\n        \"constant\": false,\n        \"inputs\": [\n            {\n                \"name\": \"_to\",\n                \"type\": \"address\"\n            },\n            {\n                \"name\": \"_value\",\n                \"type\": \"uint256\"\n            }\n        ],\n        \"name\": \"transfer\",\n        \"outputs\": [\n            {\n                \"name\": \"\",\n                \"type\": \"bool\"\n            }\n        ],\n        \"payable\": false,\n        \"stateMutability\": \"nonpayable\",\n        \"type\": \"function\"\n    },\n    {\n        \"constant\": true,\n        \"inputs\": [\n            {\n                \"name\": \"_owner\",\n                \"type\": \"address\"\n            },\n            {\n                \"name\": \"_spender\",\n                \"type\": \"address\"\n            }\n        ],\n        \"name\": \"allowance\",\n        \"outputs\": [\n            {\n                \"name\": \"\",\n                \"type\": \"uint256\"\n            }\n        ],\n        \"payable\": false,\n        \"stateMutability\": \"view\",\n        \"type\": \"function\"\n    },\n    {\n        \"payable\": true,\n        \"stateMutability\": \"payable\",\n        \"type\": \"fallback\"\n    },\n    {\n        \"anonymous\": false,\n        \"inputs\": [\n            {\n                \"indexed\": true,\n                \"name\": \"owner\",\n                \"type\": \"address\"\n            },\n            {\n                \"indexed\": true,\n                \"name\": \"spender\",\n                \"type\": \"address\"\n            },\n            {\n                \"indexed\": false,\n                \"name\": \"value\",\n                \"type\": \"uint256\"\n            }\n        ],\n        \"name\": \"Approval\",\n        \"type\": \"event\"\n    },\n    {\n        \"anonymous\": false,\n        \"inputs\": [\n            {\n                \"indexed\": true,\n                \"name\": \"from\",\n                \"type\": \"address\"\n            },\n            {\n                \"indexed\": true,\n                \"name\": \"to\",\n                \"type\": \"address\"\n            },\n            {\n                \"indexed\": false,\n                \"name\": \"value\",\n                \"type\": \"uint256\"\n            }\n        ],\n        \"name\": \"Transfer\",\n        \"type\": \"event\"\n    }\n]",
-		"erc721": "[\n    {\n        \"constant\": true,\n        \"inputs\": [],\n        \"name\": \"name\",\n        \"outputs\": [\n            {\n                \"name\": \"_name\",\n                \"type\": \"string\"\n            }\n        ],\n        \"payable\": false,\n        \"stateMutability\": \"view\",\n        \"type\": \"function\"\n    },\n    {\n        \"constant\": true,\n        \"inputs\": [\n            {\n                \"name\": \"_tokenId\",\n                \"type\": \"uint256\"\n            }\n        ],\n        \"name\": \"getApproved\",\n        \"outputs\": [\n            {\n                \"name\": \"_approved\",\n                \"type\": \"address\"\n            }\n        ],\n        \"payable\": false,\n        \"stateMutability\": \"view\",\n        \"type\": \"function\"\n    },\n    {\n        \"constant\": false,\n        \"inputs\": [\n            {\n                \"name\": \"_to\",\n                \"type\": \"address\"\n            },\n            {\n                \"name\": \"_tokenId\",\n                \"type\": \"uint256\"\n            }\n        ],\n        \"name\": \"approve\",\n        \"outputs\": [],\n        \"payable\": false,\n        \"stateMutability\": \"nonpayable\",\n        \"type\": \"function\"\n    },\n    {\n        \"constant\": true,\n        \"inputs\": [],\n        \"name\": \"implementsERC721\",\n        \"outputs\": [\n            {\n                \"name\": \"_implementsERC721\",\n                \"type\": \"bool\"\n            }\n        ],\n        \"payable\": false,\n        \"stateMutability\": \"view\",\n        \"type\": \"function\"\n    },\n    {\n        \"constant\": true,\n        \"inputs\": [],\n        \"name\": \"totalSupply\",\n        \"outputs\": [\n            {\n                \"name\": \"_totalSupply\",\n                \"type\": \"uint256\"\n            }\n        ],\n        \"payable\": false,\n        \"stateMutability\": \"view\",\n        \"type\": \"function\"\n    },\n    {\n        \"constant\": false,\n        \"inputs\": [\n            {\n                \"name\": \"_from\",\n                \"type\": \"address\"\n            },\n            {\n                \"name\": \"_to\",\n                \"type\": \"address\"\n            },\n            {\n                \"name\": \"_tokenId\",\n                \"type\": \"uint256\"\n            }\n        ],\n        \"name\": \"transferFrom\",\n        \"outputs\": [],\n        \"payable\": false,\n        \"stateMutability\": \"nonpayable\",\n        \"type\": \"function\"\n    },\n    {\n        \"constant\": true,\n        \"inputs\": [\n            {\n                \"name\": \"_owner\",\n                \"type\": \"address\"\n            },\n            {\n                \"name\": \"_index\",\n                \"type\": \"uint256\"\n            }\n        ],\n        \"name\": \"tokenOfOwnerByIndex\",\n        \"outputs\": [\n            {\n                \"name\": \"_tokenId\",\n                \"type\": \"uint256\"\n            }\n        ],\n        \"payable\": false,\n        \"stateMutability\": \"view\",\n        \"type\": \"function\"\n    },\n    {\n        \"constant\": true,\n        \"inputs\": [\n            {\n                \"name\": \"_tokenId\",\n                \"type\": \"uint256\"\n            }\n        ],\n        \"name\": \"ownerOf\",\n        \"outputs\": [\n            {\n                \"name\": \"_owner\",\n                \"type\": \"address\"\n            }\n        ],\n        \"payable\": false,\n        \"stateMutability\": \"view\",\n        \"type\": \"function\"\n    },\n    {\n        \"constant\": true,\n        \"inputs\": [\n            {\n                \"name\": \"_tokenId\",\n                \"type\": \"uint256\"\n            }\n        ],\n        \"name\": \"tokenMetadata\",\n        \"outputs\": [\n            {\n                \"name\": \"_infoUrl\",\n                \"type\": \"string\"\n            }\n        ],\n        \"payable\": false,\n        \"stateMutability\": \"view\",\n        \"type\": \"function\"\n    },\n    {\n        \"constant\": true,\n        \"inputs\": [\n            {\n                \"name\": \"_owner\",\n                \"type\": \"address\"\n            }\n        ],\n        \"name\": \"balanceOf\",\n        \"outputs\": [\n            {\n                \"name\": \"_balance\",\n                \"type\": \"uint256\"\n            }\n        ],\n        \"payable\": false,\n        \"stateMutability\": \"view\",\n        \"type\": \"function\"\n    },\n    {\n        \"constant\": false,\n        \"inputs\": [\n            {\n                \"name\": \"_owner\",\n                \"type\": \"address\"\n            },\n            {\n                \"name\": \"_tokenId\",\n                \"type\": \"uint256\"\n            },\n            {\n                \"name\": \"_approvedAddress\",\n                \"type\": \"address\"\n            },\n            {\n                \"name\": \"_metadata\",\n                \"type\": \"string\"\n            }\n        ],\n        \"name\": \"mint\",\n        \"outputs\": [],\n        \"payable\": false,\n        \"stateMutability\": \"nonpayable\",\n        \"type\": \"function\"\n    },\n    {\n        \"constant\": true,\n        \"inputs\": [],\n        \"name\": \"symbol\",\n        \"outputs\": [\n            {\n                \"name\": \"_symbol\",\n                \"type\": \"string\"\n            }\n        ],\n        \"payable\": false,\n        \"stateMutability\": \"view\",\n        \"type\": \"function\"\n    },\n    {\n        \"constant\": false,\n        \"inputs\": [\n            {\n                \"name\": \"_to\",\n                \"type\": \"address\"\n            },\n            {\n                \"name\": \"_tokenId\",\n                \"type\": \"uint256\"\n            }\n        ],\n        \"name\": \"transfer\",\n        \"outputs\": [],\n        \"payable\": false,\n        \"stateMutability\": \"nonpayable\",\n        \"type\": \"function\"\n    },\n    {\n        \"constant\": true,\n        \"inputs\": [],\n        \"name\": \"numTokensTotal\",\n        \"outputs\": [\n            {\n                \"name\": \"\",\n                \"type\": \"uint256\"\n            }\n        ],\n        \"payable\": false,\n        \"stateMutability\": \"view\",\n        \"type\": \"function\"\n    },\n    {\n        \"constant\": true,\n        \"inputs\": [\n            {\n                \"name\": \"_owner\",\n                \"type\": \"address\"\n            }\n        ],\n        \"name\": \"getOwnerTokens\",\n        \"outputs\": [\n            {\n                \"name\": \"_tokenIds\",\n                \"type\": \"uint256[]\"\n            }\n        ],\n        \"payable\": false,\n        \"stateMutability\": \"view\",\n        \"type\": \"function\"\n    },\n    {\n        \"anonymous\": false,\n        \"inputs\": [\n            {\n                \"indexed\": true,\n                \"name\": \"_to\",\n                \"type\": \"address\"\n            },\n            {\n                \"indexed\": true,\n                \"name\": \"_tokenId\",\n                \"type\": \"uint256\"\n            }\n        ],\n        \"name\": \"Mint\",\n        \"type\": \"event\"\n    },\n    {\n        \"anonymous\": false,\n        \"inputs\": [\n            {\n                \"indexed\": true,\n                \"name\": \"_from\",\n                \"type\": \"address\"\n            },\n            {\n                \"indexed\": true,\n                \"name\": \"_to\",\n                \"type\": \"address\"\n            },\n            {\n                \"indexed\": false,\n                \"name\": \"_tokenId\",\n                \"type\": \"uint256\"\n            }\n        ],\n        \"name\": \"Transfer\",\n        \"type\": \"event\"\n    },\n    {\n        \"anonymous\": false,\n        \"inputs\": [\n            {\n                \"indexed\": true,\n                \"name\": \"_owner\",\n                \"type\": \"address\"\n            },\n            {\n                \"indexed\": true,\n                \"name\": \"_approved\",\n                \"type\": \"address\"\n            },\n            {\n                \"indexed\": false,\n                \"name\": \"_tokenId\",\n                \"type\": \"uint256\"\n            }\n        ],\n        \"name\": \"Approval\",\n        \"type\": \"event\"\n    }\n]",
-	}
+var bundledContracts map[string]string
 
-	if val, ok := BundledContracts[contractFile]; ok {
+func getReader(contractFile string) io.Reader {
+	initializeBundledContracts()
+	if val, ok := bundledContracts[contractFile]; ok {
 		return strings.NewReader(val)
 	}
 	if _, err := os.Stat(contractFile); os.IsNotExist(err) {
@@ -34,4 +32,566 @@ func GetAbi(contractFile string) *abi.ABI {
 		log.Fatalf("Cannot initialize ABI: %v", err)
 	}
 	return &abi
+}
+
+func initializeBundledContracts() {
+	bundledContracts = make(map[string]string)
+	bundledContracts["erc20"] = `[
+		{
+			"constant": true,
+			"inputs": [],
+			"name": "name",
+			"outputs": [
+				{
+					"name": "",
+					"type": "string"
+				}
+			],
+			"payable": false,
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"constant": false,
+			"inputs": [
+				{
+					"name": "_spender",
+					"type": "address"
+				},
+				{
+					"name": "_value",
+					"type": "uint256"
+				}
+			],
+			"name": "approve",
+			"outputs": [
+				{
+					"name": "",
+					"type": "bool"
+				}
+			],
+			"payable": false,
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"constant": true,
+			"inputs": [],
+			"name": "totalSupply",
+			"outputs": [
+				{
+					"name": "",
+					"type": "uint256"
+				}
+			],
+			"payable": false,
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"constant": false,
+			"inputs": [
+				{
+					"name": "_from",
+					"type": "address"
+				},
+				{
+					"name": "_to",
+					"type": "address"
+				},
+				{
+					"name": "_value",
+					"type": "uint256"
+				}
+			],
+			"name": "transferFrom",
+			"outputs": [
+				{
+					"name": "",
+					"type": "bool"
+				}
+			],
+			"payable": false,
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"constant": true,
+			"inputs": [],
+			"name": "decimals",
+			"outputs": [
+				{
+					"name": "",
+					"type": "uint8"
+				}
+			],
+			"payable": false,
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"constant": true,
+			"inputs": [
+				{
+					"name": "_owner",
+					"type": "address"
+				}
+			],
+			"name": "balanceOf",
+			"outputs": [
+				{
+					"name": "balance",
+					"type": "uint256"
+				}
+			],
+			"payable": false,
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"constant": true,
+			"inputs": [],
+			"name": "symbol",
+			"outputs": [
+				{
+					"name": "",
+					"type": "string"
+				}
+			],
+			"payable": false,
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"constant": false,
+			"inputs": [
+				{
+					"name": "_to",
+					"type": "address"
+				},
+				{
+					"name": "_value",
+					"type": "uint256"
+				}
+			],
+			"name": "transfer",
+			"outputs": [
+				{
+					"name": "",
+					"type": "bool"
+				}
+			],
+			"payable": false,
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"constant": true,
+			"inputs": [
+				{
+					"name": "_owner",
+					"type": "address"
+				},
+				{
+					"name": "_spender",
+					"type": "address"
+				}
+			],
+			"name": "allowance",
+			"outputs": [
+				{
+					"name": "",
+					"type": "uint256"
+				}
+			],
+			"payable": false,
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"payable": true,
+			"stateMutability": "payable",
+			"type": "fallback"
+		},
+		{
+			"anonymous": false,
+			"inputs": [
+				{
+					"indexed": true,
+					"name": "owner",
+					"type": "address"
+				},
+				{
+					"indexed": true,
+					"name": "spender",
+					"type": "address"
+				},
+				{
+					"indexed": false,
+					"name": "value",
+					"type": "uint256"
+				}
+			],
+			"name": "Approval",
+			"type": "event"
+		},
+		{
+			"anonymous": false,
+			"inputs": [
+				{
+					"indexed": true,
+					"name": "from",
+					"type": "address"
+				},
+				{
+					"indexed": true,
+					"name": "to",
+					"type": "address"
+				},
+				{
+					"indexed": false,
+					"name": "value",
+					"type": "uint256"
+				}
+			],
+			"name": "Transfer",
+			"type": "event"
+		}
+	]
+	`
+	bundledContracts["erc721"] = `[
+		{
+			"constant": true,
+			"inputs": [],
+			"name": "name",
+			"outputs": [
+				{
+					"name": "_name",
+					"type": "string"
+				}
+			],
+			"payable": false,
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"constant": true,
+			"inputs": [
+				{
+					"name": "_tokenId",
+					"type": "uint256"
+				}
+			],
+			"name": "getApproved",
+			"outputs": [
+				{
+					"name": "_approved",
+					"type": "address"
+				}
+			],
+			"payable": false,
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"constant": false,
+			"inputs": [
+				{
+					"name": "_to",
+					"type": "address"
+				},
+				{
+					"name": "_tokenId",
+					"type": "uint256"
+				}
+			],
+			"name": "approve",
+			"outputs": [],
+			"payable": false,
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"constant": true,
+			"inputs": [],
+			"name": "implementsERC721",
+			"outputs": [
+				{
+					"name": "_implementsERC721",
+					"type": "bool"
+				}
+			],
+			"payable": false,
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"constant": true,
+			"inputs": [],
+			"name": "totalSupply",
+			"outputs": [
+				{
+					"name": "_totalSupply",
+					"type": "uint256"
+				}
+			],
+			"payable": false,
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"constant": false,
+			"inputs": [
+				{
+					"name": "_from",
+					"type": "address"
+				},
+				{
+					"name": "_to",
+					"type": "address"
+				},
+				{
+					"name": "_tokenId",
+					"type": "uint256"
+				}
+			],
+			"name": "transferFrom",
+			"outputs": [],
+			"payable": false,
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"constant": true,
+			"inputs": [
+				{
+					"name": "_owner",
+					"type": "address"
+				},
+				{
+					"name": "_index",
+					"type": "uint256"
+				}
+			],
+			"name": "tokenOfOwnerByIndex",
+			"outputs": [
+				{
+					"name": "_tokenId",
+					"type": "uint256"
+				}
+			],
+			"payable": false,
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"constant": true,
+			"inputs": [
+				{
+					"name": "_tokenId",
+					"type": "uint256"
+				}
+			],
+			"name": "ownerOf",
+			"outputs": [
+				{
+					"name": "_owner",
+					"type": "address"
+				}
+			],
+			"payable": false,
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"constant": true,
+			"inputs": [
+				{
+					"name": "_tokenId",
+					"type": "uint256"
+				}
+			],
+			"name": "tokenMetadata",
+			"outputs": [
+				{
+					"name": "_infoUrl",
+					"type": "string"
+				}
+			],
+			"payable": false,
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"constant": true,
+			"inputs": [
+				{
+					"name": "_owner",
+					"type": "address"
+				}
+			],
+			"name": "balanceOf",
+			"outputs": [
+				{
+					"name": "_balance",
+					"type": "uint256"
+				}
+			],
+			"payable": false,
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"constant": false,
+			"inputs": [
+				{
+					"name": "_owner",
+					"type": "address"
+				},
+				{
+					"name": "_tokenId",
+					"type": "uint256"
+				},
+				{
+					"name": "_approvedAddress",
+					"type": "address"
+				},
+				{
+					"name": "_metadata",
+					"type": "string"
+				}
+			],
+			"name": "mint",
+			"outputs": [],
+			"payable": false,
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"constant": true,
+			"inputs": [],
+			"name": "symbol",
+			"outputs": [
+				{
+					"name": "_symbol",
+					"type": "string"
+				}
+			],
+			"payable": false,
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"constant": false,
+			"inputs": [
+				{
+					"name": "_to",
+					"type": "address"
+				},
+				{
+					"name": "_tokenId",
+					"type": "uint256"
+				}
+			],
+			"name": "transfer",
+			"outputs": [],
+			"payable": false,
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"constant": true,
+			"inputs": [],
+			"name": "numTokensTotal",
+			"outputs": [
+				{
+					"name": "",
+					"type": "uint256"
+				}
+			],
+			"payable": false,
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"constant": true,
+			"inputs": [
+				{
+					"name": "_owner",
+					"type": "address"
+				}
+			],
+			"name": "getOwnerTokens",
+			"outputs": [
+				{
+					"name": "_tokenIds",
+					"type": "uint256[]"
+				}
+			],
+			"payable": false,
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"anonymous": false,
+			"inputs": [
+				{
+					"indexed": true,
+					"name": "_to",
+					"type": "address"
+				},
+				{
+					"indexed": true,
+					"name": "_tokenId",
+					"type": "uint256"
+				}
+			],
+			"name": "Mint",
+			"type": "event"
+		},
+		{
+			"anonymous": false,
+			"inputs": [
+				{
+					"indexed": true,
+					"name": "_from",
+					"type": "address"
+				},
+				{
+					"indexed": true,
+					"name": "_to",
+					"type": "address"
+				},
+				{
+					"indexed": false,
+					"name": "_tokenId",
+					"type": "uint256"
+				}
+			],
+			"name": "Transfer",
+			"type": "event"
+		},
+		{
+			"anonymous": false,
+			"inputs": [
+				{
+					"indexed": true,
+					"name": "_owner",
+					"type": "address"
+				},
+				{
+					"indexed": true,
+					"name": "_approved",
+					"type": "address"
+				},
+				{
+					"indexed": false,
+					"name": "_tokenId",
+					"type": "uint256"
+				}
+			],
+			"name": "Approval",
+			"type": "event"
+		}
+	]`
 }
