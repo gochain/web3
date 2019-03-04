@@ -1,23 +1,21 @@
 package web3
 
 import (
-	"errors"
 	"io"
-	"log"
 	"os"
 	"strings"
 
 	"github.com/gochain-io/gochain/v3/accounts/abi"
 )
 
-func ABIBuiltIn(contractFile string) (io.Reader, error) {
+func ABIBuiltIn(contractFile string) (*abi.ABI, error) {
 	if val, ok := bundledContracts[contractFile]; ok {
-		return strings.NewReader(val), nil
+		return readAbi(strings.NewReader(val))
 	}
-	return nil, errors.New("Cannot find bundled contract")
+	return nil, nil
 }
 
-func ABIOpenFile(contractFile string) (io.Reader, error) {
+func ABIOpenFile(contractFile string) (*abi.ABI, error) {
 	if _, err := os.Stat(contractFile); os.IsNotExist(err) {
 		return nil, err
 	}
@@ -25,23 +23,15 @@ func ABIOpenFile(contractFile string) (io.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	return jsonReader, nil
+	return readAbi(jsonReader)
 }
 
-func GetAbi(contractFile string) *abi.ABI {
-	var reader io.Reader
-	reader, err := ABIBuiltIn(contractFile)
-	if err != nil {
-		reader, err = ABIOpenFile(contractFile)
-		if err != nil {
-			log.Fatalf("Cannot find the file: %v", err)
-		}
-	}
+func readAbi(reader io.Reader) (*abi.ABI, error) {
 	abi, err := abi.JSON(reader)
 	if err != nil {
-		log.Fatalf("Cannot initialize ABI: %v", err)
+		return nil, err
 	}
-	return &abi
+	return &abi, nil
 }
 
 var bundledContracts = map[string]string{

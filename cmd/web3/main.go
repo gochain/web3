@@ -569,7 +569,7 @@ func GetTransactionReceipt(ctx context.Context, rpcURL, txhash, contractFile str
 	}
 	defer client.Close()
 	if contractFile != "" {
-		myabi = web3.GetAbi(contractFile)
+		myabi = getAbi(contractFile)
 	}
 	r, err := client.GetTransactionReceipt(ctx, common.HexToHash(txhash))
 	if err != nil {
@@ -794,7 +794,7 @@ func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string) {
 }
 func ListContract(contractFile string) {
 
-	myabi := web3.GetAbi(contractFile)
+	myabi := getAbi(contractFile)
 
 	switch format {
 	case "json":
@@ -814,7 +814,7 @@ func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
 	}
 	defer client.Close()
-	myabi := web3.GetAbi(contractFile)
+	myabi := getAbi(contractFile)
 	if _, ok := myabi.Methods[functionName]; !ok {
 		fmt.Println("There is no such function:", functionName)
 		return
@@ -917,4 +917,15 @@ func marshalJSON(data interface{}) string {
 		log.Fatalf("Cannot marshal json: %v", err)
 	}
 	return string(b)
+}
+
+func getAbi(contractFile string) *abi.ABI {
+	abi, err := web3.ABIBuiltIn(contractFile)
+	if abi == nil {
+		abi, err = web3.ABIOpenFile(contractFile)
+		if err != nil {
+			log.Fatalf("Cannot get ABI: %v", err)
+		}
+	}
+	return abi
 }
