@@ -1,5 +1,6 @@
 UNAME_S := $(shell uname -s)
 build: 
+	rice embed-go
 	go build ./cmd/web3
 
 install:

@@ -19,9 +19,8 @@ import (
 	"github.com/gochain-io/gochain/v3/common"
 	"github.com/gochain-io/gochain/v3/common/hexutil"
 	"github.com/gochain-io/gochain/v3/core/types"
-	"github.com/urfave/cli"
-
 	"github.com/gochain-io/web3"
+	"github.com/urfave/cli"
 )
 
 // Flags
@@ -570,7 +569,7 @@ func GetTransactionReceipt(ctx context.Context, rpcURL, txhash, contractFile str
 	}
 	defer client.Close()
 	if contractFile != "" {
-		myabi = getAbi(contractFile)
+		myabi = web3.GetAbi(contractFile)
 	}
 	r, err := client.GetTransactionReceipt(ctx, common.HexToHash(txhash))
 	if err != nil {
@@ -795,7 +794,7 @@ func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string) {
 }
 func ListContract(contractFile string) {
 
-	myabi := getAbi(contractFile)
+	myabi := web3.GetAbi(contractFile)
 
 	switch format {
 	case "json":
@@ -815,7 +814,7 @@ func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
 	}
 	defer client.Close()
-	myabi := getAbi(contractFile)
+	myabi := web3.GetAbi(contractFile)
 	if _, ok := myabi.Methods[functionName]; !ok {
 		fmt.Println("There is no such function:", functionName)
 		return
@@ -912,21 +911,6 @@ func printReceiptDetails(r *web3.Receipt, myabi *abi.ABI) {
 		fmt.Println("Logs of the receipt:", marshalJSON(r.ParsedLogs))
 	}
 }
-func getAbi(contractFile string) *abi.ABI {
-	if _, err := os.Stat(contractFile); os.IsNotExist(err) {
-		log.Fatalf("Cannot find the abi file: %v", err)
-	}
-	jsonReader, err := os.Open(contractFile)
-	if err != nil {
-		log.Fatalf("Cannot read the abi file: %v", err)
-	}
-	abi, err := abi.JSON(jsonReader)
-	if err != nil {
-		log.Fatalf("Cannot initialize ABI: %v", err)
-	}
-	return &abi
-}
-
 func marshalJSON(data interface{}) string {
 	b, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
