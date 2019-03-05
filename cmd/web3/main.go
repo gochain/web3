@@ -921,6 +921,9 @@ func marshalJSON(data interface{}) string {
 
 func getAbi(contractFile string) *abi.ABI {
 	abi, err := web3.ABIBuiltIn(contractFile)
+	if err != nil {
+		log.Fatalf("Cannot get ABI from the bundled storage: %v", err)
+	}
 	if abi == nil {
 		abi, err = web3.ABIOpenFile(contractFile)
 		if err != nil {

@@ -16,9 +16,6 @@ func ABIBuiltIn(contractFile string) (*abi.ABI, error) {
 }
 
 func ABIOpenFile(contractFile string) (*abi.ABI, error) {
-	if _, err := os.Stat(contractFile); os.IsNotExist(err) {
-		return nil, err
-	}
 	jsonReader, err := os.Open(contractFile)
 	if err != nil {
 		return nil, err
