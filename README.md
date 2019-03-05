@@ -203,6 +203,12 @@ web3 contract deploy FILENAME.bin
 web3 contract call --amount AMOUNT --address CONTRACT_ADDRESS --abi CONTRACT_ABI_FILE --function FUNCTION_NAME FUNCTION_PARAMETERS
 ```
 
+or using bundled abi files
+
+```sh
+web3 contract call --amount AMOUNT --address CONTRACT_ADDRESS --abi erc20|erc721 --function FUNCTION_NAME FUNCTION_PARAMETERS
+```
+
 **Parameters:**
 
 - CONTRACT_ADDRESS - the address of the deployed contract
