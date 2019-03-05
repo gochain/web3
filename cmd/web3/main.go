@@ -19,9 +19,8 @@ import (
 	"github.com/gochain-io/gochain/v3/common"
 	"github.com/gochain-io/gochain/v3/common/hexutil"
 	"github.com/gochain-io/gochain/v3/core/types"
-	"github.com/urfave/cli"
-
 	"github.com/gochain-io/web3"
+	"github.com/urfave/cli"
 )
 
 // Flags
@@ -912,25 +911,24 @@ func printReceiptDetails(r *web3.Receipt, myabi *abi.ABI) {
 		fmt.Println("Logs of the receipt:", marshalJSON(r.ParsedLogs))
 	}
 }
-func getAbi(contractFile string) *abi.ABI {
-	if _, err := os.Stat(contractFile); os.IsNotExist(err) {
-		log.Fatalf("Cannot find the abi file: %v", err)
-	}
-	jsonReader, err := os.Open(contractFile)
-	if err != nil {
-		log.Fatalf("Cannot read the abi file: %v", err)
-	}
-	abi, err := abi.JSON(jsonReader)
-	if err != nil {
-		log.Fatalf("Cannot initialize ABI: %v", err)
-	}
-	return &abi
-}
-
 func marshalJSON(data interface{}) string {
 	b, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		log.Fatalf("Cannot marshal json: %v", err)
 	}
 	return string(b)
+}
+
+func getAbi(contractFile string) *abi.ABI {
+	abi, err := web3.ABIBuiltIn(contractFile)
+	if err != nil {
+		log.Fatalf("Cannot get ABI from the bundled storage: %v", err)
+	}
+	if abi == nil {
+		abi, err = web3.ABIOpenFile(contractFile)
+		if err != nil {
+			log.Fatalf("Cannot get ABI: %v", err)
+		}
+	}
+	return abi
 }

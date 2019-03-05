@@ -203,10 +203,16 @@ web3 contract deploy FILENAME.bin
 web3 contract call --amount AMOUNT --address CONTRACT_ADDRESS --abi CONTRACT_ABI_FILE --function FUNCTION_NAME FUNCTION_PARAMETERS
 ```
 
+or using bundled abi files
+
+```sh
+web3 contract call --amount AMOUNT --address CONTRACT_ADDRESS --abi erc20|erc721 --function FUNCTION_NAME FUNCTION_PARAMETERS
+```
+
 **Parameters:**
 
 - CONTRACT_ADDRESS - the address of the deployed contract
-- CONTRACT_ABI_FILE - the abi file of the deployed contract
+- CONTRACT_ABI_FILE - the abi file of the deployed contract (take into account that there are some bundled abi files like erc20 and erc721 so you could use them without downloading or compiling them)
 - FUNCTION_NAME - the name of the function you want to call
 - FUNCTION_PARAMETERS - the list of the function parameters
 - AMOUNT - amount of wei to be send with transaction (require only for paid transact functions)
