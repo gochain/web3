@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"log"
 	"math/big"
@@ -20,6 +21,7 @@ import (
 	"github.com/gochain-io/gochain/v3/common/hexutil"
 	"github.com/gochain-io/gochain/v3/core/types"
 	"github.com/gochain-io/web3"
+	contracts "github.com/gochain-io/web3/abi"
 	"github.com/urfave/cli"
 )
 
@@ -358,6 +360,19 @@ func main() {
 				for _, name := range varNames {
 					fmt.Printf("%s=%s\n", name, os.Getenv(name))
 				}
+			},
+		},
+		{
+			Name:  "generate",
+			Usage: "Generate a contract",
+			Subcommands: []cli.Command{
+				{
+					Name:  "erc20",
+					Usage: "Generate a erc20 contract",
+					Action: func(c *cli.Context) {
+						GenerateContract(ctx, "erc20", c.Args())
+					},
+				},
 			},
 		},
 	}
@@ -869,6 +884,29 @@ func Send(ctx context.Context, rpcURL, privateKey, toAddress, amount string) {
 		log.Fatalf("Cannot create transaction: %v", err)
 	}
 	fmt.Println("Transaction address:", tx.Hash.Hex())
+}
+
+func GenerateContract(ctx context.Context, contractType string, args []string) {
+	if contractType == "erc20" {
+		params, err := contracts.ParseERC20Params(args)
+		if err != nil {
+			log.Fatalf("Cannot parse the parameters: %v", err)
+		}
+		tmpl, err := template.New("contract").Parse(contracts.ERC20_TEMPLATE)
+		if err != nil {
+			log.Fatalf("Cannot parse the template: %v", err)
+		}
+		f, err := os.Create("contract.sol")
+		if err != nil {
+			log.Fatalf("Cannot create the file: %v", err)
+			return
+		}
+		err = tmpl.Execute(f, params)
+		if err != nil {
+			log.Fatalf("Cannot execute the template: %v", err)
+			return
+		}
+	}
 }
 
 func printReceiptDetails(r *web3.Receipt, myabi *abi.ABI) {

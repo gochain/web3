@@ -1,4 +1,4 @@
-package abis
+package contracts
 
 const ERC721 = `[
 	{
