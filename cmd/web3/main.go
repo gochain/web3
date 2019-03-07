@@ -153,9 +153,17 @@ func main() {
 		{
 			Name:    "address",
 			Aliases: []string{"addr"},
-			Usage:   "Address details",
+			Usage:   "Account details for a specific address, or the one corresponding to the private key.",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "private-key, pk",
+					Usage:       "The private key",
+					EnvVar:      pkVarName,
+					Destination: &privateKey,
+					Hidden:      false},
+			},
 			Action: func(c *cli.Context) {
-				GetAddressDetails(ctx, network, c.Args().First())
+				GetAddressDetails(ctx, network, c.Args().First(), privateKey)
 			},
 		},
 		{
@@ -582,7 +590,17 @@ func GetTransactionReceipt(ctx context.Context, rpcURL, txhash, contractFile str
 	printReceiptDetails(r, myabi)
 }
 
-func GetAddressDetails(ctx context.Context, network web3.Network, addrHash string) {
+func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, privateKey string) {
+	if addrHash == "" {
+		if privateKey == "" {
+			log.Fatalf("Missing address. Must be specified as only argument, or implied from a private key.")
+		}
+		acct, err := web3.ParsePrivateKey(privateKey)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		addrHash = acct.PublicKey()
+	}
 	client, err := web3.NewClient(network.URL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", network.URL, err)
