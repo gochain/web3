@@ -11,7 +11,7 @@ type Erc20Params struct {
 	TotalSupply *big.Int
 }
 
-const ERC20_CAPPED_PAUSABLE_TEMPLATE = `pragma solidity ^0.5.2;
+const ERC20CappedPausableTemplate = `pragma solidity ^0.5.2;
 
 import "./lib/oz/contracts/token/ERC20/ERC20Pausable.sol";
 import "./lib/oz/contracts/token/ERC20/ERC20Capped.sol";
@@ -27,7 +27,7 @@ contract CappedToken is ERC20Detailed, ERC20Capped, ERC20Pausable {
     ERC20Capped({{.TotalSupply}})
     public {}
 }`
-const ERC20_ABI = `[
+const ERC20ABI = `[
 	{
 		"constant": true,
 		"inputs": [],

@@ -918,7 +918,7 @@ func GenerateContract(ctx context.Context, contractType string, args []string) {
 			Decimals:    decimals,
 			TotalSupply: totalSupply,
 		}
-		tmpl, err := template.New("contract").Parse(assets.ERC20_CAPPED_PAUSABLE_TEMPLATE)
+		tmpl, err := template.New("contract").Parse(assets.ERC20CappedPausableTemplate)
 		if err != nil {
 			log.Fatalf("Cannot parse the template: %v", err)
 		}

@@ -34,5 +34,5 @@ func readAbi(reader io.Reader) (*abi.ABI, error) {
 }
 
 var bundledContracts = map[string]string{
-	"erc20":  assets.ERC20_ABI,
-	"erc721": assets.ERC721_ABI}
+	"erc20":  assets.ERC20ABI,
+	"erc721": assets.ERC721ABI}

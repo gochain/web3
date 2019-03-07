@@ -1,6 +1,6 @@
 package assets
 
-const ERC721_ABI = `[
+const ERC721ABI = `[
 	{
 		"constant": true,
 		"inputs": [],
