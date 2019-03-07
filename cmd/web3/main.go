@@ -370,7 +370,7 @@ func main() {
 			Subcommands: []cli.Command{
 				{
 					Name:  "erc20",
-					Usage: "Generate a erc20 contract",
+					Usage: "Generate a erc20 contract(use the following list of arguments after the command - SYMBOL TOKEN_NAME DECIMALS TOTAL_SUPPLY)",
 					Action: func(c *cli.Context) {
 						GenerateContract(ctx, "erc20", c.Args())
 					},
