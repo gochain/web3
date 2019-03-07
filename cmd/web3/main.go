@@ -901,15 +901,15 @@ func GenerateContract(ctx context.Context, contractType string, args []string) {
 	}
 	if contractType == "erc20" {
 		if len(args) != 4 {
-			log.Fatalf("wrong amount of the parameters, the following parameters are mandatory SYMBOL TOKEN_NAME DECIMALS TOTAL_SUPPLY")
+			log.Fatalln("wrong amount of the parameters, the following parameters are mandatory SYMBOL TOKEN_NAME DECIMALS TOTAL_SUPPLY")
 		}
 		decimals, err := strconv.Atoi(args[2])
 		if err != nil {
-			log.Fatalf("Cannot parse DECIMALS", err)
+			log.Fatalln("Cannot parse DECIMALS", err)
 		}
 		totalSupply, ok := new(big.Int).SetString(args[3], 10)
 		if !ok {
-			log.Fatalf("Cannot parse total supply")
+			log.Fatalln("Cannot parse total supply")
 		}
 		totalSupply.Mul(totalSupply, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(decimals)), nil))
 		params := assets.Erc20Params{
