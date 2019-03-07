@@ -27,7 +27,7 @@ contract CappedToken is ERC20Detailed, ERC20Capped, ERC20Pausable {
     ERC20Capped({{.TotalSupply}})
     public {}
 }`
-const ERC20 = `[
+const ERC20_ABI = `[
 	{
 		"constant": true,
 		"inputs": [],
