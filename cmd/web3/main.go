@@ -10,6 +10,7 @@ import (
 	"log"
 	"math/big"
 	"os"
+	"os/exec"
 	"os/signal"
 	"sort"
 	"strings"
@@ -887,6 +888,16 @@ func Send(ctx context.Context, rpcURL, privateKey, toAddress, amount string) {
 }
 
 func GenerateContract(ctx context.Context, contractType string, args []string) {
+	if _, err := os.Stat("lib/oz"); os.IsNotExist(err) {
+		cmd := exec.Command("git", "clone", "--depth", "1", "--branch", "master", "https://github.com/OpenZeppelin/openzeppelin-solidity", "lib/oz")
+		log.Printf("Cloning OpenZeppeling repo...")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		err := cmd.Run()
+		if err != nil {
+			log.Printf("Cloning finished with error: %v", err)
+		}
+	}
 	if contractType == "erc20" {
 		params, err := contracts.ParseERC20Params(args)
 		if err != nil {
@@ -896,7 +907,7 @@ func GenerateContract(ctx context.Context, contractType string, args []string) {
 		if err != nil {
 			log.Fatalf("Cannot parse the template: %v", err)
 		}
-		f, err := os.Create("contract.sol")
+		f, err := os.Create("erc20_contract.sol")
 		if err != nil {
 			log.Fatalf("Cannot create the file: %v", err)
 			return
@@ -906,6 +917,7 @@ func GenerateContract(ctx context.Context, contractType string, args []string) {
 			log.Fatalf("Cannot execute the template: %v", err)
 			return
 		}
+		fmt.Println("The sample contract has been successfully written to erc20_contract.sol file")
 	}
 }
 
