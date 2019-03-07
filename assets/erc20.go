@@ -1,9 +1,7 @@
-package contracts
+package assets
 
 import (
-	"errors"
 	"math/big"
-	"strconv"
 )
 
 type Erc20Params struct {
@@ -13,29 +11,7 @@ type Erc20Params struct {
 	TotalSupply *big.Int
 }
 
-func ParseERC20Params(args []string) (*Erc20Params, error) {
-	if len(args) != 4 {
-		return nil, errors.New("wrong amount of the parameters, the following parameters are mandatory SYMBOL TOKEN_NAME DECIMALS TOTAL_SUPPLY")
-	}
-	decimals, err := strconv.Atoi(args[2])
-	if err != nil {
-		return nil, err
-	}
-	totalSupply, ok := new(big.Int).SetString(args[3], 10)
-	if !ok {
-		return nil, errors.New("Cannot parse total supply")
-	}
-	totalSupply.Mul(totalSupply, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(decimals)), nil))
-	params := Erc20Params{
-		Symbol:      args[0],
-		TokenName:   args[1],
-		Decimals:    decimals,
-		TotalSupply: totalSupply,
-	}
-	return &params, nil
-}
-
-const ERC20_TEMPLATE = `pragma solidity ^0.5.2;
+const ERC20_CAPPED_PAUSABLE_TEMPLATE = `pragma solidity ^0.5.2;
 
 import "./lib/oz/contracts/token/ERC20/ERC20Pausable.sol";
 import "./lib/oz/contracts/token/ERC20/ERC20Capped.sol";

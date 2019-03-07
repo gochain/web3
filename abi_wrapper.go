@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	contracts "github.com/gochain-io/web3/abi"
+	"github.com/gochain-io/web3/assets"
 
 	"github.com/gochain-io/gochain/v3/accounts/abi"
 )
@@ -34,5 +34,5 @@ func readAbi(reader io.Reader) (*abi.ABI, error) {
 }
 
 var bundledContracts = map[string]string{
-	"erc20":  contracts.ERC20,
-	"erc721": contracts.ERC721}
+	"erc20":  assets.ERC20,
+	"erc721": assets.ERC721}

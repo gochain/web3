@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"sort"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -22,7 +23,7 @@ import (
 	"github.com/gochain-io/gochain/v3/common/hexutil"
 	"github.com/gochain-io/gochain/v3/core/types"
 	"github.com/gochain-io/web3"
-	contracts "github.com/gochain-io/web3/abi"
+	"github.com/gochain-io/web3/assets"
 	"github.com/urfave/cli"
 )
 
@@ -895,19 +896,33 @@ func GenerateContract(ctx context.Context, contractType string, args []string) {
 		cmd.Stderr = os.Stderr
 		err := cmd.Run()
 		if err != nil {
-			log.Printf("Cloning finished with error: %v", err)
+			log.Fatalf("Cloning finished with error: %v", err)
 		}
 	}
 	if contractType == "erc20" {
-		params, err := contracts.ParseERC20Params(args)
-		if err != nil {
-			log.Fatalf("Cannot parse the parameters: %v", err)
+		if len(args) != 4 {
+			log.Fatalf("wrong amount of the parameters, the following parameters are mandatory SYMBOL TOKEN_NAME DECIMALS TOTAL_SUPPLY")
 		}
-		tmpl, err := template.New("contract").Parse(contracts.ERC20_TEMPLATE)
+		decimals, err := strconv.Atoi(args[2])
+		if err != nil {
+			log.Fatalf("Cannot parse DECIMALS", err)
+		}
+		totalSupply, ok := new(big.Int).SetString(args[3], 10)
+		if !ok {
+			log.Fatalf("Cannot parse total supply")
+		}
+		totalSupply.Mul(totalSupply, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(decimals)), nil))
+		params := assets.Erc20Params{
+			Symbol:      args[0],
+			TokenName:   args[1],
+			Decimals:    decimals,
+			TotalSupply: totalSupply,
+		}
+		tmpl, err := template.New("contract").Parse(assets.ERC20_CAPPED_PAUSABLE_TEMPLATE)
 		if err != nil {
 			log.Fatalf("Cannot parse the template: %v", err)
 		}
-		f, err := os.Create("erc20_contract.sol")
+		f, err := os.Create(params.TokenName + ".sol")
 		if err != nil {
 			log.Fatalf("Cannot create the file: %v", err)
 			return
@@ -917,7 +932,7 @@ func GenerateContract(ctx context.Context, contractType string, args []string) {
 			log.Fatalf("Cannot execute the template: %v", err)
 			return
 		}
-		fmt.Println("The sample contract has been successfully written to erc20_contract.sol file")
+		fmt.Println("The sample contract has been successfully written to", params.TokenName+".sol", "file")
 	}
 }
 
