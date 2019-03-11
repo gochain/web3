@@ -13,7 +13,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"sort"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -365,14 +364,48 @@ func main() {
 			},
 		},
 		{
-			Name:  "generate",
-			Usage: "Generate a contract",
+			Name:    "generate",
+			Usage:   "Generate an ABI code",
+			Aliases: []string{"g"},
 			Subcommands: []cli.Command{
 				{
-					Name:  "erc20",
-					Usage: "Generate a erc20 contract(use the following list of arguments after the command - SYMBOL TOKEN_NAME DECIMALS TOTAL_SUPPLY)",
-					Action: func(c *cli.Context) {
-						GenerateContract(ctx, "erc20", c.Args())
+					Name:    "contract",
+					Usage:   "Generate a contract",
+					Aliases: []string{"c"},
+					Subcommands: []cli.Command{
+						{
+							Name:  "erc20",
+							Usage: "Generate a erc20 contract",
+							Flags: []cli.Flag{
+								cli.BoolFlag{
+									Name:  "pausable, p",
+									Usage: "Pausable contract.",
+								},
+								cli.BoolFlag{
+									Name:  "mintable, m",
+									Usage: "Mintable contract.",
+								},
+								cli.BoolFlag{
+									Name:  "burnable, b",
+									Usage: "Burnable contract.",
+								},
+								cli.StringFlag{
+									Name:  "symbol, s",
+									Usage: "Token Symbol.",
+								},
+								cli.StringFlag{
+									Name:  "name, n",
+									Usage: "Token Name",
+								},
+								cli.StringFlag{
+									Name:  "capped, c",
+									Usage: "Cap, total supply",
+								},
+							},
+							Action: func(c *cli.Context) {
+								GenerateContract(ctx, "erc20", c)
+							},
+						},
 					},
 				},
 			},
@@ -888,7 +921,7 @@ func Send(ctx context.Context, rpcURL, privateKey, toAddress, amount string) {
 	fmt.Println("Transaction address:", tx.Hash.Hex())
 }
 
-func GenerateContract(ctx context.Context, contractType string, args []string) {
+func GenerateContract(ctx context.Context, contractType string, c *cli.Context) {
 	if _, err := os.Stat("lib/oz"); os.IsNotExist(err) {
 		cmd := exec.Command("git", "clone", "--depth", "1", "--branch", "master", "https://github.com/OpenZeppelin/openzeppelin-solidity", "lib/oz")
 		log.Printf("Cloning OpenZeppeling repo...")
@@ -900,25 +933,31 @@ func GenerateContract(ctx context.Context, contractType string, args []string) {
 		}
 	}
 	if contractType == "erc20" {
-		if len(args) != 4 {
-			log.Fatalln("wrong amount of the parameters, the following parameters are mandatory SYMBOL TOKEN_NAME DECIMALS TOTAL_SUPPLY")
+		var capped *big.Int
+		if c.String("capped") != "" {
+			var ok bool
+			capped, ok = new(big.Int).SetString(c.String("capped"), 10)
+			if !ok {
+				log.Fatalln("Cannot parse capped value")
+			}
+			capped.Mul(capped, big.NewInt(1e18))
 		}
-		decimals, err := strconv.Atoi(args[2])
-		if err != nil {
-			log.Fatalln("Cannot parse DECIMALS", err)
+		if c.String("symbol") == "" {
+			log.Fatalln("Symbol is required")
 		}
-		totalSupply, ok := new(big.Int).SetString(args[3], 10)
-		if !ok {
-			log.Fatalln("Cannot parse total supply")
+		if c.String("name") == "" {
+			log.Fatalln("Name is required")
 		}
-		totalSupply.Mul(totalSupply, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(decimals)), nil))
+
 		params := assets.Erc20Params{
-			Symbol:      args[0],
-			TokenName:   args[1],
-			Decimals:    decimals,
-			TotalSupply: totalSupply,
+			Symbol:    c.String("symbol"),
+			TokenName: c.String("name"),
+			Cap:       capped,
+			Pausable:  c.Bool("pausable"),
+			Mintable:  c.Bool("mintable"),
+			Burnable:  c.Bool("burnable"),
 		}
-		tmpl, err := template.New("contract").Parse(assets.ERC20CappedPausableTemplate)
+		tmpl, err := template.New("contract").Parse(assets.ERC20Template)
 		if err != nil {
 			log.Fatalf("Cannot parse the template: %v", err)
 		}
