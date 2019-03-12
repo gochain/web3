@@ -8,6 +8,7 @@ type Erc20Params struct {
 	Symbol    string
 	TokenName string
 	Cap       *big.Int
+	Decimals  int
 	Pausable  bool
 	Mintable  bool
 	Burnable  bool
@@ -32,7 +33,7 @@ contract {{.Symbol}}Token is
     // Constructor
     // ------------------------------------------------------------------------
     constructor() 
-	ERC20Detailed("{{.TokenName}}", "{{.Symbol}}", 18) 
+	ERC20Detailed("{{.TokenName}}", "{{.Symbol}}", {{.Decimals}}) 
 	{{if .Cap}} ERC20Capped({{.Cap}}){{end}}
     public {}
 }`

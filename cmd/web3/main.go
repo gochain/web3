@@ -399,7 +399,12 @@ func main() {
 								},
 								cli.StringFlag{
 									Name:  "capped, c",
-									Usage: "Cap, total supply",
+									Usage: "Cap, total supply(in GO/ETH)",
+								},
+								cli.IntFlag{
+									Name:  "decimals, d",
+									Usage: "Decimals",
+									Value: 18,
 								},
 							},
 							Action: func(c *cli.Context) {
@@ -934,13 +939,20 @@ func GenerateContract(ctx context.Context, contractType string, c *cli.Context) 
 	}
 	if contractType == "erc20" {
 		var capped *big.Int
+		decimals := c.Int("decimals")
+		if decimals <= 0 {
+			log.Fatalln("Decimals should be greater than 0")
+		}
 		if c.String("capped") != "" {
 			var ok bool
 			capped, ok = new(big.Int).SetString(c.String("capped"), 10)
 			if !ok {
 				log.Fatalln("Cannot parse capped value")
 			}
-			capped.Mul(capped, big.NewInt(1e18))
+			if capped.Cmp(big.NewInt(0)) < 1 {
+				log.Fatalln("Capped should be greater than 0")
+			}
+			capped.Mul(capped, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(decimals)), nil))
 		}
 		if c.String("symbol") == "" {
 			log.Fatalln("Symbol is required")
@@ -956,6 +968,7 @@ func GenerateContract(ctx context.Context, contractType string, c *cli.Context) 
 			Pausable:  c.Bool("pausable"),
 			Mintable:  c.Bool("mintable"),
 			Burnable:  c.Bool("burnable"),
+			Decimals:  decimals,
 		}
 		tmpl, err := template.New("contract").Parse(assets.ERC20Template)
 		if err != nil {
