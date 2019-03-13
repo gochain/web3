@@ -411,6 +411,39 @@ func main() {
 								GenerateContract(ctx, "erc20", c)
 							},
 						},
+						{
+							Name:  "erc721",
+							Usage: "Generate a erc721 contract",
+							Flags: []cli.Flag{
+								cli.BoolFlag{
+									Name:  "pausable, p",
+									Usage: "Pausable contract.",
+								},
+								cli.BoolFlag{
+									Name:  "mintable, m",
+									Usage: "Mintable contract.",
+								},
+								cli.BoolFlag{
+									Name:  "burnable, b",
+									Usage: "Burnable contract.",
+								},
+								cli.BoolFlag{
+									Name:  "metadata-mintable, mm",
+									Usage: "Contract with a mintable metadata.",
+								},
+								cli.StringFlag{
+									Name:  "symbol, s",
+									Usage: "Token Symbol.",
+								},
+								cli.StringFlag{
+									Name:  "name, n",
+									Usage: "Token Name",
+								},
+							},
+							Action: func(c *cli.Context) {
+								GenerateContract(ctx, "erc721", c)
+							},
+						},
 					},
 				},
 			},
@@ -970,24 +1003,44 @@ func GenerateContract(ctx context.Context, contractType string, c *cli.Context) 
 			Burnable:  c.Bool("burnable"),
 			Decimals:  decimals,
 		}
-		tmpl, err := template.New("contract").Parse(assets.ERC20Template)
-		if err != nil {
-			log.Fatalf("Cannot parse the template: %v", err)
+		processTemplate(params, params.TokenName, assets.ERC20Template)
+	} else if contractType == "erc721" {
+		if c.String("symbol") == "" {
+			log.Fatalln("Symbol is required")
 		}
-		f, err := os.Create(params.TokenName + ".sol")
-		if err != nil {
-			log.Fatalf("Cannot create the file: %v", err)
-			return
+		if c.String("name") == "" {
+			log.Fatalln("Name is required")
 		}
-		err = tmpl.Execute(f, params)
-		if err != nil {
-			log.Fatalf("Cannot execute the template: %v", err)
-			return
+
+		params := assets.Erc721Params{
+			Symbol:           c.String("symbol"),
+			TokenName:        c.String("name"),
+			Pausable:         c.Bool("pausable"),
+			Mintable:         c.Bool("mintable"),
+			Burnable:         c.Bool("burnable"),
+			MetadataMintable: c.Bool("metadata-mintable"),
 		}
-		fmt.Println("The sample contract has been successfully written to", params.TokenName+".sol", "file")
+		processTemplate(params, params.TokenName, assets.ERC721Template)
 	}
 }
 
+func processTemplate(params interface{}, fileName, contractTemplate string) {
+	tmpl, err := template.New("contract").Parse(contractTemplate)
+	if err != nil {
+		log.Fatalf("Cannot parse the template: %v", err)
+	}
+	f, err := os.Create(fileName + ".sol")
+	if err != nil {
+		log.Fatalf("Cannot create the file: %v", err)
+		return
+	}
+	err = tmpl.Execute(f, params)
+	if err != nil {
+		log.Fatalf("Cannot execute the template: %v", err)
+		return
+	}
+	fmt.Println("The sample contract has been successfully written to", fileName+".sol", "file")
+}
 func printReceiptDetails(r *web3.Receipt, myabi *abi.ABI) {
 	var logs []web3.Event
 	var err error
