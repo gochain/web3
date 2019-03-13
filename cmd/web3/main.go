@@ -5,10 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"log"
 	"math/big"
 	"os"
+	"os/exec"
 	"os/signal"
 	"sort"
 	"strings"
@@ -20,6 +22,7 @@ import (
 	"github.com/gochain-io/gochain/v3/common/hexutil"
 	"github.com/gochain-io/gochain/v3/core/types"
 	"github.com/gochain-io/web3"
+	"github.com/gochain-io/web3/assets"
 	"github.com/urfave/cli"
 )
 
@@ -366,6 +369,91 @@ func main() {
 				for _, name := range varNames {
 					fmt.Printf("%s=%s\n", name, os.Getenv(name))
 				}
+			},
+		},
+		{
+			Name:    "generate",
+			Usage:   "Generate an ABI code",
+			Aliases: []string{"g"},
+			Subcommands: []cli.Command{
+				{
+					Name:    "contract",
+					Usage:   "Generate a contract",
+					Aliases: []string{"c"},
+					Subcommands: []cli.Command{
+						{
+							Name:  "erc20",
+							Usage: "Generate a erc20 contract",
+							Flags: []cli.Flag{
+								cli.BoolFlag{
+									Name:  "pausable, p",
+									Usage: "Pausable contract.",
+								},
+								cli.BoolFlag{
+									Name:  "mintable, m",
+									Usage: "Mintable contract.",
+								},
+								cli.BoolFlag{
+									Name:  "burnable, b",
+									Usage: "Burnable contract.",
+								},
+								cli.StringFlag{
+									Name:  "symbol, s",
+									Usage: "Token Symbol.",
+								},
+								cli.StringFlag{
+									Name:  "name, n",
+									Usage: "Token Name",
+								},
+								cli.StringFlag{
+									Name:  "capped, c",
+									Usage: "Cap, total supply(in GO/ETH)",
+								},
+								cli.IntFlag{
+									Name:  "decimals, d",
+									Usage: "Decimals",
+									Value: 18,
+								},
+							},
+							Action: func(c *cli.Context) {
+								GenerateContract(ctx, "erc20", c)
+							},
+						},
+						{
+							Name:  "erc721",
+							Usage: "Generate a erc721 contract",
+							Flags: []cli.Flag{
+								cli.BoolFlag{
+									Name:  "pausable, p",
+									Usage: "Pausable contract.",
+								},
+								cli.BoolFlag{
+									Name:  "mintable, m",
+									Usage: "Mintable contract.",
+								},
+								cli.BoolFlag{
+									Name:  "burnable, b",
+									Usage: "Burnable contract.",
+								},
+								cli.BoolFlag{
+									Name:  "metadata-mintable, mm",
+									Usage: "Contract with a mintable metadata.",
+								},
+								cli.StringFlag{
+									Name:  "symbol, s",
+									Usage: "Token Symbol.",
+								},
+								cli.StringFlag{
+									Name:  "name, n",
+									Usage: "Token Name",
+								},
+							},
+							Action: func(c *cli.Context) {
+								GenerateContract(ctx, "erc721", c)
+							},
+						},
+					},
+				},
 			},
 		},
 	}
@@ -889,6 +977,88 @@ func Send(ctx context.Context, rpcURL, privateKey, toAddress, amount string) {
 	fmt.Println("Transaction address:", tx.Hash.Hex())
 }
 
+func GenerateContract(ctx context.Context, contractType string, c *cli.Context) {
+	if _, err := os.Stat("lib/oz"); os.IsNotExist(err) {
+		cmd := exec.Command("git", "clone", "--depth", "1", "--branch", "master", "https://github.com/OpenZeppelin/openzeppelin-solidity", "lib/oz")
+		log.Printf("Cloning OpenZeppeling repo...")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		err := cmd.Run()
+		if err != nil {
+			log.Fatalf("Cloning finished with error: %v", err)
+		}
+	}
+	if contractType == "erc20" {
+		var capped *big.Int
+		decimals := c.Int("decimals")
+		if decimals <= 0 {
+			log.Fatalln("Decimals should be greater than 0")
+		}
+		if c.String("capped") != "" {
+			var ok bool
+			capped, ok = new(big.Int).SetString(c.String("capped"), 10)
+			if !ok {
+				log.Fatalln("Cannot parse capped value")
+			}
+			if capped.Cmp(big.NewInt(0)) < 1 {
+				log.Fatalln("Capped should be greater than 0")
+			}
+			capped.Mul(capped, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(decimals)), nil))
+		}
+		if c.String("symbol") == "" {
+			log.Fatalln("Symbol is required")
+		}
+		if c.String("name") == "" {
+			log.Fatalln("Name is required")
+		}
+
+		params := assets.Erc20Params{
+			Symbol:    c.String("symbol"),
+			TokenName: c.String("name"),
+			Cap:       capped,
+			Pausable:  c.Bool("pausable"),
+			Mintable:  c.Bool("mintable"),
+			Burnable:  c.Bool("burnable"),
+			Decimals:  decimals,
+		}
+		processTemplate(params, params.TokenName, assets.ERC20Template)
+	} else if contractType == "erc721" {
+		if c.String("symbol") == "" {
+			log.Fatalln("Symbol is required")
+		}
+		if c.String("name") == "" {
+			log.Fatalln("Name is required")
+		}
+
+		params := assets.Erc721Params{
+			Symbol:           c.String("symbol"),
+			TokenName:        c.String("name"),
+			Pausable:         c.Bool("pausable"),
+			Mintable:         c.Bool("mintable"),
+			Burnable:         c.Bool("burnable"),
+			MetadataMintable: c.Bool("metadata-mintable"),
+		}
+		processTemplate(params, params.TokenName, assets.ERC721Template)
+	}
+}
+
+func processTemplate(params interface{}, fileName, contractTemplate string) {
+	tmpl, err := template.New("contract").Parse(contractTemplate)
+	if err != nil {
+		log.Fatalf("Cannot parse the template: %v", err)
+	}
+	f, err := os.Create(fileName + ".sol")
+	if err != nil {
+		log.Fatalf("Cannot create the file: %v", err)
+		return
+	}
+	err = tmpl.Execute(f, params)
+	if err != nil {
+		log.Fatalf("Cannot execute the template: %v", err)
+		return
+	}
+	fmt.Println("The sample contract has been successfully written to", fileName+".sol", "file")
+}
 func printReceiptDetails(r *web3.Receipt, myabi *abi.ABI) {
 	var logs []web3.Event
 	var err error
