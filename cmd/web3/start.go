@@ -40,7 +40,7 @@ func start(ctx context.Context, c *cli.Context) error {
 	cmd := exec.CommandContext(ctx, "docker", "ps", "-a", "--filter", "name=gochain", "--format", "{{.Names}}")
 	stdoutStderr, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("ERROR: ", err)
 	}
 	if len(stdoutStderr) != 0 {
 		// then already exists, so just start it again
@@ -87,7 +87,7 @@ func start(ctx context.Context, c *cli.Context) error {
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
-		log.Fatalln("Failed to run command:", err)
+		log.Fatalln("ERROR: Failed to run command:", err)
 	}
 	return nil
 }
