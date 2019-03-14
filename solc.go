@@ -61,7 +61,7 @@ type solcOutput struct {
 func (s *Solidity) makeArgs() []string {
 	dir, err := os.Getwd()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("ERROR: ", err)
 	}
 	return []string{
 		"run", "-i", "-v", dir + ":/workdir", "-w", "/workdir", "ethereum/solc:" + strconv.Itoa(s.Major) + "." + strconv.Itoa(s.Minor) + "." + strconv.Itoa(s.Patch),
