@@ -21,7 +21,7 @@ contract {{.Symbol}}Token is
 			{{if .Pausable		  }} ERC721Pausable, 		{{end}}
 			{{if .MetadataMintable}} ERC721MetadataMintable,{{end}}			
 			{{if .Mintable		  }} ERC721Mintable, 		{{end}}
-			{{if .Burnable		  }} ERC721Burnable, 		{{end}}			
+			{{if .Burnable}}ERC721Burnable,{{end}}
   			 ERC721Full {
 
     // ------------------------------------------------------------------------
