@@ -25,7 +25,7 @@ import "./lib/oz/contracts/token/ERC20/ERC20Detailed.sol";
 contract {{.Symbol}}Token is  
 			{{if .Cap						 }} ERC20Capped,   {{end}}
 			{{if .Pausable					 }} ERC20Pausable, {{end}}
-			{{if .Burnable					 }} ERC20Burnable, {{end}}
+			{{if .Burnable}} ERC20Burnable, {{end}}
 			{{if (and (.Mintable) (not .Cap))}} ERC20Mintable, {{end}}
 			 ERC20Detailed {
 
