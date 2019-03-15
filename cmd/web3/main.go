@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"io/ioutil"
@@ -45,7 +46,6 @@ const (
 )
 
 func main() {
-	log.SetFlags(log.Flags() &^ (log.Ldate | log.Ltime))
 	// Interrupt cancellation.
 	ctx, cancelFn := context.WithCancel(context.Background())
 	sigCh := make(chan os.Signal, 1)
@@ -314,7 +314,7 @@ func main() {
 				}
 				acc, err := web3.ParsePrivateKey(pk)
 				if err != nil {
-					log.Fatalln("ERROR: ", err)
+					fatalExit(err)
 				}
 				fmt.Print(acc.PublicKey())
 			},
@@ -330,7 +330,7 @@ func main() {
 					Action: func(c *cli.Context) {
 						acc, err := web3.CreateAccount()
 						if err != nil {
-							log.Fatalln("ERROR: ", err)
+							fatalExit(err)
 						}
 						fmt.Printf("Private key: %v\n", acc.PrivateKey())
 						fmt.Printf("Public address: %v\n", acc.PublicKey())
@@ -466,17 +466,17 @@ func getNetwork(name, rpcURL string, testnet bool) web3.Network {
 	var network web3.Network
 	if rpcURL != "" {
 		if name != "" {
-			log.Fatalf("ERROR: Cannot set both rpcURL %q and network %q", rpcURL, network)
+			fatalExit(fmt.Errorf("Cannot set both rpcURL %q and network %q", rpcURL, network))
 		}
 		if testnet {
-			log.Fatalf("ERROR: Cannot set both rpcURL %q and testnet", rpcURL)
+			fatalExit(fmt.Errorf("Cannot set both rpcURL %q and testnet", rpcURL))
 		}
 		network.URL = rpcURL
 		network.Unit = "GO"
 	} else {
 		if testnet {
 			if name != "" {
-				log.Fatalf("ERROR: Cannot set both network %q and testnet", name)
+				fatalExit(fmt.Errorf("Cannot set both network %q and testnet", name))
 			}
 			name = "testnet"
 		} else if name == "" {
@@ -485,7 +485,7 @@ func getNetwork(name, rpcURL string, testnet bool) web3.Network {
 		var ok bool
 		network, ok = web3.Networks[name]
 		if !ok {
-			log.Fatalln("ERROR: Unrecognized network:", name)
+			fatalExit(fmt.Errorf("Unrecognized network %q", name))
 		}
 		if verbose {
 			log.Printf("Network: %v", name)
@@ -500,7 +500,7 @@ func getNetwork(name, rpcURL string, testnet bool) web3.Network {
 func GetBlockDetails(ctx context.Context, network web3.Network, numberOrHash string, txFormat, txInputFormat string) {
 	client, err := web3.NewClient(network.URL)
 	if err != nil {
-		log.Fatalf("ERROR: Failed to connect to %q: %v", network.URL, err)
+		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
 	}
 	defer client.Close()
 	var block *web3.Block
@@ -510,22 +510,22 @@ func GetBlockDetails(ctx context.Context, network web3.Network, numberOrHash str
 		includeTxs = true
 	case "count", "hash":
 	default:
-		log.Fatalf(`ERROR: Unrecognized transaction format %q: must be "count", "hash", or "detail"`, txFormat)
+		fatalExit(fmt.Errorf(`Unrecognized transaction format %q: must be "count", "hash", or "detail"`, txFormat))
 	}
 	if strings.HasPrefix(numberOrHash, "0x") {
 		var err error
 		block, err = client.GetBlockByHash(ctx, numberOrHash, includeTxs)
 		if err != nil {
-			log.Fatalf("ERROR: Cannot get block details from the network: %v", err)
+			fatalExit(fmt.Errorf("Cannot get block details from the network: %v", err))
 		}
 	} else {
 		blockN, err := web3.ParseBigInt(numberOrHash)
 		if err != nil {
-			log.Fatalf("ERROR: Block argument must be a number (decimal integer) or hash (hexadecimal with 0x prefix) %q: %v", numberOrHash, err)
+			fatalExit(fmt.Errorf("Block argument must be a number (decimal integer) or hash (hexadecimal with 0x prefix) %q: %v", numberOrHash, err))
 		}
 		block, err = client.GetBlockByNumber(ctx, blockN, includeTxs)
 		if err != nil {
-			log.Fatalf("ERROR: Cannot get block details from the network: %v", err)
+			fatalExit(fmt.Errorf("Cannot get block details from the network: %v", err))
 		}
 	}
 	if verbose {
@@ -609,12 +609,12 @@ func (fa fmtAddresses) String() string {
 func GetTransactionDetails(ctx context.Context, network web3.Network, txhash, inputFormat string) {
 	client, err := web3.NewClient(network.URL)
 	if err != nil {
-		log.Fatalf("ERROR: Failed to connect to %q: %v", network.URL, err)
+		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
 	}
 	defer client.Close()
 	tx, err := client.GetTransactionByHash(ctx, common.HexToHash(txhash))
 	if err != nil {
-		log.Fatalf("ERROR: Cannot get transaction details from the network: %v", err)
+		fatalExit(fmt.Errorf("Cannot get transaction details from the network: %v", err))
 	}
 	if verbose {
 		fmt.Println("Transaction details:")
@@ -654,7 +654,8 @@ func printInputData(data []byte, format string) {
 	case "utf8":
 		fmt.Print("Input: ", string(data))
 	default:
-		log.Fatalf(`ERROR: unrecognized input data format %q: expected "len", "hex", or "utf8"`, format)
+		fatalExit(fmt.Errorf(`unrecognized input data format %q: expected "len", "hex", or "utf8"`, format))
+
 	}
 }
 
@@ -662,7 +663,7 @@ func GetTransactionReceipt(ctx context.Context, rpcURL, txhash, contractFile str
 	var myabi *abi.ABI
 	client, err := web3.NewClient(rpcURL)
 	if err != nil {
-		log.Fatalf("ERROR: Failed to connect to %q: %v", rpcURL, err)
+		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
 	}
 	defer client.Close()
 	if contractFile != "" {
@@ -670,7 +671,7 @@ func GetTransactionReceipt(ctx context.Context, rpcURL, txhash, contractFile str
 	}
 	r, err := client.GetTransactionReceipt(ctx, common.HexToHash(txhash))
 	if err != nil {
-		log.Fatalf("ERROR: Failed to get transaction receipt: %v", err)
+		fatalExit(fmt.Errorf("Failed to get transaction receipt: %v", err))
 	}
 	if verbose {
 		fmt.Println("Transaction Receipt Details:")
@@ -682,26 +683,26 @@ func GetTransactionReceipt(ctx context.Context, rpcURL, txhash, contractFile str
 func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, privateKey string) {
 	if addrHash == "" {
 		if privateKey == "" {
-			log.Fatalf("ERROR: Missing address. Must be specified as only argument, or implied from a private key.")
+			fatalExit(errors.New("Missing address. Must be specified as only argument, or implied from a private key."))
 		}
 		acct, err := web3.ParsePrivateKey(privateKey)
 		if err != nil {
-			log.Fatalln("ERROR: ", err)
+			fatalExit(err)
 		}
 		addrHash = acct.PublicKey()
 	}
 	client, err := web3.NewClient(network.URL)
 	if err != nil {
-		log.Fatalf("ERROR: Failed to connect to %q: %v", network.URL, err)
+		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
 	}
 	defer client.Close()
 	bal, err := client.GetBalance(ctx, addrHash, nil)
 	if err != nil {
-		log.Fatalf("ERROR: Cannot get address balance from the network: %v", err)
+		fatalExit(fmt.Errorf("Cannot get address balance from the network: %v", err))
 	}
 	code, err := client.GetCode(ctx, addrHash, nil)
 	if err != nil {
-		log.Fatalf("ERROR: Cannot get address code from the network: %v", err)
+		fatalExit(fmt.Errorf("Cannot get address code from the network: %v", err))
 	}
 	if verbose {
 		log.Println("Address details:")
@@ -730,12 +731,12 @@ func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, priv
 func GetSnapshot(ctx context.Context, rpcURL string) {
 	client, err := web3.NewClient(rpcURL)
 	if err != nil {
-		log.Fatalf("ERROR: Failed to connect to %q: %v", rpcURL, err)
+		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
 	}
 	defer client.Close()
 	s, err := client.GetSnapshot(ctx)
 	if err != nil {
-		log.Fatalf("ERROR: Cannot get snapshot from the network: %v", err)
+		fatalExit(fmt.Errorf("Cannot get snapshot from the network: %v", err))
 	}
 	if verbose {
 		log.Println("Snapshot details:")
@@ -794,12 +795,12 @@ func GetSnapshot(ctx context.Context, rpcURL string) {
 func GetID(ctx context.Context, rpcURL string) {
 	client, err := web3.NewClient(rpcURL)
 	if err != nil {
-		log.Fatalf("ERROR: Failed to connect to %q: %v", rpcURL, err)
+		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
 	}
 	defer client.Close()
 	id, err := client.GetID(ctx)
 	if err != nil {
-		log.Fatalf("ERROR: Cannot get id info from the network: %v", err)
+		fatalExit(fmt.Errorf("Cannot get id info from the network: %v", err))
 	}
 	if verbose {
 		log.Println("Snapshot details:")
@@ -817,7 +818,7 @@ func GetID(ctx context.Context, rpcURL string) {
 func BuildSol(ctx context.Context, filename string) {
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
-		log.Fatalf("ERROR: Failed to read file %q: %v", filename, err)
+		fatalExit(fmt.Errorf("Failed to read file %q: %v", filename, err))
 	}
 	str := string(b) // convert content to a 'string'
 	if verbose {
@@ -825,7 +826,7 @@ func BuildSol(ctx context.Context, filename string) {
 	}
 	compileData, err := web3.CompileSolidityString(ctx, str)
 	if err != nil {
-		log.Fatalf("ERROR: Failed to compile %q: %v", filename, err)
+		fatalExit(fmt.Errorf("Failed to compile %q: %v", filename, err))
 	}
 	if verbose {
 		log.Println("Compiled Sol Details:", marshalJSON(compileData))
@@ -839,11 +840,11 @@ func BuildSol(ctx context.Context, filename string) {
 		}
 		err := ioutil.WriteFile(fileparts[1]+".bin", []byte(v.Code), 0600)
 		if err != nil {
-			log.Fatalf("ERROR: Cannot write the bin file: %v", err)
+			fatalExit(fmt.Errorf("Cannot write the bin file: %v", err))
 		}
 		err = ioutil.WriteFile(fileparts[1]+".abi", []byte(marshalJSON(v.Info.AbiDefinition)), 0600)
 		if err != nil {
-			log.Fatalf("ERROR: Cannot write the abi file: %v", err)
+			fatalExit(fmt.Errorf("Cannot write the abi file: %v", err))
 		}
 		filenames = append(filenames, fileparts[1])
 	}
@@ -871,23 +872,23 @@ func BuildSol(ctx context.Context, filename string) {
 func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string) {
 	client, err := web3.NewClient(rpcURL)
 	if err != nil {
-		log.Fatalf("ERROR: Failed to connect to %q: %v", rpcURL, err)
+		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
 	}
 	defer client.Close()
 	if _, err := os.Stat(contractName); os.IsNotExist(err) {
-		log.Fatalf("ERROR: Cannot find the bin file: %v", err)
+		fatalExit(fmt.Errorf("Cannot find the bin file: %v", err))
 	}
 	dat, err := ioutil.ReadFile(contractName)
 	if err != nil {
-		log.Fatalf("ERROR: Cannot read the bin file: %v", err)
+		fatalExit(fmt.Errorf("Cannot read the bin file: %v", err))
 	}
 	tx, err := web3.DeployContract(ctx, client, privateKey, string(dat))
 	if err != nil {
-		log.Fatalf("ERROR: Cannot deploy the contract: %v", err)
+		fatalExit(fmt.Errorf("Cannot deploy the contract: %v", err))
 	}
 	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
-		log.Fatalf("ERROR: Cannot get the receipt: %v", err)
+		fatalExit(fmt.Errorf("Cannot get the receipt: %v", err))
 	}
 
 	switch format {
@@ -918,7 +919,7 @@ func ListContract(contractFile string) {
 func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, contractFile, functionName string, amount int, waitForReceipt bool, parameters ...interface{}) {
 	client, err := web3.NewClient(rpcURL)
 	if err != nil {
-		log.Fatalf("ERROR: Failed to connect to %q: %v", rpcURL, err)
+		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
 	}
 	defer client.Close()
 	myabi := getAbi(contractFile)
@@ -929,7 +930,7 @@ func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 	if myabi.Methods[functionName].Const {
 		res, err := web3.CallConstantFunction(ctx, client, *myabi, contractAddress, functionName, parameters...)
 		if err != nil {
-			log.Fatalf("ERROR: Cannot call the contract: %v", err)
+			fatalExit(fmt.Errorf("Cannot call the contract: %v", err))
 		}
 		switch format {
 		case "json":
@@ -943,7 +944,7 @@ func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 	}
 	tx, err := web3.CallTransactFunction(ctx, client, *myabi, contractAddress, privateKey, functionName, amount, parameters...)
 	if err != nil {
-		log.Fatalf("ERROR: Cannot call the contract: %v", err)
+		fatalExit(fmt.Errorf("Cannot call the contract: %v", err))
 	}
 	if !waitForReceipt {
 		fmt.Println("Transaction address:", tx.Hash.Hex())
@@ -951,7 +952,7 @@ func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 	}
 	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
-		log.Fatalf("ERROR: Cannot get the receipt: %v", err)
+		fatalExit(fmt.Errorf("Cannot get the receipt: %v", err))
 	}
 	printReceiptDetails(receipt, myabi)
 
@@ -960,30 +961,30 @@ func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 func Send(ctx context.Context, rpcURL, privateKey, toAddress, amount string) {
 	client, err := web3.NewClient(rpcURL)
 	if err != nil {
-		log.Fatalf("ERROR: Failed to connect to %q: %v", rpcURL, err)
+		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
 	}
 	defer client.Close()
 	nAmount, err := web3.ParseAmount(amount)
 	if err != nil {
-		log.Fatalf("ERROR: Cannot parse amount: %v", err)
+		fatalExit(fmt.Errorf("Cannot parse amount: %v", err))
 	}
 	if toAddress == "" {
-		log.Fatalln("ERROR: The recepient address cannot be empty")
+		fatalExit(errors.New("The recepient address cannot be empty"))
 	}
 	address := common.HexToAddress(toAddress)
 	tx, err := web3.Send(ctx, client, privateKey, address, nAmount)
 	if err != nil {
-		log.Fatalf("ERROR: Cannot create transaction: %v", err)
+		fatalExit(fmt.Errorf("Cannot create transaction: %v", err))
 	}
 	fmt.Println("Transaction address:", tx.Hash.Hex())
 }
 
 func GenerateContract(ctx context.Context, contractType string, c *cli.Context) {
 	if c.String("symbol") == "" {
-		log.Fatalln("ERROR: Symbol is required")
+		fatalExit(errors.New("Symbol is required"))
 	}
 	if c.String("name") == "" {
-		log.Fatalln("ERROR: Name is required")
+		fatalExit(errors.New("Name is required"))
 	}
 	if _, err := os.Stat("lib/oz"); os.IsNotExist(err) {
 		cmd := exec.Command("git", "clone", "--depth", "1", "--branch", "master", "https://github.com/OpenZeppelin/openzeppelin-solidity", "lib/oz")
@@ -992,23 +993,23 @@ func GenerateContract(ctx context.Context, contractType string, c *cli.Context) 
 		cmd.Stderr = os.Stderr
 		err := cmd.Run()
 		if err != nil {
-			log.Fatalf("ERROR: Cloning finished with error: %v", err)
+			fatalExit(fmt.Errorf("Cloning finished with error: %v", err))
 		}
 	}
 	if contractType == "erc20" {
 		var capped *big.Int
 		decimals := c.Int("decimals")
 		if decimals <= 0 {
-			log.Fatalln("ERROR: Decimals should be greater than 0")
+			fatalExit(errors.New("Decimals should be greater than 0"))
 		}
 		if c.String("capped") != "" {
 			var ok bool
 			capped, ok = new(big.Int).SetString(c.String("capped"), 10)
 			if !ok {
-				log.Fatalln("ERROR: Cannot parse capped value")
+				fatalExit(errors.New("Cannot parse capped value"))
 			}
 			if capped.Cmp(big.NewInt(0)) < 1 {
-				log.Fatalln("ERROR: Capped should be greater than 0")
+				fatalExit(errors.New("Capped should be greater than 0"))
 			}
 			capped.Mul(capped, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(decimals)), nil))
 		}
@@ -1039,17 +1040,15 @@ func GenerateContract(ctx context.Context, contractType string, c *cli.Context) 
 func processTemplate(params interface{}, fileName, contractTemplate string) {
 	tmpl, err := template.New("contract").Parse(contractTemplate)
 	if err != nil {
-		log.Fatalf("ERROR: Cannot parse the template: %v", err)
+		fatalExit(fmt.Errorf("Cannot parse the template: %v", err))
 	}
 	f, err := os.Create(fileName + ".sol")
 	if err != nil {
-		log.Fatalf("ERROR: Cannot create the file: %v", err)
-		return
+		fatalExit(fmt.Errorf("Cannot create the file: %v", err))
 	}
 	err = tmpl.Execute(f, params)
 	if err != nil {
-		log.Fatalf("ERROR: Cannot execute the template: %v", err)
-		return
+		fatalExit(fmt.Errorf("Cannot execute the template: %v", err))
 	}
 	fmt.Println("The sample contract has been successfully written to", fileName+".sol", "file")
 }
@@ -1060,7 +1059,7 @@ func printReceiptDetails(r *web3.Receipt, myabi *abi.ABI) {
 		logs, err = web3.ParseLogs(*myabi, r.Logs)
 		r.ParsedLogs = logs
 		if err != nil {
-			log.Fatalf("ERROR: Cannot parse the receipt logs: %v", err)
+			fatalExit(fmt.Errorf("Cannot parse the receipt logs: %v", err))
 		}
 	}
 	switch format {
@@ -1096,7 +1095,7 @@ func printReceiptDetails(r *web3.Receipt, myabi *abi.ABI) {
 func marshalJSON(data interface{}) string {
 	b, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
-		log.Fatalf("ERROR: Cannot marshal json: %v", err)
+		fatalExit(fmt.Errorf("Cannot marshal json: %v", err))
 	}
 	return string(b)
 }
@@ -1104,13 +1103,17 @@ func marshalJSON(data interface{}) string {
 func getAbi(contractFile string) *abi.ABI {
 	abi, err := web3.ABIBuiltIn(contractFile)
 	if err != nil {
-		log.Fatalf("ERROR: Cannot get ABI from the bundled storage: %v", err)
+		fatalExit(fmt.Errorf("Cannot get ABI from the bundled storage: %v", err))
 	}
 	if abi == nil {
 		abi, err = web3.ABIOpenFile(contractFile)
 		if err != nil {
-			log.Fatalf("ERROR: Cannot get ABI: %v", err)
+			fatalExit(fmt.Errorf("Cannot get ABI: %v", err))
 		}
 	}
 	return abi
+}
+func fatalExit(err error) {
+	fmt.Fprintf(os.Stderr, "ERROR: %v", err)
+	os.Exit(1)
 }
