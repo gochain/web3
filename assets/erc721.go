@@ -11,18 +11,18 @@ type Erc721Params struct {
 
 const ERC721Template = `pragma solidity ^0.5.2;
 
-{{if .Pausable}} 		 import "./lib/oz/contracts/token/ERC721/ERC721Pausable.sol";		  {{end}}
-{{if .MetadataMintable}} import "./lib/oz/contracts/token/ERC721/ERC721MetadataMintable.sol"; {{end}}
-{{if .Mintable}} 		 import "./lib/oz/contracts/token/ERC721/ERC721Mintable.sol"; 		  {{end}}
-{{if .Burnable}} 		 import "./lib/oz/contracts/token/ERC721/ERC721Burnable.sol"; 		  {{end}}
-				 		 import "./lib/oz/contracts/token/ERC721/ERC721Full.sol";
+{{if .Pausable}} import "./lib/oz/contracts/token/ERC721/ERC721Pausable.sol";{{end}}
+{{if .MetadataMintable}} import "./lib/oz/contracts/token/ERC721/ERC721MetadataMintable.sol";{{end}}
+{{if .Mintable}} import "./lib/oz/contracts/token/ERC721/ERC721Mintable.sol";{{end}}
+{{if .Burnable}} import "./lib/oz/contracts/token/ERC721/ERC721Burnable.sol";{{end}}
+ import "./lib/oz/contracts/token/ERC721/ERC721Full.sol";
 
 contract {{.Symbol}}Token is  			
-			{{if .Pausable}} 			ERC721Pausable, 		{{end}}
-			{{if .MetadataMintable}}	ERC721MetadataMintable, {{end}}			
-			{{if .Mintable}}			ERC721Mintable, 		{{end}}
-			{{if .Burnable}} 			ERC721Burnable, 		{{end}}			
-										ERC721Full {
+			{{if .Pausable}} ERC721Pausable,{{end}}
+			{{if .MetadataMintable}} ERC721MetadataMintable,{{end}}			
+			{{if .Mintable}} ERC721Mintable,{{end}}
+			{{if .Burnable}} ERC721Burnable,{{end}}
+  			 ERC721Full {
 
     // ------------------------------------------------------------------------
     // Constructor

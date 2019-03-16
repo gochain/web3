@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"regexp"
@@ -58,17 +57,17 @@ type solcOutput struct {
 	Version string
 }
 
-func (s *Solidity) makeArgs() []string {
+func (s *Solidity) makeArgs() ([]string, error) {
 	dir, err := os.Getwd()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	return []string{
 		"run", "-i", "-v", dir + ":/workdir", "-w", "/workdir", "ethereum/solc:" + strconv.Itoa(s.Major) + "." + strconv.Itoa(s.Minor) + "." + strconv.Itoa(s.Patch),
 		"--combined-json",
 		"bin,bin-runtime,srcmap,srcmap-runtime,abi,userdoc,devdoc,metadata",
 		"--optimize", // code optimizer switched on
-	}
+	}, nil
 }
 
 // SolidityVersion runs solc and parses its version output.
@@ -100,7 +99,11 @@ func CompileSolidityString(ctx context.Context, source string) (map[string]*Cont
 	if err != nil {
 		return nil, err
 	}
-	args := append(s.makeArgs(), "--")
+	args, err := s.makeArgs()
+	if err != nil {
+		return nil, err
+	}
+	args = append(args, "--")
 	cmd := exec.CommandContext(ctx, s.Path, append(args, "-")...)
 	cmd.Stdin = strings.NewReader(source)
 	return s.run(cmd, source)
@@ -113,8 +116,11 @@ func (s *Solidity) run(cmd *exec.Cmd, source string) (map[string]*Contract, erro
 	if err := cmd.Run(); err != nil {
 		return nil, fmt.Errorf("solc: %v\n%s", err, stderr.Bytes())
 	}
-
-	return ParseCombinedJSON(stdout.Bytes(), source, s.Version, s.Version, strings.Join(s.makeArgs(), " "))
+	args, err := s.makeArgs()
+	if err != nil {
+		return nil, err
+	}
+	return ParseCombinedJSON(stdout.Bytes(), source, s.Version, s.Version, strings.Join(args, " "))
 }
 
 func ParseCombinedJSON(combinedJSON []byte, source string, languageVersion string, compilerVersion string, compilerOptions string) (map[string]*Contract, error) {
