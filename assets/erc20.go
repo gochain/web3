@@ -16,17 +16,17 @@ type Erc20Params struct {
 
 const ERC20Template = `pragma solidity ^0.5.2;
 
-{{if .Pausable }}import "./lib/oz/contracts/token/ERC20/ERC20Pausable.sol"; {{end}}
-{{if .Cap	   }}import "./lib/oz/contracts/token/ERC20/ERC20Capped.sol";   {{end}}
-{{if .Burnable }}import "./lib/oz/contracts/token/ERC20/ERC20Burnable.sol"; {{end}}
-{{if .Mintable }}import "./lib/oz/contracts/token/ERC20/ERC20Mintable.sol"; {{end}}
+{{if .Pausable}}import "./lib/oz/contracts/token/ERC20/ERC20Pausable.sol";{{end}}
+{{if .Cap}}import "./lib/oz/contracts/token/ERC20/ERC20Capped.sol";{{end}}
+{{if .Burnable}}import "./lib/oz/contracts/token/ERC20/ERC20Burnable.sol";{{end}}
+{{if .Mintable}}import "./lib/oz/contracts/token/ERC20/ERC20Mintable.sol";{{end}}
 import "./lib/oz/contracts/token/ERC20/ERC20Detailed.sol";
 
 contract {{.Symbol}}Token is  
-			{{if .Cap						 }} ERC20Capped,   {{end}}
-			{{if .Pausable					 }} ERC20Pausable, {{end}}
-			{{if .Burnable}} ERC20Burnable, {{end}}
-			{{if (and (.Mintable) (not .Cap))}} ERC20Mintable, {{end}}
+			{{if .Cap}} ERC20Capped,{{end}}
+			{{if .Pausable}} ERC20Pausable,{{end}}
+			{{if .Burnable}} ERC20Burnable,{{end}}
+			{{if (and (.Mintable) (not .Cap))}} ERC20Mintable,{{end}}
 			 ERC20Detailed {
 
     // ------------------------------------------------------------------------
