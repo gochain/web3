@@ -197,7 +197,7 @@ web3 contract deploy FILENAME.bin
 - FILENAME - the name of the .bin file
 - $WEB3_PRIVATE_KEY as env variable or -private-key as command parameter - the private key of the wallet
 
-### Call the function of the deployed contract
+### Call a function of a deployed contract
 
 ```sh
 web3 contract call --amount AMOUNT --address CONTRACT_ADDRESS --abi CONTRACT_ABI_FILE --function FUNCTION_NAME FUNCTION_PARAMETERS
@@ -218,7 +218,7 @@ web3 contract call --amount AMOUNT --address CONTRACT_ADDRESS --abi erc20|erc721
 - AMOUNT - amount of wei to be send with transaction (require only for paid transact functions)
 - $WEB3_PRIVATE_KEY as env variable or -private-key as command parameter - the private key of the wallet
 
-### The list of the functions from ABI
+### List functions in an ABI
 
 ```sh
 web3 contract list --abi CONTRACT_ABI_FILE
@@ -238,6 +238,14 @@ web3 send --to RECIPIENT_ADDRESS AMOUNT
 
 - RECIPIENT_ADDRESS - the address of the recepient
 - AMOUNT - the amount that should be send in the transaction ie - 1go (allowed units: go,eth,nanogo,gwei,attogo,wei)
+
+### Generate common contracts - ERC20, ERC721, etc
+
+```sh
+web3 generate contract [erc20/erc721] --name "TEST Tokens" --symbol "TEST"
+```
+
+See `web3 generate contract --help` for more information.
 
 ## More installation options
 
