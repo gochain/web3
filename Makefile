@@ -2,8 +2,9 @@ UNAME_S := $(shell uname -s)
 build: 
 	go build ./cmd/web3
 
-install:
-	go install ./cmd/web3
+install: build
+	# go build -o /usr/local/bin/web3 ./cmd/web3
+	sudo cp web3 /usr/local/bin/web3
 
 docker: 
 	docker build -t gochain/web3:latest .
