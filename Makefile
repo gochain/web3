@@ -3,7 +3,6 @@ build:
 	go build ./cmd/web3
 
 install: build
-	# go build -o /usr/local/bin/web3 ./cmd/web3
 	sudo cp web3 /usr/local/bin/web3
 
 docker: 
