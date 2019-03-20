@@ -1,7 +1,10 @@
 package assets
 
 import (
+	"context"
 	"math/big"
+	"strconv"
+	"strings"
 )
 
 type Erc20Params struct {
@@ -14,29 +17,48 @@ type Erc20Params struct {
 	Burnable  bool
 }
 
-const ERC20Template = `pragma solidity ^0.5.2;
+func GenERC20(ctx context.Context, params *Erc20Params) (string, error) {
+	var part1, part2, part3 strings.Builder
+	part1.WriteString("pragma solidity ^0.5.2;\n\nimport \"./lib/oz/contracts/token/ERC20/ERC20Detailed.sol\";\n")
+	part2.WriteString("\ncontract ")
+	part2.WriteString(params.Symbol)
+	part2.WriteString("Token is")
+	{
+		part3.WriteString("    constructor() ERC20Detailed(\"")
+		part3.WriteString(params.TokenName)
+		part3.WriteString("\", \"")
+		part3.WriteString(params.Symbol)
+		part3.WriteString("\", ")
+		part3.WriteString(strconv.Itoa(params.Decimals))
+		part3.WriteString(")")
 
-{{if .Pausable}}import "./lib/oz/contracts/token/ERC20/ERC20Pausable.sol";{{end}}
-{{if .Cap}}import "./lib/oz/contracts/token/ERC20/ERC20Capped.sol";{{end}}
-{{if .Burnable}}import "./lib/oz/contracts/token/ERC20/ERC20Burnable.sol";{{end}}
-{{if .Mintable}}import "./lib/oz/contracts/token/ERC20/ERC20Mintable.sol";{{end}}
-import "./lib/oz/contracts/token/ERC20/ERC20Detailed.sol";
+	}
+	if params.Pausable {
+		part1.WriteString("import \"./lib/oz/contracts/token/ERC20/ERC20Pausable.sol\";\n")
+		part2.WriteString(" ERC20Pausable,")
+	}
+	if params.Burnable {
+		part1.WriteString("import \"./lib/oz/contracts/token/ERC20/ERC20Burnable.sol\";\n")
+		part2.WriteString(" ERC20Burnable,")
+	}
+	if params.Mintable {
+		part1.WriteString("import \"./lib/oz/contracts/token/ERC20/ERC20Mintable.sol\";\n")
+		part2.WriteString(" ERC20Mintable,")
+	}
+	if params.Cap != nil {
+		part1.WriteString("import \"./lib/oz/contracts/token/ERC20/ERC20Capped.sol\";\n")
+		part2.WriteString(" ERC20Capped,")
+		part3.WriteString(" ERC20Capped(")
+		part3.WriteString(params.Cap.String())
+		part3.WriteString(")")
+	}
+	part2.WriteString(" ERC20Detailed {\n\n")
 
-contract {{.Symbol}}Token is  
-			{{if .Cap}} ERC20Capped,{{end}}
-			{{if .Pausable}} ERC20Pausable,{{end}}
-			{{if .Burnable}} ERC20Burnable,{{end}}
-			{{if (and (.Mintable) (not .Cap))}} ERC20Mintable,{{end}}
-			 ERC20Detailed {
+	part3.WriteString(" public {}\n\n}\n")
 
-    // ------------------------------------------------------------------------
-    // Constructor
-    // ------------------------------------------------------------------------
-    constructor() 
-	ERC20Detailed("{{.TokenName}}", "{{.Symbol}}", {{.Decimals}}) 
-	{{if .Cap}}ERC20Capped({{.Cap}}){{end}}
-    public {}
-}`
+	return part1.String() + part2.String() + part3.String(), nil
+}
+
 const ERC20ABI = `[
 	{
 		"constant": true,

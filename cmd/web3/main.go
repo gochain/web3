@@ -1013,7 +1013,6 @@ func GenerateContract(ctx context.Context, contractType string, c *cli.Context) 
 			}
 			capped.Mul(capped, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(decimals)), nil))
 		}
-
 		params := assets.Erc20Params{
 			Symbol:    c.String("symbol"),
 			TokenName: c.String("name"),
@@ -1023,7 +1022,14 @@ func GenerateContract(ctx context.Context, contractType string, c *cli.Context) 
 			Burnable:  c.Bool("burnable"),
 			Decimals:  decimals,
 		}
-		processTemplate(params, params.Symbol, assets.ERC20Template)
+		// TODO: add initial-supply flag
+		// TODO: must have initial supply or be mintable, otherwise this is zero
+		// TODO: initial supply can be set in constructor given to owner, eg: _mint(msg.sender, initialSupply)
+		s, err := assets.GenERC20(ctx, &params)
+		if err != nil {
+			fatalExit(err)
+		}
+		writeStringToFile(s, params.Symbol)
 	} else if contractType == "erc721" {
 		params := assets.Erc721Params{
 			Symbol:           c.String("symbol"),
@@ -1042,13 +1048,17 @@ func processTemplate(params interface{}, fileName, contractTemplate string) {
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot parse the template: %v", err))
 	}
-	f, err := os.Create(fileName + ".sol")
-	if err != nil {
-		fatalExit(fmt.Errorf("Cannot create the file: %v", err))
-	}
-	err = tmpl.Execute(f, params)
+	var buff bytes.Buffer
+	err = tmpl.Execute(&buff, params)
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot execute the template: %v", err))
+	}
+	writeStringToFile(buff.String(), fileName)
+}
+func writeStringToFile(s, fileName string) {
+	err := ioutil.WriteFile(fileName+".sol", []byte(s), 0666)
+	if err != nil {
+		fatalExit(fmt.Errorf("Cannot create the file: %v", err))
 	}
 	fmt.Println("The sample contract has been successfully written to", fileName+".sol", "file")
 }
