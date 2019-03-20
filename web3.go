@@ -134,6 +134,9 @@ func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, add
 	if address == "" {
 		return nil, errors.New("no contract address specified")
 	}
+	if privateKeyHex == "" {
+		return nil, errors.New("private key required")
+	}
 
 	if len(myabi.Methods[functionName].Inputs) != len(parameters) {
 		return nil, errors.New("Wrong number of arguments expected:" + strconv.Itoa(len(myabi.Methods[functionName].Inputs)) + " given:" + strconv.Itoa(len(parameters)))
@@ -183,6 +186,9 @@ func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, add
 
 // DeployContract submits a contract creation transaction.
 func DeployContract(ctx context.Context, client Client, privateKeyHex string, contractData string) (*Transaction, error) {
+	if privateKeyHex == "" {
+		return nil, errors.New("private key required")
+	}
 	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
 		privateKeyHex = privateKeyHex[2:]
 	}
@@ -230,6 +236,9 @@ func DeployContract(ctx context.Context, client Client, privateKeyHex string, co
 }
 
 func Send(ctx context.Context, client Client, privateKeyHex string, address common.Address, amount *big.Int) (*Transaction, error) {
+	if privateKeyHex == "" {
+		return nil, errors.New("private key required")
+	}
 	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
 		privateKeyHex = privateKeyHex[2:]
 	}

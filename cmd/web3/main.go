@@ -40,7 +40,7 @@ const (
  \___/(_____)\___)(_) (_)(__)(__)(____)(_)\_)`
 
 	pkVarName      = "WEB3_PRIVATE_KEY"
-	addrVarName    = "WEB3_ADDRESS"
+	addrVarName    = "WEB3_ADDRESS" // todo: maybe this should change to WEB3_CONTRACT to be more clear
 	networkVarName = "WEB3_NETWORK"
 	rpcURLVarName  = "WEB3_RPC_URL"
 )
@@ -96,7 +96,7 @@ func main() {
 			Hidden:      false},
 	}
 	var network web3.Network
-	app.Before = func(*cli.Context) error {
+	app.Before = func(c *cli.Context) error {
 		network = getNetwork(netName, rpcUrl, testnet)
 		return nil
 	}
@@ -168,6 +168,35 @@ func main() {
 			},
 			Action: func(c *cli.Context) {
 				GetAddressDetails(ctx, network, c.Args().First(), privateKey)
+			},
+		},
+		{
+			Name:  "balance",
+			Usage: "Retrieve token balance",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "address",
+					Usage: "Address to get balance for",
+				},
+				cli.StringFlag{
+					Name:  "contract",
+					Usage: "ERC-20 contract to use to get balance. Use either this or token flag",
+				},
+				cli.StringFlag{
+					Name:   "private-key,pk",
+					Usage:  "Private key",
+					EnvVar: pkVarName,
+				},
+				cli.StringFlag{
+					Name:  "token,coin",
+					Usage: "Token to check, must be one of the tokens supported in this tool",
+					Value: "GO",
+				},
+			},
+			Action: func(c *cli.Context) {
+				// Did this differently than the other, don't really know why we don't let the function have full access to the context
+				// That said, I don't like this double context thing either. @treeder
+				GetBalance(ctx, c, network)
 			},
 		},
 		{
@@ -678,54 +707,6 @@ func GetTransactionReceipt(ctx context.Context, rpcURL, txhash, contractFile str
 	}
 
 	printReceiptDetails(r, myabi)
-}
-
-func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, privateKey string) {
-	if addrHash == "" {
-		if privateKey == "" {
-			fatalExit(errors.New("Missing address. Must be specified as only argument, or implied from a private key."))
-		}
-		acct, err := web3.ParsePrivateKey(privateKey)
-		if err != nil {
-			fatalExit(err)
-		}
-		addrHash = acct.PublicKey()
-	}
-	client, err := web3.NewClient(network.URL)
-	if err != nil {
-		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
-	}
-	defer client.Close()
-	bal, err := client.GetBalance(ctx, addrHash, nil)
-	if err != nil {
-		fatalExit(fmt.Errorf("Cannot get address balance from the network: %v", err))
-	}
-	code, err := client.GetCode(ctx, addrHash, nil)
-	if err != nil {
-		fatalExit(fmt.Errorf("Cannot get address code from the network: %v", err))
-	}
-	if verbose {
-		log.Println("Address details:")
-	}
-
-	switch format {
-	case "json":
-		data := struct {
-			Balance *big.Int `json:"balance"`
-			Code    *string  `json:"code"`
-		}{Balance: bal}
-		if len(code) > 0 {
-			sc := string(code)
-			data.Code = &sc
-		}
-		fmt.Println(marshalJSON(&data))
-		return
-	}
-
-	fmt.Println("Balance:", web3.WeiAsBase(bal), network.Unit)
-	if len(code) > 0 {
-		fmt.Println("Code:", string(code))
-	}
 }
 
 func GetSnapshot(ctx context.Context, rpcURL string) {
