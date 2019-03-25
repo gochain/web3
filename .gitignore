@@ -30,7 +30,7 @@ web3-cli
 
 bin/
 *.bin
-/*.abi
+*.abi
 /web3_*
 /*.sol
 lib/
