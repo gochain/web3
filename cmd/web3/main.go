@@ -995,6 +995,10 @@ func GenerateContract(ctx context.Context, contractType string, c *cli.Context) 
 		if err != nil {
 			fatalExit(fmt.Errorf("Cloning finished with error: %v", err))
 		}
+		err = os.RemoveAll("lib/oz/.git")
+		if err != nil {
+			fatalExit(fmt.Errorf("Cannot cleanup .git dir in lib/oz: %v", err))
+		}
 	}
 	if contractType == "erc20" {
 		var capped *big.Int
