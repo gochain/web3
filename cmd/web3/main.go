@@ -436,7 +436,7 @@ func main() {
 									Name:  "burnable, b",
 									Usage: "Burnable contract.",
 								},
-								cli.BoolFlag{
+								cli.BoolTFlag{
 									Name:  "metadata-mintable, mm",
 									Usage: "Contract with a mintable metadata.",
 								},
@@ -1041,7 +1041,7 @@ func GenerateContract(ctx context.Context, contractType string, c *cli.Context) 
 			Pausable:         c.Bool("pausable"),
 			Mintable:         c.Bool("mintable"),
 			Burnable:         c.Bool("burnable"),
-			MetadataMintable: c.Bool("metadata-mintable"),
+			MetadataMintable: c.BoolT("metadata-mintable"),
 		}
 		processTemplate(params, params.Symbol, assets.ERC721Template)
 	}
