@@ -1009,11 +1009,7 @@ func Send(ctx context.Context, rpcURL, privateKey, toAddress, amount string) {
 	fmt.Println("Transaction address:", tx.Hash.Hex())
 }
 func GenerateCode(ctx context.Context, c *cli.Context) {
-	var abis []string
-	var bins []string
-	var types []string
 	var lang bind.Lang
-
 	switch c.String("lang") {
 	case "go":
 		lang = bind.LangGo
@@ -1036,9 +1032,9 @@ func GenerateCode(ctx context.Context, c *cli.Context) {
 		fatalExit(fmt.Errorf("Failed to read file %q: %v", abiFile, err))
 	}
 
-	abis = append(abis, string(abi))
-	bins = append(bins, "")
-	types = append(types, c.String("pkg"))
+	abis := []string{string(abi)}
+	bins := []string{c.String("")}
+	types := []string{c.String("pkg")}
 
 	code, err := bind.Bind(types, abis, bins, c.String("pkg"), lang)
 	if err != nil {
