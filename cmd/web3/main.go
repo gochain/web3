@@ -180,8 +180,8 @@ func main() {
 					Usage: "Build the specified contract",
 					Flags: []cli.Flag{
 						cli.StringFlag{
-							Name:  "compiler, c",
-							Usage: "The version of the compiler",
+							Name:  "solc-version, c",
+							Usage: "The version of the solc compiler(a tag of the ethereum/solc docker image)",
 						},
 					},
 					Action: func(c *cli.Context) {
