@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/gochain-io/gochain/v3/accounts/abi"
+	"github.com/gochain-io/gochain/v3/accounts/abi/bind"
 	"github.com/gochain-io/gochain/v3/common"
 	"github.com/gochain-io/gochain/v3/common/hexutil"
 	"github.com/gochain-io/gochain/v3/core/types"
@@ -380,7 +381,7 @@ func main() {
 		},
 		{
 			Name:    "generate",
-			Usage:   "Generate an ABI code",
+			Usage:   "Generate a code",
 			Aliases: []string{"g"},
 			Subcommands: []cli.Command{
 				{
@@ -459,6 +460,35 @@ func main() {
 								GenerateContract(ctx, "erc721", c)
 							},
 						},
+					},
+				},
+				{
+					Name:    "code",
+					Usage:   "Generate a code bindings",
+					Aliases: []string{"c"},
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "abi, a",
+							Usage: "Path to the contract ABI json to bind",
+						},
+						cli.StringFlag{
+							Name:  "lang, l",
+							Usage: "Destination language for the bindings (go, java, objc)",
+							Value: "go",
+						},
+						cli.StringFlag{
+							Name:  "pkg, p",
+							Usage: "Package name to generate the binding into.",
+							Value: "main",
+						},
+						cli.StringFlag{
+							Name:  "out, o",
+							Usage: "Output file for the generated binding (default = main.go).",
+							Value: "out.go",
+						},
+					},
+					Action: func(c *cli.Context) {
+						GenerateCode(ctx, c)
 					},
 				},
 			},
@@ -983,6 +1013,45 @@ func Send(ctx context.Context, rpcURL, privateKey, toAddress, amount string) {
 		fatalExit(fmt.Errorf("Cannot create transaction: %v", err))
 	}
 	fmt.Println("Transaction address:", tx.Hash.Hex())
+}
+func GenerateCode(ctx context.Context, c *cli.Context) {
+	var lang bind.Lang
+	switch c.String("lang") {
+	case "go":
+		lang = bind.LangGo
+	case "java":
+		lang = bind.LangJava
+	case "objc":
+		lang = bind.LangObjC
+	default:
+		fatalExit(fmt.Errorf("Unsupported destination language: %v", lang))
+	}
+
+	abiFile := c.String("abi")
+
+	if abiFile == "" {
+		fatalExit(errors.New("Please set the ABI file name"))
+	}
+
+	abi, err := ioutil.ReadFile(abiFile)
+	if err != nil {
+		fatalExit(fmt.Errorf("Failed to read file %q: %v", abiFile, err))
+	}
+
+	abis := []string{string(abi)}
+	bins := []string{c.String("")}
+	types := []string{c.String("pkg")}
+
+	code, err := bind.Bind(types, abis, bins, c.String("pkg"), lang)
+	if err != nil {
+		fatalExit(fmt.Errorf("Failed to generate ABI binding %q: %v", abiFile, err))
+	}
+	outFile := c.String("out")
+
+	if err := ioutil.WriteFile(outFile, []byte(code), 0600); err != nil {
+		fatalExit(fmt.Errorf("Failed to write ABI binding %q: %v", abiFile, err))
+	}
+	fmt.Println("The generated code has been successfully written to", outFile, "file")
 }
 
 func GenerateContract(ctx context.Context, contractType string, c *cli.Context) {

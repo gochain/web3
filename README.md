@@ -248,6 +248,19 @@ web3 generate contract [erc20/erc721] --name "TEST Tokens" --symbol "TEST"
 
 See `web3 generate contract --help` for more information.
 
+### Generate ABI bindings
+
+```sh
+web3 generate code --abi CONTRACT_ABI_FILE --out OUT_FILENAME --lang [go|objc|java] --pkg PGK_NAME
+```
+
+See `web3 generate code --help` for more information.
+
+**Parameters:**
+- CONTRACT_ABI_FILE - the abi file of the compiled contract
+- OUT_FILENAME - the output file
+- PGK_NAME - package name
+
 ## More installation options
 
 ### Install a specific version
