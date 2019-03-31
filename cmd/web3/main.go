@@ -178,8 +178,14 @@ func main() {
 				{
 					Name:  "build",
 					Usage: "Build the specified contract",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "solc-version, c",
+							Usage: "The version of the solc compiler(a tag of the ethereum/solc docker image)",
+						},
+					},
 					Action: func(c *cli.Context) {
-						BuildSol(ctx, c.Args().First())
+						BuildSol(ctx, c.Args().First(), c.String("compiler"))
 					},
 				},
 				{
@@ -815,7 +821,7 @@ func GetID(ctx context.Context, rpcURL string) {
 	fmt.Println("Genesis Hash:", id.GenesisHash.String())
 }
 
-func BuildSol(ctx context.Context, filename string) {
+func BuildSol(ctx context.Context, filename, compiler string) {
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to read file %q: %v", filename, err))
@@ -824,7 +830,7 @@ func BuildSol(ctx context.Context, filename string) {
 	if verbose {
 		log.Println("Building Sol:", str)
 	}
-	compileData, err := web3.CompileSolidityString(ctx, str)
+	compileData, err := web3.CompileSolidityString(ctx, str, compiler)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to compile %q: %v", filename, err))
 	}

@@ -179,12 +179,13 @@ web3 transaction ADDRESS_HASH
 ### Build a smart contract
 
 ```sh
-web3 contract build FILENAME.sol
+web3 contract build FILENAME.sol --solc-version SOLC_VERSION
 ```
 
 **Parameters:**
 
 - FILENAME - the name of the .sol file, eg: `hello.sol`
+- SOLC_VERSION - the version of the solc compiler
 
 ### Deploy a smart contract to a network
 

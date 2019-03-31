@@ -43,8 +43,8 @@ type ContractInfo struct {
 
 // Solidity contains information about the solidity compiler.
 type Solidity struct {
-	Path, Version, FullVersion string
-	Major, Minor, Patch        int
+	Path, Version       string
+	Major, Minor, Patch int
 }
 
 // --combined-output format
@@ -63,7 +63,7 @@ func (s *Solidity) makeArgs() ([]string, error) {
 		return nil, err
 	}
 	return []string{
-		"run", "-i", "-v", dir + ":/workdir", "-w", "/workdir", "ethereum/solc:" + strconv.Itoa(s.Major) + "." + strconv.Itoa(s.Minor) + "." + strconv.Itoa(s.Patch),
+		"run", "-i", "-v", dir + ":/workdir", "-w", "/workdir", "ethereum/solc:" + s.Version,
 		"--combined-json",
 		"bin,bin-runtime,srcmap,srcmap-runtime,abi,userdoc,devdoc,metadata",
 		"--optimize", // code optimizer switched on
@@ -77,7 +77,7 @@ func SolidityVersion(source string) (*Solidity, error) {
 	if len(matches) != 4 {
 		return nil, fmt.Errorf("can't parse solc version %q", source)
 	}
-	s := &Solidity{Path: "docker", FullVersion: "", Version: matches[0]}
+	s := &Solidity{Path: "docker"}
 	if s.Major, err = strconv.Atoi(matches[1]); err != nil {
 		return nil, err
 	}
@@ -87,17 +87,24 @@ func SolidityVersion(source string) (*Solidity, error) {
 	if s.Patch, err = strconv.Atoi(matches[3]); err != nil {
 		return nil, err
 	}
+	s.Version = strconv.Itoa(s.Major) + "." + strconv.Itoa(s.Minor) + "." + strconv.Itoa(s.Patch)
 	return s, nil
 }
 
 // CompileSolidityString builds and returns all the contracts contained within a source string.
-func CompileSolidityString(ctx context.Context, source string) (map[string]*Contract, error) {
+func CompileSolidityString(ctx context.Context, source, version string) (map[string]*Contract, error) {
+	var s *Solidity
+	var err error
 	if len(source) == 0 {
 		return nil, errors.New("solc: empty source string")
 	}
-	s, err := SolidityVersion(source)
-	if err != nil {
-		return nil, err
+	if version != "" {
+		s = &Solidity{Path: "docker", Version: version}
+	} else {
+		s, err = SolidityVersion(source)
+		if err != nil {
+			return nil, err
+		}
 	}
 	args, err := s.makeArgs()
 	if err != nil {
