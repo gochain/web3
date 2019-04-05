@@ -306,13 +306,13 @@ func convertParameters(method abi.Method, inputParams []interface{}) []interface
 
 // WaitForReceipt polls for a transaction receipt until it is available, or ctx is cancelled.
 func WaitForReceipt(ctx context.Context, client Client, hash common.Hash) (*Receipt, error) {
-	for i := 0; ; i++ {
+	for {
 		receipt, err := client.GetTransactionReceipt(ctx, hash)
 		if err == nil {
 			return receipt, nil
 		}
-		if i >= (5) {
-			return nil, fmt.Errorf("cannot get the receipt: %v", err)
+		if err != NotFoundErr {
+			return nil, err
 		}
 		select {
 		case <-ctx.Done():
