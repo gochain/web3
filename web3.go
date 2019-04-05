@@ -182,7 +182,8 @@ func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, add
 }
 
 // DeployContract submits a contract creation transaction.
-func DeployContract(ctx context.Context, client Client, privateKeyHex string, contractData string) (*Transaction, error) {
+// abiJSON is only required when including params for the constructor.
+func DeployContract(ctx context.Context, client Client, privateKeyHex string, binHex, abiJSON string, params ...interface{}) (*Transaction, error) {
 	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
 		privateKeyHex = privateKeyHex[2:]
 	}
@@ -207,12 +208,23 @@ func DeployContract(ctx context.Context, client Client, privateKeyHex string, co
 	if err != nil {
 		return nil, fmt.Errorf("cannot get nonce: %v", err)
 	}
-	decodedContractData, err := hexutil.Decode(contractData)
+	binData, err := hexutil.Decode(binHex)
 	if err != nil {
 		return nil, fmt.Errorf("cannot decode contract data: %v", err)
 	}
+	if len(params) > 0 {
+		abiData, err := abi.JSON(strings.NewReader(abiJSON))
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse ABI: %v", err)
+		}
+		input, err := abiData.Pack("", convertParameters(abiData.Constructor, params)...)
+		if err != nil {
+			return nil, fmt.Errorf("cannot pack parameters: %v", err)
+		}
+		binData = append(binData, input...)
+	}
 	//TODO try to use web3.Transaction only; can't sign currently
-	tx := types.NewContractCreation(nonce, big.NewInt(0), 2000000, gasPrice, decodedContractData)
+	tx := types.NewContractCreation(nonce, big.NewInt(0), 2000000, gasPrice, binData)
 	signedTx, err := types.SignTx(tx, types.HomesteadSigner{}, privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign transaction: %v", err)
