@@ -59,9 +59,9 @@ func main() {
 	}()
 
 	// Flags
-	var netName, rpcUrl, function, contractAddress, contractFile, privateKey, txFormat, txInputFormat, recepientAddress string
+	var netName, rpcUrl, function, contractAddress, toContractAddress, contractFile, privateKey, txFormat, txInputFormat, recepientAddress string
 	var amount int
-	var testnet, waitForReceipt bool
+	var testnet, waitForReceipt, upgradeable bool
 
 	app := cli.NewApp()
 	app.Name = "web3"
@@ -193,7 +193,7 @@ func main() {
 					Name:  "deploy",
 					Usage: "Build and deploy the specified contract to the network",
 					Action: func(c *cli.Context) {
-						DeploySol(ctx, network.URL, privateKey, c.Args().First())
+						DeploySol(ctx, network.URL, privateKey, c.Args().First(), upgradeable)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -201,6 +201,11 @@ func main() {
 							Usage:       "The private key",
 							EnvVar:      pkVarName,
 							Destination: &privateKey,
+							Hidden:      false},
+						cli.BoolFlag{
+							Name:        "upgradeable",
+							Usage:       "Allow contract to be upgraded",
+							Destination: &upgradeable,
 							Hidden:      false},
 					},
 				},
@@ -260,6 +265,90 @@ func main() {
 							Name:        "wait",
 							Usage:       "Wait for the receipt for transact functions",
 							Destination: &waitForReceipt,
+							Hidden:      false},
+					},
+				},
+				{
+					Name:  "upgrade",
+					Usage: "Upgrade contract to new address",
+					Action: func(c *cli.Context) {
+						UpgradeContract(ctx, network.URL, privateKey, contractAddress, toContractAddress, amount)
+					},
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:        "address",
+							Destination: &contractAddress,
+							Usage:       "Proxy contract address",
+							Hidden:      false},
+						cli.StringFlag{
+							Name:        "to",
+							Destination: &toContractAddress,
+							Usage:       "Contract address to upgrade to",
+							Hidden:      false},
+						cli.IntFlag{
+							Name:        "amount",
+							Destination: &amount,
+							Usage:       "Amount in wei that you want to send to the transaction",
+							Hidden:      false},
+						cli.StringFlag{
+							Name:        "private-key",
+							Usage:       "Private key",
+							EnvVar:      "WEB3_PRIVATE_KEY",
+							Destination: &privateKey,
+							Hidden:      false},
+					},
+				},
+				{
+					Name:  "target",
+					Usage: "Return target address of upgradeable proxy",
+					Action: func(c *cli.Context) {
+						GetTargetContract(ctx, network.URL, contractAddress)
+					},
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:        "address",
+							Destination: &contractAddress,
+							Usage:       "Proxy contract address",
+							Hidden:      false},
+					},
+				},
+				{
+					Name:  "pause",
+					Usage: "Pause an upgradeable contract",
+					Action: func(c *cli.Context) {
+						PauseContract(ctx, network.URL, privateKey, c.Args().First(), amount)
+					},
+					Flags: []cli.Flag{
+						cli.IntFlag{
+							Name:        "amount",
+							Destination: &amount,
+							Usage:       "Amount in wei that you want to send to the transaction",
+							Hidden:      false},
+						cli.StringFlag{
+							Name:        "private-key",
+							Usage:       "Private key",
+							EnvVar:      "WEB3_PRIVATE_KEY",
+							Destination: &privateKey,
+							Hidden:      false},
+					},
+				},
+				{
+					Name:  "resume",
+					Usage: "Resume a paused upgradeable contract",
+					Action: func(c *cli.Context) {
+						ResumeContract(ctx, network.URL, privateKey, c.Args().First(), amount)
+					},
+					Flags: []cli.Flag{
+						cli.IntFlag{
+							Name:        "amount",
+							Destination: &amount,
+							Usage:       "Amount in wei that you want to send to the transaction",
+							Hidden:      false},
+						cli.StringFlag{
+							Name:        "private-key",
+							Usage:       "Private key",
+							EnvVar:      "WEB3_PRIVATE_KEY",
+							Destination: &privateKey,
 							Hidden:      false},
 					},
 				},
@@ -905,7 +994,7 @@ func BuildSol(ctx context.Context, filename, compiler string) {
 	}
 }
 
-func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string) {
+func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string, upgradeable bool) {
 	client, err := web3.NewClient(rpcURL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
@@ -934,9 +1023,28 @@ func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string) {
 		return
 	}
 
-	fmt.Println("Contract has been successfully deployed with transaction:", tx.Hash.Hex())
-	fmt.Println("Contract address is:", receipt.ContractAddress.Hex())
+	// Exit early if contract is static.
+	if !upgradeable {
+		fmt.Println("Contract has been successfully deployed with transaction:", tx.Hash.Hex())
+		fmt.Println("Contract address is:", receipt.ContractAddress.Hex())
+		return
+	}
+
+	// Deploy proxy contract.
+	proxyTx, err := web3.DeployContract(ctx, client, privateKey, string(assets.OwnerUpgradeableProxyCode(receipt.ContractAddress)))
+	if err != nil {
+		log.Fatalf("Cannot deploy the upgradeable proxy contract: %v", err)
+	}
+	proxyReceipt, err := web3.WaitForReceipt(ctx, client, proxyTx.Hash)
+	if err != nil {
+		log.Fatalf("Cannot get the upgradeable proxy receipt: %v", err)
+	}
+
+	fmt.Println("Upgradeable contract has been successfully deployed.")
+	fmt.Println("Contract has been successfully deployed with transaction:", proxyTx.Hash.Hex())
+	fmt.Println("Contract address is:", proxyReceipt.ContractAddress.Hex())
 }
+
 func ListContract(contractFile string) {
 
 	myabi := getAbi(contractFile)
@@ -1183,6 +1291,92 @@ func printReceiptDetails(r *web3.Receipt, myabi *abi.ABI) {
 		fmt.Println("Logs of the receipt:", marshalJSON(r.ParsedLogs))
 	}
 }
+
+func UpgradeContract(ctx context.Context, rpcURL, privateKey, contractAddress, newTargetAddress string, amount int) {
+	client, err := web3.NewClient(rpcURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
+	}
+	defer client.Close()
+	myabi, err := abi.JSON(strings.NewReader(assets.UpgradeableProxyABI))
+	if err != nil {
+		log.Fatalf("Cannot initialize ABI: %v", err)
+	}
+	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "upgrade", amount, newTargetAddress)
+	if err != nil {
+		log.Fatalf("Cannot upgrade the contract: %v", err)
+	}
+	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
+	if err != nil {
+		log.Fatalf("Cannot get the receipt: %v", err)
+	}
+	fmt.Println("Transaction address:", receipt.TxHash.Hex())
+}
+
+func GetTargetContract(ctx context.Context, rpcURL, contractAddress string) {
+	client, err := web3.NewClient(rpcURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
+	}
+	defer client.Close()
+	myabi, err := abi.JSON(strings.NewReader(assets.UpgradeableProxyABI))
+	if err != nil {
+		log.Fatalf("Cannot initialize ABI: %v", err)
+	}
+	res, err := web3.CallConstantFunction(ctx, client, myabi, contractAddress, "target")
+	if err != nil {
+		log.Fatalf("Cannot upgrade the contract: %v", err)
+	}
+	switch res := res.(type) {
+	case common.Address:
+		fmt.Println(res.String())
+	default:
+		log.Fatalf("Unexpected return: %#v", res)
+	}
+}
+
+func PauseContract(ctx context.Context, rpcURL, privateKey, contractAddress string, amount int) {
+	client, err := web3.NewClient(rpcURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
+	}
+	defer client.Close()
+	myabi, err := abi.JSON(strings.NewReader(assets.UpgradeableProxyABI))
+	if err != nil {
+		log.Fatalf("Cannot initialize ABI: %v", err)
+	}
+	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "pause", amount)
+	if err != nil {
+		log.Fatalf("Cannot pause the contract: %v", err)
+	}
+	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
+	if err != nil {
+		log.Fatalf("Cannot get the receipt: %v", err)
+	}
+	fmt.Println("Transaction address:", receipt.TxHash.Hex())
+}
+
+func ResumeContract(ctx context.Context, rpcURL, privateKey, contractAddress string, amount int) {
+	client, err := web3.NewClient(rpcURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
+	}
+	defer client.Close()
+	myabi, err := abi.JSON(strings.NewReader(assets.UpgradeableProxyABI))
+	if err != nil {
+		log.Fatalf("Cannot initialize ABI: %v", err)
+	}
+	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "resume", amount)
+	if err != nil {
+		log.Fatalf("Cannot resume the contract: %v", err)
+	}
+	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
+	if err != nil {
+		log.Fatalf("Cannot get the receipt: %v", err)
+	}
+	fmt.Println("Transaction address:", receipt.TxHash.Hex())
+}
+
 func marshalJSON(data interface{}) string {
 	b, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
