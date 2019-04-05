@@ -922,6 +922,7 @@ func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string) {
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot deploy the contract: %v", err))
 	}
+	ctx, _ = context.WithTimeout(ctx, 10*time.Second)
 	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot get the receipt: %v", err))
@@ -986,6 +987,7 @@ func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 		fmt.Println("Transaction address:", tx.Hash.Hex())
 		return
 	}
+	ctx, _ = context.WithTimeout(ctx, 10*time.Second)
 	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot get the receipt: %v", err))
