@@ -413,7 +413,7 @@ func ParseBigInt(value string) (*big.Int, error) {
 	}
 	i, ok := new(big.Int).SetString(value, 10)
 	if !ok {
-		return nil, errors.New("Failed to parse integer")
+		return nil, fmt.Errorf("Failed to parse integer %q", value)
 	}
 	return i, nil
 }
