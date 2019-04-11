@@ -644,9 +644,13 @@ func GetBlockDetails(ctx context.Context, network web3.Network, numberOrHash str
 			fatalExit(fmt.Errorf("Cannot get block details from the network: %v", err))
 		}
 	} else {
-		blockN, err := web3.ParseBigInt(numberOrHash)
-		if err != nil {
-			fatalExit(fmt.Errorf("Block argument must be a number (decimal integer) or hash (hexadecimal with 0x prefix) %q: %v", numberOrHash, err))
+		var blockN *big.Int
+		// Don't try to parse empty string, which means 'latest'.
+		if numberOrHash != "" {
+			blockN, err = web3.ParseBigInt(numberOrHash)
+			if err != nil {
+				fatalExit(fmt.Errorf("Block argument must be a number (decimal integer) or hash (hexadecimal with 0x prefix) %q: %v", numberOrHash, err))
+			}
 		}
 		block, err = client.GetBlockByNumber(ctx, blockN, includeTxs)
 		if err != nil {
