@@ -286,7 +286,7 @@ web3 contract deploy FILENAME.bin
 
 **Parameters:**
 
-- FILENAME - the name of the .bin file
+- FILENAME - the name of the .bin
 - $WEB3_PRIVATE_KEY as env variable or -private-key as command parameter - the private key of the wallet
 
 ### Call a function of a deployed contract

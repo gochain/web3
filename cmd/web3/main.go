@@ -193,7 +193,13 @@ func main() {
 					Name:  "deploy",
 					Usage: "Build and deploy the specified contract to the network",
 					Action: func(c *cli.Context) {
-						DeploySol(ctx, network.URL, privateKey, c.Args().First(), upgradeable)
+						name := c.Args().First()
+						tail := c.Args().Tail()
+						args := make([]interface{}, len(tail))
+						for i, v := range c.Args().Tail() {
+							args[i] = v
+						}
+						DeploySol(ctx, network.URL, privateKey, name, upgradeable, args...)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -998,20 +1004,29 @@ func BuildSol(ctx context.Context, filename, compiler string) {
 	}
 }
 
-func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string, upgradeable bool) {
+func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string, upgradeable bool, params ...interface{}) {
+	if contractName == "" {
+		fatalExit(errors.New("Missing contract name arg."))
+	}
 	client, err := web3.NewClient(rpcURL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
 	}
 	defer client.Close()
-	if _, err := os.Stat(contractName); os.IsNotExist(err) {
-		fatalExit(fmt.Errorf("Cannot find the bin file: %v", err))
-	}
-	dat, err := ioutil.ReadFile(contractName)
+	bin, err := ioutil.ReadFile(contractName)
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot read the bin file: %v", err))
+		fatalExit(fmt.Errorf("Cannot read the bin file %q: %v", contractName, err))
 	}
-	tx, err := web3.DeployContract(ctx, client, privateKey, string(dat))
+	var abi string
+	if len(params) > 0 {
+		abiName := strings.TrimSuffix(contractName, ".bin") + ".abi"
+		b, err := ioutil.ReadFile(abiName)
+		if err != nil {
+			fatalExit(fmt.Errorf("Cannot read the abi file %q: %v", abiName, err))
+		}
+		abi = string(b)
+	}
+	tx, err := web3.DeployContract(ctx, client, privateKey, string(bin), abi, params...)
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot deploy the contract: %v", err))
 	}
@@ -1035,7 +1050,7 @@ func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string, upg
 	}
 
 	// Deploy proxy contract.
-	proxyTx, err := web3.DeployContract(ctx, client, privateKey, string(assets.OwnerUpgradeableProxyCode(receipt.ContractAddress)))
+	proxyTx, err := web3.DeployContract(ctx, client, privateKey, string(assets.OwnerUpgradeableProxyCode(receipt.ContractAddress)), "")
 	if err != nil {
 		log.Fatalf("Cannot deploy the upgradeable proxy contract: %v", err)
 	}
@@ -1409,6 +1424,6 @@ func getAbi(contractFile string) *abi.ABI {
 	return abi
 }
 func fatalExit(err error) {
-	fmt.Fprintf(os.Stderr, "ERROR: %v", err)
+	fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
 	os.Exit(1)
 }
