@@ -52,9 +52,14 @@ type Receipt struct {
 	Bloom             types.Bloom
 	Logs              []*types.Log
 	TxHash            common.Hash
+	TxIndex           uint64
 	ContractAddress   common.Address
 	GasUsed           uint64
 	ParsedLogs        []Event
+	BlockHash         common.Hash
+	BlockNumber       uint64
+	From              common.Address
+	To                *common.Address
 }
 
 func (r *Receipt) UnmarshalJSON(data []byte) error {

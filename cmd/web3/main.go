@@ -1272,11 +1272,17 @@ func printReceiptDetails(r *web3.Receipt, myabi *abi.ABI) {
 	}
 
 	fmt.Println("Transaction receipt address:", r.TxHash.Hex())
-	fmt.Println("TxHash:", r.TxHash.String())
+	fmt.Printf("Block: #%d %s\n", r.BlockNumber, r.BlockHash.Hex())
+	fmt.Println("Tx Index:", r.TxIndex)
+	fmt.Println("Tx Hash:", r.TxHash.String())
+	fmt.Println("From:", r.From.Hex())
+	if r.To != nil {
+		fmt.Println("To:", r.To.Hex())
+	}
 	if r.ContractAddress != (common.Address{}) {
 		fmt.Println("Contract Address:", r.ContractAddress.String())
 	}
-	fmt.Println("GasUsed:", r.GasUsed)
+	fmt.Println("Gas Used:", r.GasUsed)
 	fmt.Println("Cumulative Gas Used:", r.CumulativeGasUsed)
 	var status string
 	switch r.Status {
@@ -1292,7 +1298,7 @@ func printReceiptDetails(r *web3.Receipt, myabi *abi.ABI) {
 	fmt.Println("Bloom:", "0x"+common.Bytes2Hex(r.Bloom.Bytes()))
 	fmt.Println("Logs:", r.Logs)
 	if myabi != nil {
-		fmt.Println("Logs of the receipt:", marshalJSON(r.ParsedLogs))
+		fmt.Println("Parsed Logs:", marshalJSON(r.ParsedLogs))
 	}
 }
 

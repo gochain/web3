@@ -266,9 +266,14 @@ type rpcReceipt struct {
 	Bloom             *types.Bloom    `json:"logsBloom"`
 	Logs              []*types.Log    `json:"logs"`
 	TxHash            *common.Hash    `json:"transactionHash"`
+	TxIndex           *hexutil.Uint64 `json:"transactionIndex"`
 	ContractAddress   *common.Address `json:"contractAddress"`
-	GasUsed           *hexutil.Uint64 `json:"gasUsed" `
-	ParsedLogs        *[]Event        `json:"parsedLogs" `
+	GasUsed           *hexutil.Uint64 `json:"gasUsed"`
+	ParsedLogs        *[]Event        `json:"parsedLogs"`
+	BlockHash         *common.Hash    `json:"blockHash"`
+	BlockNumber       *hexutil.Uint64 `json:"blockNumber"`
+	From              *common.Address `json:"from"`
+	To                *common.Address `json:"to"`
 }
 
 func (rr *rpcReceipt) copyTo(r *Receipt) error {
@@ -291,6 +296,10 @@ func (rr *rpcReceipt) copyTo(r *Receipt) error {
 		return errors.New("missing 'transactionHash'")
 	}
 	r.TxHash = *rr.TxHash
+	if rr.TxIndex == nil {
+		return errors.New("missing 'transactionIndex'")
+	}
+	r.TxIndex = uint64(*rr.TxIndex)
 	if rr.ContractAddress != nil {
 		r.ContractAddress = *rr.ContractAddress
 	}
@@ -298,6 +307,21 @@ func (rr *rpcReceipt) copyTo(r *Receipt) error {
 		return errors.New("missing 'gasUsed'")
 	}
 	r.GasUsed = uint64(*rr.GasUsed)
+	if rr.BlockHash == nil {
+		return errors.New("missing 'blockHash'")
+	}
+	r.BlockHash = *rr.BlockHash
+	if rr.BlockNumber == nil {
+		return errors.New("missing 'blockNumber'")
+	}
+	r.BlockNumber = uint64(*rr.BlockNumber)
+	if rr.From == nil {
+		return errors.New("missing 'from'")
+	}
+	r.From = *rr.From
+	if rr.To != nil {
+		r.To = rr.To
+	}
 	return nil
 }
 
@@ -308,7 +332,12 @@ func (rr *rpcReceipt) copyFrom(r *Receipt) {
 	rr.Bloom = &r.Bloom
 	rr.Logs = r.Logs
 	rr.TxHash = &r.TxHash
+	rr.TxIndex = (*hexutil.Uint64)(&r.TxIndex)
 	rr.ContractAddress = &r.ContractAddress
 	rr.GasUsed = (*hexutil.Uint64)(&r.GasUsed)
 	rr.ParsedLogs = &r.ParsedLogs
+	rr.BlockHash = &r.BlockHash
+	rr.BlockNumber = (*hexutil.Uint64)(&r.BlockNumber)
+	rr.From = &r.From
+	rr.To = r.To
 }
