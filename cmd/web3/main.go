@@ -1030,8 +1030,8 @@ func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string, upg
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot deploy the contract: %v", err))
 	}
-	ctx, _ = context.WithTimeout(ctx, 10*time.Second)
-	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
+	waitCtx, _ := context.WithTimeout(ctx, 10*time.Second)
+	receipt, err := web3.WaitForReceipt(waitCtx, client, tx.Hash)
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot get the receipt: %v", err))
 	}
@@ -1054,7 +1054,8 @@ func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string, upg
 	if err != nil {
 		log.Fatalf("Cannot deploy the upgradeable proxy contract: %v", err)
 	}
-	proxyReceipt, err := web3.WaitForReceipt(ctx, client, proxyTx.Hash)
+	waitCtx, _ = context.WithTimeout(ctx, 10*time.Second)
+	proxyReceipt, err := web3.WaitForReceipt(waitCtx, client, proxyTx.Hash)
 	if err != nil {
 		log.Fatalf("Cannot get the upgradeable proxy receipt: %v", err)
 	}
@@ -1331,6 +1332,7 @@ func UpgradeContract(ctx context.Context, rpcURL, privateKey, contractAddress, n
 	if err != nil {
 		log.Fatalf("Cannot upgrade the contract: %v", err)
 	}
+	ctx, _ = context.WithTimeout(ctx, 10*time.Second)
 	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
 		log.Fatalf("Cannot get the receipt: %v", err)
@@ -1374,6 +1376,7 @@ func PauseContract(ctx context.Context, rpcURL, privateKey, contractAddress stri
 	if err != nil {
 		log.Fatalf("Cannot pause the contract: %v", err)
 	}
+	ctx, _ = context.WithTimeout(ctx, 10*time.Second)
 	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
 		log.Fatalf("Cannot get the receipt: %v", err)
@@ -1395,6 +1398,7 @@ func ResumeContract(ctx context.Context, rpcURL, privateKey, contractAddress str
 	if err != nil {
 		log.Fatalf("Cannot resume the contract: %v", err)
 	}
+	ctx, _ = context.WithTimeout(ctx, 10*time.Second)
 	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
 		log.Fatalf("Cannot get the receipt: %v", err)
