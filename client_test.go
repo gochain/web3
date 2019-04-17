@@ -24,7 +24,7 @@ func ExampleRPCClient_GetBlockByNumber() {
 }
 
 func exampleRPCClient_GetBlockByNumber(url string) {
-	c, err := NewClient(url)
+	c, err := Dial(url)
 	if err != nil {
 		fmt.Printf("Failed to connect to network %q: %v\n", url, err)
 		return

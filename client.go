@@ -47,13 +47,18 @@ type Client interface {
 	Close()
 }
 
-// NewClient creates a new client, backed by url (supported schemes "http", "https", "ws" and "wss").
-func NewClient(url string) (Client, error) {
+// Dial returns a new client backed by dialing url (supported schemes "http", "https", "ws" and "wss").
+func Dial(url string) (Client, error) {
 	r, err := rpc.Dial(url)
 	if err != nil {
 		return nil, err
 	}
-	return &client{r: r}, nil
+	return NewClient(r), nil
+}
+
+// NewClient returns a new client backed by an existing rpc.Client.
+func NewClient(r *rpc.Client) Client {
+	return &client{r: r}
 }
 
 type client struct {
