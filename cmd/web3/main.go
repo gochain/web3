@@ -629,7 +629,7 @@ func getNetwork(name, rpcURL string, testnet bool) web3.Network {
 }
 
 func GetBlockDetails(ctx context.Context, network web3.Network, numberOrHash string, txFormat, txInputFormat string) {
-	client, err := web3.NewClient(network.URL)
+	client, err := web3.Dial(network.URL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
 	}
@@ -742,7 +742,7 @@ func (fa fmtAddresses) String() string {
 }
 
 func GetTransactionDetails(ctx context.Context, network web3.Network, txhash, inputFormat string) {
-	client, err := web3.NewClient(network.URL)
+	client, err := web3.Dial(network.URL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
 	}
@@ -796,7 +796,7 @@ func printInputData(data []byte, format string) {
 
 func GetTransactionReceipt(ctx context.Context, rpcURL, txhash, contractFile string) {
 	var myabi *abi.ABI
-	client, err := web3.NewClient(rpcURL)
+	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
 	}
@@ -826,7 +826,7 @@ func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, priv
 		}
 		addrHash = acct.PublicKey()
 	}
-	client, err := web3.NewClient(network.URL)
+	client, err := web3.Dial(network.URL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
 	}
@@ -864,7 +864,7 @@ func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, priv
 }
 
 func GetSnapshot(ctx context.Context, rpcURL string) {
-	client, err := web3.NewClient(rpcURL)
+	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
 	}
@@ -928,7 +928,7 @@ func GetSnapshot(ctx context.Context, rpcURL string) {
 }
 
 func GetID(ctx context.Context, rpcURL string) {
-	client, err := web3.NewClient(rpcURL)
+	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
 	}
@@ -1008,7 +1008,7 @@ func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string, upg
 	if contractName == "" {
 		fatalExit(errors.New("Missing contract name arg."))
 	}
-	client, err := web3.NewClient(rpcURL)
+	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
 	}
@@ -1082,7 +1082,7 @@ func ListContract(contractFile string) {
 }
 
 func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, contractFile, functionName string, amount int, waitForReceipt bool, parameters ...interface{}) {
-	client, err := web3.NewClient(rpcURL)
+	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
 	}
@@ -1125,7 +1125,7 @@ func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 }
 
 func Send(ctx context.Context, rpcURL, privateKey, toAddress, amount string) {
-	client, err := web3.NewClient(rpcURL)
+	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
 	}
@@ -1319,7 +1319,7 @@ func printReceiptDetails(r *web3.Receipt, myabi *abi.ABI) {
 }
 
 func UpgradeContract(ctx context.Context, rpcURL, privateKey, contractAddress, newTargetAddress string, amount int) {
-	client, err := web3.NewClient(rpcURL)
+	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
 	}
@@ -1341,7 +1341,7 @@ func UpgradeContract(ctx context.Context, rpcURL, privateKey, contractAddress, n
 }
 
 func GetTargetContract(ctx context.Context, rpcURL, contractAddress string) {
-	client, err := web3.NewClient(rpcURL)
+	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
 	}
@@ -1363,7 +1363,7 @@ func GetTargetContract(ctx context.Context, rpcURL, contractAddress string) {
 }
 
 func PauseContract(ctx context.Context, rpcURL, privateKey, contractAddress string, amount int) {
-	client, err := web3.NewClient(rpcURL)
+	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
 	}
@@ -1385,7 +1385,7 @@ func PauseContract(ctx context.Context, rpcURL, privateKey, contractAddress stri
 }
 
 func ResumeContract(ctx context.Context, rpcURL, privateKey, contractAddress string, amount int) {
-	client, err := web3.NewClient(rpcURL)
+	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
 	}
