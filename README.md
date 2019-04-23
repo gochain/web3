@@ -140,6 +140,13 @@ upgraded later. To deploy an upgradeable contract, simply specify the
 web3 contract deploy --upgradeable Hello.bin
 ```
 
+This will return the contract address. Let's set the contract address environment variable so you can use it throughout the rest of this
+tutorial (alternatively you can pass in the `--address CONTRACT_ADDRESS` flag on all the commands).
+
+```sh
+export WEB3_ADDRESS=0xCONTRACT_ADDRESS
+```
+
 Internally, deploying an upgradeable contract will actually deploy two separate contracts:
 
 1. Your original `Hello` contract.
@@ -150,8 +157,7 @@ address that your proxy is pointing to, you can use the `target` command in
 the CLI:
 
 ```sh
-web3 contract target --address 0xCONTRACT_ADDRESS
-0xTARGET_ADDRESS
+web3 contract target
 ```
 
 One caveat to using upgradeable contracts is that their constructors will not
@@ -159,15 +165,17 @@ execute. To get around this, we will have to initialize our contract with an
 initial call to `setName`:
 
 ```sh
-web3 --format json contract call --address 0xCONTRACT_ADDRESS --abi Hello.abi --function setName "World"
+web3 contract call --abi Hello.abi --function setName "World"
 ```
 
 Now we can interact with our upgradeable contract just like a normal contract:
 
 ```sh
-web3 --format json contract call --address 0xCONTRACT_ADDRESS --abi Hello.abi --function hello
-[Hello World]
+web3 contract call --abi Hello.abi --function hello
+# returns: [Hello World]
 ```
+
+Alright, so we have a working contract. Let's upgrade it!
 
 ### Upgrading the contract
 
@@ -186,19 +194,18 @@ Using the new `Goodbye` contract address, we can upgrade our previous contract
 using the `contract upgrade` command:
 
 ```sh
-web3 contract upgrade --address 0xCONTRACT_ADDRESS --to 0xGOODBYE_CONTRACT_ADDRESS
+web3 contract upgrade --to 0xGOODBYE_CONTRACT_ADDRESS
 ```
 
 We can see that our proxy contract now points to this new contract by
-calling the `hello` function:
+calling the `hello` function again:
 
 ```sh
-web3 --format json contract call --address 0xCONTRACT_ADDRESS --abi Hello.abi --function hello
-[Goodbye World]
+web3 contract call --abi Hello.abi --function hello
+# returns: [Goodbye World]
 ```
 
 Note that contracts can only be upgraded by the account that created them.
-
 
 ### Pausing and resuming a contract
 
@@ -209,17 +216,22 @@ operation until you can upgrade to a fixed version.
 Pausing a contract is simple:
 
 ```sh
-web3 contract pause 0xCONTRACT_ADDRESS
+web3 contract pause
 ```
 
-Executing a paused contract will now result in an error. Contracts can still be
-upgraded while they are paused. To execute any other contract functions, you
+Wait a minute for the transaction to go through, then try to use the contract again and it will fail:
+
+```sh
+web3 contract call --abi Hello.abi --function hello
+# returns: ERROR: Cannot call the contract: abi: unmarshalling empty output
+```
+
+Contracts can be upgraded while they are paused. To execute any other contract functions, you
 will need to first resume operation:
 
 ```sh
-web3 contract resume 0xCONTRACT_ADDRESS
+web3 contract resume
 ```
-
 
 ## List of available commands
 
