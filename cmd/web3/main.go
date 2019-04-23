@@ -283,6 +283,7 @@ func main() {
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:        "address",
+							EnvVar:      addrVarName,
 							Destination: &contractAddress,
 							Usage:       "Proxy contract address",
 							Hidden:      false},
@@ -322,9 +323,19 @@ func main() {
 					Name:  "pause",
 					Usage: "Pause an upgradeable contract",
 					Action: func(c *cli.Context) {
-						PauseContract(ctx, network.URL, privateKey, c.Args().First(), amount)
+						address := c.Args().First()
+						if address == "" {
+							address = contractAddress
+						}
+						PauseContract(ctx, network.URL, privateKey, address, amount)
 					},
 					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:        "address",
+							EnvVar:      addrVarName,
+							Destination: &contractAddress,
+							Usage:       "Proxy contract address",
+							Hidden:      false},
 						cli.IntFlag{
 							Name:        "amount",
 							Destination: &amount,
@@ -342,9 +353,19 @@ func main() {
 					Name:  "resume",
 					Usage: "Resume a paused upgradeable contract",
 					Action: func(c *cli.Context) {
-						ResumeContract(ctx, network.URL, privateKey, c.Args().First(), amount)
+						address := c.Args().First()
+						if address == "" {
+							address = contractAddress
+						}
+						ResumeContract(ctx, network.URL, privateKey, address, amount)
 					},
 					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:        "address",
+							EnvVar:      addrVarName,
+							Destination: &contractAddress,
+							Usage:       "Proxy contract address",
+							Hidden:      false},
 						cli.IntFlag{
 							Name:        "amount",
 							Destination: &amount,
