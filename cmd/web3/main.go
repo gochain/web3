@@ -283,6 +283,7 @@ func main() {
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:        "address",
+							EnvVar:      addrVarName,
 							Destination: &contractAddress,
 							Usage:       "Proxy contract address",
 							Hidden:      false},
@@ -313,6 +314,7 @@ func main() {
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:        "address",
+							EnvVar:      addrVarName,
 							Destination: &contractAddress,
 							Usage:       "Proxy contract address",
 							Hidden:      false},
@@ -322,9 +324,19 @@ func main() {
 					Name:  "pause",
 					Usage: "Pause an upgradeable contract",
 					Action: func(c *cli.Context) {
-						PauseContract(ctx, network.URL, privateKey, c.Args().First(), amount)
+						address := c.Args().First()
+						if address == "" {
+							address = contractAddress
+						}
+						PauseContract(ctx, network.URL, privateKey, address, amount)
 					},
 					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:        "address",
+							EnvVar:      addrVarName,
+							Destination: &contractAddress,
+							Usage:       "Proxy contract address",
+							Hidden:      false},
 						cli.IntFlag{
 							Name:        "amount",
 							Destination: &amount,
@@ -342,9 +354,19 @@ func main() {
 					Name:  "resume",
 					Usage: "Resume a paused upgradeable contract",
 					Action: func(c *cli.Context) {
-						ResumeContract(ctx, network.URL, privateKey, c.Args().First(), amount)
+						address := c.Args().First()
+						if address == "" {
+							address = contractAddress
+						}
+						ResumeContract(ctx, network.URL, privateKey, address, amount)
 					},
 					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:        "address",
+							EnvVar:      addrVarName,
+							Destination: &contractAddress,
+							Usage:       "Proxy contract address",
+							Hidden:      false},
 						cli.IntFlag{
 							Name:        "amount",
 							Destination: &amount,
@@ -1030,7 +1052,7 @@ func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string, upg
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot deploy the contract: %v", err))
 	}
-	waitCtx, _ := context.WithTimeout(ctx, 10*time.Second)
+	waitCtx, _ := context.WithTimeout(ctx, 60*time.Second)
 	receipt, err := web3.WaitForReceipt(waitCtx, client, tx.Hash)
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot get the receipt: %v", err))
@@ -1054,7 +1076,7 @@ func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string, upg
 	if err != nil {
 		log.Fatalf("Cannot deploy the upgradeable proxy contract: %v", err)
 	}
-	waitCtx, _ = context.WithTimeout(ctx, 10*time.Second)
+	waitCtx, _ = context.WithTimeout(ctx, 60*time.Second)
 	proxyReceipt, err := web3.WaitForReceipt(waitCtx, client, proxyTx.Hash)
 	if err != nil {
 		log.Fatalf("Cannot get the upgradeable proxy receipt: %v", err)
@@ -1104,7 +1126,7 @@ func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 			fmt.Println(marshalJSON(m))
 			return
 		}
-		fmt.Println("Call results:", res)
+		fmt.Println(res)
 		return
 	}
 	tx, err := web3.CallTransactFunction(ctx, client, *myabi, contractAddress, privateKey, functionName, amount, parameters...)
@@ -1332,7 +1354,7 @@ func UpgradeContract(ctx context.Context, rpcURL, privateKey, contractAddress, n
 	if err != nil {
 		log.Fatalf("Cannot upgrade the contract: %v", err)
 	}
-	ctx, _ = context.WithTimeout(ctx, 10*time.Second)
+	ctx, _ = context.WithTimeout(ctx, 60*time.Second)
 	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
 		log.Fatalf("Cannot get the receipt: %v", err)
@@ -1376,7 +1398,7 @@ func PauseContract(ctx context.Context, rpcURL, privateKey, contractAddress stri
 	if err != nil {
 		log.Fatalf("Cannot pause the contract: %v", err)
 	}
-	ctx, _ = context.WithTimeout(ctx, 10*time.Second)
+	ctx, _ = context.WithTimeout(ctx, 60*time.Second)
 	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
 		log.Fatalf("Cannot get the receipt: %v", err)
@@ -1398,7 +1420,7 @@ func ResumeContract(ctx context.Context, rpcURL, privateKey, contractAddress str
 	if err != nil {
 		log.Fatalf("Cannot resume the contract: %v", err)
 	}
-	ctx, _ = context.WithTimeout(ctx, 10*time.Second)
+	ctx, _ = context.WithTimeout(ctx, 60*time.Second)
 	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
 		log.Fatalf("Cannot get the receipt: %v", err)
