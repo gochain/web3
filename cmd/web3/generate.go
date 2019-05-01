@@ -99,8 +99,8 @@ func GenerateContract(ctx context.Context, contractType string, c *cli.Context) 
 			TokenName: c.String("name"),
 			Cap:       capped,
 			Pausable:  c.Bool("pausable"),
-			Mintable:  !c.Bool("unmintable"),
-			Burnable:  !c.Bool("unburnable"),
+			Mintable:  c.Bool("mintable"),
+			Burnable:  c.Bool("burnable"),
 			Decimals:  decimals,
 		}
 		// TODO: add initial-supply flag
@@ -117,8 +117,8 @@ func GenerateContract(ctx context.Context, contractType string, c *cli.Context) 
 			Symbol:    c.String("symbol"),
 			TokenName: c.String("name"),
 			Pausable:  c.Bool("pausable"),
-			Mintable:  !c.Bool("unmintable"),
-			Burnable:  !c.Bool("unburnable"),
+			Mintable:  c.Bool("mintable"),
+			Burnable:  c.Bool("burnable"),
 		}
 		processTemplate(params, params.Symbol, assets.ERC721Template)
 	}

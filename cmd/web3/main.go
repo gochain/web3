@@ -511,13 +511,13 @@ func main() {
 									Name:  "pausable, p",
 									Usage: "Pausable contract.",
 								},
-								cli.BoolFlag{
-									Name:  "unmintable, m",
-									Usage: "Mintable contract.",
+								cli.BoolTFlag{
+									Name:  "mintable, m",
+									Usage: "Mintable contract. Default: true",
 								},
-								cli.BoolFlag{
-									Name:  "unburnable, b",
-									Usage: "Burnable contract.",
+								cli.BoolTFlag{
+									Name:  "burnable, b",
+									Usage: "Burnable contract. Default: true",
 								},
 								cli.StringFlag{
 									Name:  "symbol, s",
@@ -549,18 +549,14 @@ func main() {
 									Name:  "pausable, p",
 									Usage: "Pausable contract.",
 								},
-								cli.BoolFlag{
-									Name:  "unmintable, m",
-									Usage: "Mintable contract.",
+								cli.BoolTFlag{
+									Name:  "mintable, m",
+									Usage: "Mintable contract. Default: true",
 								},
-								cli.BoolFlag{
-									Name:  "unburnable, b",
-									Usage: "Burnable contract.",
+								cli.BoolTFlag{
+									Name:  "burnable, b",
+									Usage: "Burnable contract. Default: true",
 								},
-								// cli.BoolTFlag{
-								// 	Name:  "metadata-mintable, mm",
-								// 	Usage: "Contract with a mintable metadata.",
-								// },
 								cli.StringFlag{
 									Name:  "symbol, s",
 									Usage: "Token Symbol.",

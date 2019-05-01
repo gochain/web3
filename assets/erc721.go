@@ -25,13 +25,13 @@ contract {{.Symbol}}Token is
     constructor() 
 	ERC721Full("{{.TokenName}}", "{{.Symbol}}") 	
 	public {}
-	
+{{if .Mintable}}
 	// This allows the minter to update the tokenURI after it's been minted.
 	// To disable this, delete this function.
 	function setTokenURI(uint256 tokenId, string memory tokenURI) public onlyMinter {
         _setTokenURI(tokenId, tokenURI);
     }
-	
+{{end}}
 }`
 
 const ERC721ABI = `[
