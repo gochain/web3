@@ -1,36 +1,39 @@
 package assets
 
 type Erc721Params struct {
-	Symbol           string
-	TokenName        string
-	Pausable         bool
-	MetadataMintable bool
-	Mintable         bool
-	Burnable         bool
+	Symbol    string
+	TokenName string
+	Pausable  bool
+	Mintable  bool
+	Burnable  bool
 }
 
 const ERC721Template = `pragma solidity ^0.5.2;
 
-{{if .Pausable}} import "./lib/oz/contracts/token/ERC721/ERC721Pausable.sol";{{end}}
-{{if .MetadataMintable}} import "./lib/oz/contracts/token/ERC721/ERC721MetadataMintable.sol";{{end}}
-{{if .Mintable}} import "./lib/oz/contracts/token/ERC721/ERC721Mintable.sol";{{end}}
-{{if .Burnable}} import "./lib/oz/contracts/token/ERC721/ERC721Burnable.sol";{{end}}
- import "./lib/oz/contracts/token/ERC721/ERC721Full.sol";
+{{if .Pausable}}import "./lib/oz/contracts/token/ERC721/ERC721Pausable.sol";{{end}}
+{{if .Mintable}}import "./lib/oz/contracts/token/ERC721/ERC721MetadataMintable.sol";
+import "./lib/oz/contracts/token/ERC721/ERC721Mintable.sol";{{end}}
+{{if .Burnable}}import "./lib/oz/contracts/token/ERC721/ERC721Burnable.sol";{{end}}
+import "./lib/oz/contracts/token/ERC721/ERC721Full.sol";
 
-contract {{.Symbol}}Token is  			
-			{{if .Pausable}} ERC721Pausable,{{end}}
-			{{if .MetadataMintable}} ERC721MetadataMintable,{{end}}			
-			{{if .Mintable}} ERC721Mintable,{{end}}
-			{{if .Burnable}} ERC721Burnable,{{end}}
-  			 ERC721Full {
+contract {{.Symbol}}Token is
+	{{if .Pausable}}ERC721Pausable,{{end}}
+	{{if .Mintable}}ERC721Mintable, ERC721MetadataMintable,{{end}}
+	{{if .Burnable}}ERC721Burnable,{{end}}
+  	ERC721Full {
 
-    // ------------------------------------------------------------------------
-    // Constructor
-    // ------------------------------------------------------------------------
     constructor() 
 	ERC721Full("{{.TokenName}}", "{{.Symbol}}") 	
-    public {}
+	public {}
+{{if .Mintable}}
+	// This allows the minter to update the tokenURI after it's been minted.
+	// To disable this, delete this function.
+	function setTokenURI(uint256 tokenId, string memory tokenURI) public onlyMinter {
+        _setTokenURI(tokenId, tokenURI);
+    }
+{{end}}
 }`
+
 const ERC721ABI = `[
 	{
 		"constant": true,
