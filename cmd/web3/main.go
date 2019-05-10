@@ -12,7 +12,6 @@ import (
 	"os"
 	"os/signal"
 	"sort"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -1155,9 +1154,12 @@ func Transfer(ctx context.Context, rpcURL, privateKey, toAddress string, tail []
 		fatalExit(errors.New("Invalid arguments. Format is: `transfer X to ADDRESS`"))
 	}
 
-	amountF, err := strconv.ParseFloat(tail[0], 64)
-	if err != nil {
-		fatalExit(err)
+	amountS := tail[0]
+	amountF := new(big.Float)
+	amountF.SetPrec(100)
+	_, ok := amountF.SetString(amountS)
+	if !ok {
+		fatalExit(fmt.Errorf("invalid amount %v", amountS))
 	}
 	toAddress = tail[2]
 
@@ -1169,22 +1171,18 @@ func Transfer(ctx context.Context, rpcURL, privateKey, toAddress string, tail []
 		// decimals are uint8
 		// fmt.Println("DECIMALS:", decimals, reflect.TypeOf(decimals))
 		// todo: could get symbol here to display
-		amount := web3.FloatAsInt(big.NewFloat(amountF), int(decimals.(uint8)))
+		amount := web3.FloatAsInt(amountF, int(decimals.(uint8)))
 		CallContract(ctx, rpcURL, privateKey, contractAddress, "erc20", "transfer", 0, false, toAddress, amount)
 		return
 	}
 
-	amount := web3.FloatAsInt(big.NewFloat(amountF), 18)
+	amount := web3.FloatAsInt(amountF, 18)
 
 	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
 	}
 	defer client.Close()
-	// nAmount, err := web3.ParseAmount(amount)
-	// if err != nil {
-	// 	fatalExit(fmt.Errorf("Cannot parse amount: %v", err))
-	// }
 	if toAddress == "" {
 		fatalExit(errors.New("The recepient address cannot be empty"))
 	}
