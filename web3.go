@@ -91,6 +91,7 @@ func FloatAsInt(amountF *big.Float, decimals int) *big.Int {
 	bigval.Mul(bigval, coinDecimals)
 
 	amountI := new(big.Int)
+        // todo: could sanity check the accuracy here
 	bigval.Int(amountI) // big.NewInt(int64(amountInWeiF)) // amountInGo.Mul(amountInGo, big.NewInt(int64(math.Pow10(18))))
 	return amountI
 }
