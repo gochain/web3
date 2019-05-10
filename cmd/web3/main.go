@@ -1170,8 +1170,7 @@ func Transfer(ctx context.Context, rpcURL, privateKey, toAddress string, tail []
 		// fmt.Println("DECIMALS:", decimals, reflect.TypeOf(decimals))
 		// todo: could get symbol here to display
 		amount := web3.FloatAsInt(big.NewFloat(amountF), int(decimals.(uint8)))
-		fmt.Println("HERE")
-		CallContract(ctx, rpcURL, privateKey, contractAddress, "erc20", "transfer", 0, true, toAddress, amount)
+		CallContract(ctx, rpcURL, privateKey, contractAddress, "erc20", "transfer", 0, false, toAddress, amount)
 		return
 	}
 
