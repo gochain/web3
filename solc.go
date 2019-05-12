@@ -63,7 +63,7 @@ func (s *Solidity) makeArgs() ([]string, error) {
 		return nil, err
 	}
 	return []string{
-		"run", "-i", "-v", dir + ":/workdir", "-w", "/workdir", "ethereum/solc:" + s.Version,
+		"run", "-i", "--rm", "-v", dir + ":/workdir", "-w", "/workdir", "ethereum/solc:" + s.Version,
 		"--combined-json",
 		"bin,bin-runtime,srcmap,srcmap-runtime,abi,userdoc,devdoc,metadata",
 		"--optimize", // code optimizer switched on
