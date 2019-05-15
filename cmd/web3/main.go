@@ -165,7 +165,38 @@ func main() {
 					Hidden:      false},
 			},
 			Action: func(c *cli.Context) {
-				GetAddressDetails(ctx, network, c.Args().First(), privateKey)
+				GetAddressDetails(ctx, network, c.Args().First(), privateKey, false, "")
+			},
+		},
+		{
+			Name:  "balance",
+			Usage: "Get balance for your private key or an address passed in. eg: `balance 0xABC123`",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "private-key, pk",
+					Usage:       "The private key",
+					EnvVar:      pkVarName,
+					Destination: &privateKey,
+					Hidden:      false},
+				cli.BoolFlag{
+					Name:   "erc20",
+					Usage:  "set if using erc20 tokens",
+					Hidden: false},
+				cli.StringFlag{
+					Name:   "address",
+					EnvVar: addrVarName,
+					Usage:  "Contract address",
+					Hidden: false},
+			},
+			Action: func(c *cli.Context) {
+				contractAddress = ""
+				if c.Bool("erc20") {
+					contractAddress = c.String("address")
+					if contractAddress == "" {
+						fatalExit(errors.New("You must set ERC20 contract address"))
+					}
+				}
+				GetAddressDetails(ctx, network, c.Args().First(), privateKey, true, contractAddress)
 			},
 		},
 		{
@@ -460,9 +491,9 @@ func main() {
 			},
 		},
 		{
-			Name:    "send",
-			Usage:   fmt.Sprintf("Transfer GO to an account (web3 send -to 0xb 10go/eth/nanogo/gwei/attogo/wei)"),
-			Aliases: []string{"transfer"},
+			Name:    "transfer",
+			Usage:   fmt.Sprintf("Transfer GO/ETH to an account. eg: `web3 transfer 10.1 to 0xADDRESS`"),
+			Aliases: []string{"send"},
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:        "private-key,pk",
@@ -477,9 +508,25 @@ func main() {
 					Destination: &recepientAddress,
 					Usage:       "The recepient address",
 					Hidden:      false},
+				cli.BoolFlag{
+					Name:   "erc20",
+					Usage:  "set if transfering erc20 tokens",
+					Hidden: false},
+				cli.StringFlag{
+					Name:   "address",
+					EnvVar: addrVarName,
+					Usage:  "Contract address",
+					Hidden: false},
 			},
 			Action: func(c *cli.Context) {
-				Send(ctx, network.URL, privateKey, recepientAddress, c.Args().First())
+				contractAddress = ""
+				if c.Bool("erc20") {
+					contractAddress = c.String("address")
+					if contractAddress == "" {
+						fatalExit(errors.New("You must set ERC20 contract address"))
+					}
+				}
+				Transfer(ctx, network.URL, privateKey, recepientAddress, c.Args(), contractAddress)
 			},
 		},
 		{
@@ -830,7 +877,8 @@ func GetTransactionReceipt(ctx context.Context, rpcURL, txhash, contractFile str
 	printReceiptDetails(r, myabi)
 }
 
-func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, privateKey string) {
+func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, privateKey string, onlyBalance bool,
+	contractAddress string) {
 	if addrHash == "" {
 		if privateKey == "" {
 			fatalExit(errors.New("Missing address. Must be specified as only argument, or implied from a private key."))
@@ -841,6 +889,23 @@ func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, priv
 		}
 		addrHash = acct.PublicKey()
 	}
+
+	if contractAddress != "" {
+		decimals, err := GetContractConst(ctx, network.URL, contractAddress, "erc20", "decimals")
+		if err != nil {
+			fatalExit(err)
+		}
+		// fmt.Println("DECIMALS:", decimals, reflect.TypeOf(decimals))
+		// todo: could get symbol here to display
+		balance, err := GetContractConst(ctx, network.URL, contractAddress, "erc20", "balanceOf", addrHash)
+		if err != nil {
+			fatalExit(err)
+		}
+		// fmt.Println("BALANCE:", balance, reflect.TypeOf(balance))
+		fmt.Println(web3.IntAsFloat(balance.(*big.Int), int(decimals.(uint8))))
+		return
+	}
+
 	client, err := web3.Dial(network.URL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
@@ -872,9 +937,13 @@ func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, priv
 		return
 	}
 
-	fmt.Println("Balance:", web3.WeiAsBase(bal), network.Unit)
-	if len(code) > 0 {
-		fmt.Println("Code:", string(code))
+	if onlyBalance {
+		fmt.Println(web3.WeiAsBase(bal), network.Unit)
+	} else {
+		fmt.Println("Balance:", web3.WeiAsBase(bal), network.Unit)
+		if len(code) > 0 {
+			fmt.Println("Code:", string(code))
+		}
 	}
 }
 
@@ -1080,80 +1149,45 @@ func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string, upg
 	fmt.Println("Contract address is:", proxyReceipt.ContractAddress.Hex())
 }
 
-func ListContract(contractFile string) {
-
-	myabi := getAbi(contractFile)
-
-	switch format {
-	case "json":
-		fmt.Println(marshalJSON(myabi.Methods))
-		return
+func Transfer(ctx context.Context, rpcURL, privateKey, toAddress string, tail []string, contractAddress string) {
+	if len(tail) < 3 {
+		fatalExit(errors.New("Invalid arguments. Format is: `transfer X to ADDRESS`"))
 	}
 
-	for _, method := range myabi.Methods {
-		fmt.Println(method)
+	amountS := tail[0]
+	amountF := new(big.Float)
+	amountF.SetPrec(100)
+	_, ok := amountF.SetString(amountS)
+	if !ok {
+		fatalExit(fmt.Errorf("invalid amount %v", amountS))
 	}
+	toAddress = tail[2]
 
-}
-
-func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, contractFile, functionName string, amount int, waitForReceipt bool, parameters ...interface{}) {
-	client, err := web3.Dial(rpcURL)
-	if err != nil {
-		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
-	}
-	defer client.Close()
-	myabi := getAbi(contractFile)
-	if _, ok := myabi.Methods[functionName]; !ok {
-		fmt.Println("There is no such function:", functionName)
-		return
-	}
-	if myabi.Methods[functionName].Const {
-		res, err := web3.CallConstantFunction(ctx, client, *myabi, contractAddress, functionName, parameters...)
+	if contractAddress != "" {
+		decimals, err := GetContractConst(ctx, rpcURL, contractAddress, "erc20", "decimals")
 		if err != nil {
-			fatalExit(fmt.Errorf("Cannot call the contract: %v", err))
+			fatalExit(err)
 		}
-		switch format {
-		case "json":
-			m := make(map[string]interface{})
-			m["response"] = res
-			fmt.Println(marshalJSON(m))
-			return
-		}
-		fmt.Println(res)
+		// decimals are uint8
+		// fmt.Println("DECIMALS:", decimals, reflect.TypeOf(decimals))
+		// todo: could get symbol here to display
+		amount := web3.FloatAsInt(amountF, int(decimals.(uint8)))
+		CallContract(ctx, rpcURL, privateKey, contractAddress, "erc20", "transfer", 0, false, toAddress, amount)
 		return
 	}
-	tx, err := web3.CallTransactFunction(ctx, client, *myabi, contractAddress, privateKey, functionName, amount, parameters...)
-	if err != nil {
-		fatalExit(fmt.Errorf("Cannot call the contract: %v", err))
-	}
-	if !waitForReceipt {
-		fmt.Println("Transaction address:", tx.Hash.Hex())
-		return
-	}
-	ctx, _ = context.WithTimeout(ctx, 10*time.Second)
-	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
-	if err != nil {
-		fatalExit(fmt.Errorf("Cannot get the receipt: %v", err))
-	}
-	printReceiptDetails(receipt, myabi)
 
-}
+	amount := web3.FloatAsInt(amountF, 18)
 
-func Send(ctx context.Context, rpcURL, privateKey, toAddress, amount string) {
 	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
 	}
 	defer client.Close()
-	nAmount, err := web3.ParseAmount(amount)
-	if err != nil {
-		fatalExit(fmt.Errorf("Cannot parse amount: %v", err))
-	}
 	if toAddress == "" {
 		fatalExit(errors.New("The recepient address cannot be empty"))
 	}
 	address := common.HexToAddress(toAddress)
-	tx, err := web3.Send(ctx, client, privateKey, address, nAmount)
+	tx, err := web3.Send(ctx, client, privateKey, address, amount)
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot create transaction: %v", err))
 	}
@@ -1167,7 +1201,7 @@ func printReceiptDetails(r *web3.Receipt, myabi *abi.ABI) {
 		logs, err = web3.ParseLogs(*myabi, r.Logs)
 		r.ParsedLogs = logs
 		if err != nil {
-			fatalExit(fmt.Errorf("Cannot parse the receipt logs: %v", err))
+			fmt.Printf("ERROR: Cannot parse the receipt logs: %v\ncontinuing...\n", err)
 		}
 	}
 	switch format {

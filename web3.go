@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"reflect"
 	"strconv"
@@ -70,6 +71,31 @@ func WeiAsGwei(w *big.Int) string {
 	return new(big.Rat).SetFrac(w, weiPerGwei).FloatString(9)
 }
 
+// IntAsFloat converts a *big.Int (ie: wei), to *big.Float (ie: ETH)
+func IntAsFloat(i *big.Int, decimals int) *big.Float {
+	f := new(big.Float)
+	f.SetPrec(100)
+	f.SetInt(i)
+	f.Quo(f, big.NewFloat(math.Pow10(decimals)))
+	return f
+}
+
+// FloatAsInt converts a float to a *big.Int based on the decimals passed in
+func FloatAsInt(amountF *big.Float, decimals int) *big.Int {
+	bigval := new(big.Float)
+	bigval.SetPrec(100)
+	bigval.SetString(amountF.String()) // have to do this to not lose precision
+
+	coinDecimals := new(big.Float)
+	coinDecimals.SetFloat64(math.Pow10(decimals))
+	bigval.Mul(bigval, coinDecimals)
+
+	amountI := new(big.Int)
+        // todo: could sanity check the accuracy here
+	bigval.Int(amountI) // big.NewInt(int64(amountInWeiF)) // amountInGo.Mul(amountInGo, big.NewInt(int64(math.Pow10(18))))
+	return amountI
+}
+
 func convertOutputParameter(t abi.Argument) interface{} {
 	switch t.Type.T {
 	case abi.BoolTy:
@@ -89,15 +115,18 @@ func convertOutputParameter(t abi.Argument) interface{} {
 
 // CallConstantFunction executes a contract function call without submitting a transaction.
 func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, address, functionName string, parameters ...interface{}) (interface{}, error) {
+	if parameters == nil {
+		parameters = []interface{}{}
+	}
+	if len(myabi.Methods[functionName].Inputs) != len(parameters) {
+		return nil, errors.New("Wrong number of arguments expected:" + strconv.Itoa(len(myabi.Methods[functionName].Inputs)) + " given:" + strconv.Itoa(len(parameters)))
+	}
 	if address == "" {
 		return nil, errors.New("no contract address specified")
 	}
 	var out []interface{}
 	for _, t := range myabi.Methods[functionName].Outputs {
 		out = append(out, convertOutputParameter(t))
-	}
-	if len(myabi.Methods[functionName].Inputs) != len(parameters) {
-		return nil, errors.New("Wrong number of arguments expected:" + strconv.Itoa(len(myabi.Methods[functionName].Inputs)) + " given:" + strconv.Itoa(len(parameters)))
 	}
 
 	input, err := myabi.Pack(functionName, convertParameters(myabi.Methods[functionName], parameters)...)
@@ -302,7 +331,12 @@ func convertParameters(method abi.Method, inputParams []interface{}) []interface
 			convertedParams = append(convertedParams, val)
 		case abi.UintTy:
 			val := new(big.Int)
-			fmt.Sscan(inputParams[i].(string), val)
+			switch inputParams[i].(type) {
+			case *big.Int:
+				val = inputParams[i].(*big.Int)
+			default:
+				fmt.Sscan(inputParams[i].(string), val)
+			}
 			convertedParams = append(convertedParams, val)
 		case abi.AddressTy:
 			val := common.HexToAddress(inputParams[i].(string))
@@ -311,7 +345,6 @@ func convertParameters(method abi.Method, inputParams []interface{}) []interface
 			val := inputParams[i].(string)
 			convertedParams = append(convertedParams, val)
 		}
-
 	}
 	return convertedParams
 }

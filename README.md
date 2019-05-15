@@ -238,11 +238,16 @@ will need to first resume operation:
 web3 contract resume
 ```
 
-## List of available commands
+## The Most Common Available commands
 
 ### Global parameters
 
-`$NETWORK as env variable or -network as command parameter` - the name of the network. Available networks are:
+#### Choosing a network
+
+To choose a network, you can either set `WEB3_NETWORK` or `WEB3_RPC_URL` environment variables or pass it in explicitly
+on each command with the `--network` or `--rpc-url` flag.
+
+Available name networks are:
 
 * gochain (default)
 * testnet
@@ -250,39 +255,33 @@ web3 contract resume
 * ropsten
 * localhost
 
-`$RPC_URL as env variable or -rpc-url as command parameter` - The network RPC URL (ie http://localhost:8545)
+The RPC URL is a full URL to a host, for eg: `https://rpc.gochain.io` or `http://localhost:8545`
 
-`-verbose as command parameter` - Verbose logging
+#### Setting your private key
 
-### Show information about a block
-
-```sh
-web3 block BLOCK_ID
-```
-
-**Parameters:**
-
-- BLOCK_ID - id of a block (omit for `latest`)
-
-### Show information about a transaction
+Set your private key in the environment so it can be used in all the commands below:
 
 ```sh
-web3 transaction TX_HASH
+export WEB3_PRIVATE_KEY=0xKEY
 ```
 
-**Parameters:**
+### Check balance
 
-- TX_HASH - hash of a transaction
-
-### Show information about an address
-
-```sj
-web3 transaction ADDRESS_HASH
+```sh
+web3 balance
 ```
 
-**Parameters:**
+### Transfer tokens
 
-- ADDRESS_HASH - hash of the address
+```sh
+web3 transfer 0.1 to 0x67683dd2a499E765BCBE0035439345f48996892f
+```
+
+### Get transaction details
+
+```sh
+web3 tx TX_HASH
+```
 
 ### Build a smart contract
 
@@ -292,8 +291,8 @@ web3 contract build FILENAME.sol --solc-version SOLC_VERSION
 
 **Parameters:**
 
-- FILENAME - the name of the .sol file, eg: `hello.sol`
-- SOLC_VERSION - the version of the solc compiler
+* FILENAME - the name of the .sol file, eg: `hello.sol`
+* SOLC_VERSION - the version of the solc compiler
 
 ### Deploy a smart contract to a network
 
@@ -303,10 +302,11 @@ web3 contract deploy FILENAME.bin
 
 **Parameters:**
 
-- FILENAME - the name of the .bin
-- $WEB3_PRIVATE_KEY as env variable or -private-key as command parameter - the private key of the wallet
+* FILENAME - the name of the .bin
 
 ### Call a function of a deployed contract
+
+Note: you can set `WEB3_ADDRESS=0xCONTRACT_ADDRESS` environment variable to skip the `--address` flag in the commands below.
 
 ```sh
 web3 contract call --amount AMOUNT --address CONTRACT_ADDRESS --abi CONTRACT_ABI_FILE --function FUNCTION_NAME FUNCTION_PARAMETERS
@@ -320,12 +320,11 @@ web3 contract call --amount AMOUNT --address CONTRACT_ADDRESS --abi erc20|erc721
 
 **Parameters:**
 
-- CONTRACT_ADDRESS - the address of the deployed contract
-- CONTRACT_ABI_FILE - the abi file of the deployed contract (take into account that there are some bundled abi files like erc20 and erc721 so you could use them without downloading or compiling them)
-- FUNCTION_NAME - the name of the function you want to call
-- FUNCTION_PARAMETERS - the list of the function parameters
-- AMOUNT - amount of wei to be send with transaction (require only for paid transact functions)
-- $WEB3_PRIVATE_KEY as env variable or -private-key as command parameter - the private key of the wallet
+* CONTRACT_ADDRESS - the address of the deployed contract
+* CONTRACT_ABI_FILE - the abi file of the deployed contract (take into account that there are some bundled abi files like erc20 and erc721 so you could use them without downloading or compiling them)
+* FUNCTION_NAME - the name of the function you want to call
+* FUNCTION_PARAMETERS - the list of the function parameters
+* AMOUNT - amount of wei to be send with transaction (require only for paid transact functions)
 
 ### List functions in an ABI
 
@@ -335,18 +334,7 @@ web3 contract list --abi CONTRACT_ABI_FILE
 
 **Parameters:**
 
-- CONTRACT_ABI_FILE - the abi file of the compiled contract
-
-### Transfer amount to the address
-
-```sh
-web3 send --to RECIPIENT_ADDRESS AMOUNT
-```
-
-**Parameters:**
-
-- RECIPIENT_ADDRESS - the address of the recepient
-- AMOUNT - the amount that should be send in the transaction ie - 1go (allowed units: go,eth,nanogo,gwei,attogo,wei)
+* CONTRACT_ABI_FILE - the abi file of the compiled contract
 
 ### Generate common contracts - ERC20, ERC721, etc
 
@@ -368,6 +356,26 @@ See `web3 generate code --help` for more information.
 - CONTRACT_ABI_FILE - the abi file of the compiled contract
 - OUT_FILENAME - the output file
 - PGK_NAME - package name
+
+### Show information about a block
+
+```sh
+web3 block BLOCK_ID
+```
+
+**Parameters:**
+
+- BLOCK_ID - id of a block (omit for `latest`)
+
+### Show information about an address
+
+```sj
+web3 transaction ADDRESS_HASH
+```
+
+**Parameters:**
+
+- ADDRESS_HASH - hash of the address
 
 ## More installation options
 
