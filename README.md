@@ -1,4 +1,9 @@
-# Web3
+    ██╗    ██╗███████╗██████╗ ██████╗      ██████╗██╗     ██╗
+    ██║    ██║██╔════╝██╔══██╗╚════██╗    ██╔════╝██║     ██║
+    ██║ █╗ ██║█████╗  ██████╔╝ █████╔╝    ██║     ██║     ██║
+    ██║███╗██║██╔══╝  ██╔══██╗ ╚═══██╗    ██║     ██║     ██║
+    ╚███╔███╔╝███████╗██████╔╝██████╔╝    ╚██████╗███████╗██║
+    ╚══╝╚══╝ ╚══════╝╚═════╝ ╚═════╝      ╚═════╝╚══════╝╚═╝
 
 Simple command line tool for interacting with web3 enabled blockchains - GoChain, Ethereum, etc.
 This repository also exports the backing golang `package web3`.
