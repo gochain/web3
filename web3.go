@@ -341,9 +341,11 @@ func convertParameters(method abi.Method, inputParams []interface{}) []interface
 		case abi.AddressTy:
 			val := common.HexToAddress(inputParams[i].(string))
 			convertedParams = append(convertedParams, val)
-		default:
-			val := inputParams[i].(string)
+		case abi.ArrayTy:
+			val := common.HexToAddress(inputParams[i].(string))
 			convertedParams = append(convertedParams, val)
+		default:
+			convertedParams = append(convertedParams, inputParams[i])
 		}
 	}
 	return convertedParams

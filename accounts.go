@@ -33,6 +33,10 @@ type Account struct {
 	key *ecdsa.PrivateKey
 }
 
+func (a *Account) Key() *ecdsa.PrivateKey {
+	return a.key
+}
+
 func (a *Account) PublicKey() string {
 	return crypto.PubkeyToAddress(a.key.PublicKey).Hex()
 }
