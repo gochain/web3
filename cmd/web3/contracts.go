@@ -10,8 +10,10 @@ import (
 
 func ListContract(contractFile string) {
 
-	myabi := getAbi(contractFile)
-
+	myabi, err := web3.GetABI(contractFile)
+	if err != nil {
+		fatalExit(err)
+	}
 	switch format {
 	case "json":
 		fmt.Println(marshalJSON(myabi.Methods))
@@ -30,7 +32,10 @@ func GetContractConst(ctx context.Context, rpcURL, contractAddress, contractFile
 		return nil, fmt.Errorf("Failed to connect to %q: %v", rpcURL, err)
 	}
 	defer client.Close()
-	myabi := getAbi(contractFile)
+	myabi, err := web3.GetABI(contractFile)
+	if err != nil {
+		return "", err
+	}
 	if _, ok := myabi.Methods[functionName]; !ok {
 		return nil, fmt.Errorf("There is no such function: %v", functionName)
 	}
@@ -51,7 +56,10 @@ func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
 	}
 	defer client.Close()
-	myabi := getAbi(contractFile)
+	myabi, err := web3.GetABI(contractFile)
+	if err != nil {
+		fatalExit(err)
+	}
 	if _, ok := myabi.Methods[functionName]; !ok {
 		fmt.Println("There is no such function:", functionName)
 		return

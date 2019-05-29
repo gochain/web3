@@ -1021,7 +1021,10 @@ func GetTransactionReceipt(ctx context.Context, rpcURL, txhash, contractFile str
 	}
 	defer client.Close()
 	if contractFile != "" {
-		myabi = getAbi(contractFile)
+		myabi, err = web3.GetABI(contractFile)
+		if err != nil {
+			fatalExit(err)
+		}
 	}
 	r, err := client.GetTransactionReceipt(ctx, common.HexToHash(txhash))
 	if err != nil {
@@ -1819,19 +1822,6 @@ func marshalJSON(data interface{}) string {
 	return string(b)
 }
 
-func getAbi(contractFile string) *abi.ABI {
-	abi, err := web3.ABIBuiltIn(contractFile)
-	if err != nil {
-		fatalExit(fmt.Errorf("Cannot get ABI from the bundled storage: %v", err))
-	}
-	if abi == nil {
-		abi, err = web3.ABIOpenFile(contractFile)
-		if err != nil {
-			fatalExit(fmt.Errorf("Cannot get ABI: %v", err))
-		}
-	}
-	return abi
-}
 func fatalExit(err error) {
 	fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
 	os.Exit(1)
