@@ -91,7 +91,7 @@ func FloatAsInt(amountF *big.Float, decimals int) *big.Int {
 	bigval.Mul(bigval, coinDecimals)
 
 	amountI := new(big.Int)
-        // todo: could sanity check the accuracy here
+	// todo: could sanity check the accuracy here
 	bigval.Int(amountI) // big.NewInt(int64(amountInWeiF)) // amountInGo.Mul(amountInGo, big.NewInt(int64(math.Pow10(18))))
 	return amountI
 }
@@ -129,7 +129,7 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 		out = append(out, convertOutputParameter(t))
 	}
 
-	input, err := myabi.Pack(functionName, convertParameters(myabi.Methods[functionName], parameters)...)
+	input, err := myabi.Pack(functionName, ConvertArguments(myabi.Methods[functionName], parameters)...)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, add
 		return nil, errors.New("Wrong number of arguments expected:" + strconv.Itoa(len(myabi.Methods[functionName].Inputs)) + " given:" + strconv.Itoa(len(parameters)))
 	}
 
-	input, err := myabi.Pack(functionName, convertParameters(myabi.Methods[functionName], parameters)...)
+	input, err := myabi.Pack(functionName, ConvertArguments(myabi.Methods[functionName], parameters)...)
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +246,7 @@ func DeployContract(ctx context.Context, client Client, privateKeyHex string, bi
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse ABI: %v", err)
 		}
-		input, err := abiData.Pack("", convertParameters(abiData.Constructor, params)...)
+		input, err := abiData.Pack("", ConvertArguments(abiData.Constructor, params)...)
 		if err != nil {
 			return nil, fmt.Errorf("cannot pack parameters: %v", err)
 		}
@@ -322,7 +322,7 @@ func convertTx(tx *types.Transaction, from common.Address) *Transaction {
 	return rtx
 }
 
-func convertParameters(method abi.Method, inputParams []interface{}) []interface{} {
+func ConvertArguments(method abi.Method, inputParams []interface{}) []interface{} {
 	var convertedParams []interface{}
 	for i, input := range method.Inputs {
 		switch input.Type.T {
