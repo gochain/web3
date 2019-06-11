@@ -345,8 +345,7 @@ func ConvertArguments(method abi.Method, inputParams []interface{}) ([]interface
 			switch inputParams[i].(type) {
 			case *big.Int:
 				val = inputParams[i].(*big.Int)
-				convertedParams = append(convertedParams, val)
-
+				convertedParams = append(convertedParams, convertInt(input.Type, val))
 			case float64: // convenient for taking args directly from JSON values
 				// if not converted to proper sizes, you get errors like: abi: cannot use ptr as type uint16 as argument
 				f := inputParams[i].(float64)
@@ -355,19 +354,7 @@ func ConvertArguments(method abi.Method, inputParams []interface{}) ([]interface
 				if a != big.Exact {
 					return nil, fmt.Errorf("floating point number %v used which is not valid in web3. Please convert to big.Int.", f)
 				}
-				switch size := input.Type.Size; {
-				case size > 64:
-					convertedParams = append(convertedParams, i2)
-				case size > 32:
-					convertedParams = append(convertedParams, i2.Uint64())
-				case size > 16:
-					convertedParams = append(convertedParams, uint32(i2.Uint64()))
-				case size > 8:
-					convertedParams = append(convertedParams, uint16(i2.Uint64()))
-				default:
-					convertedParams = append(convertedParams, uint8(i2.Uint64()))
-				}
-
+				convertedParams = append(convertedParams, convertInt(input.Type, i2))
 			default:
 				fmt.Sscan(inputParams[i].(string), val)
 				convertedParams = append(convertedParams, val)
@@ -384,6 +371,21 @@ func ConvertArguments(method abi.Method, inputParams []interface{}) ([]interface
 		}
 	}
 	return convertedParams, nil
+}
+
+func convertInt(t abi.Type, i *big.Int) interface{} {
+	switch size := t.Size; {
+	case size > 64:
+		return i
+	case size > 32:
+		return i.Uint64()
+	case size > 16:
+		return uint32(i.Uint64())
+	case size > 8:
+		return uint16(i.Uint64())
+	default:
+		return uint8(i.Uint64())
+	}
 }
 
 // WaitForReceipt polls for a transaction receipt until it is available, or ctx is cancelled.
