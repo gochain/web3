@@ -7,6 +7,7 @@ require (
 	github.com/edsrzf/mmap-go v1.0.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gochain-io/gochain/v3 v3.0.11
+	github.com/kr/pretty v0.1.0 // indirect
 	github.com/urfave/cli v1.20.0
 	go.opencensus.io v0.19.0 // indirect
 	golang.org/x/crypto v0.0.0-20190123085648-057139ce5d2b

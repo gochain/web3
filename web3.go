@@ -128,8 +128,11 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 	for _, t := range myabi.Methods[functionName].Outputs {
 		out = append(out, convertOutputParameter(t))
 	}
-
-	input, err := myabi.Pack(functionName, ConvertArguments(myabi.Methods[functionName], parameters)...)
+	args2, err := ConvertArguments(myabi.Methods[functionName], parameters)
+	if err != nil {
+		return nil, err
+	}
+	input, err := myabi.Pack(functionName, args2...)
 	if err != nil {
 		return nil, err
 	}
@@ -167,8 +170,11 @@ func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, add
 	if len(myabi.Methods[functionName].Inputs) != len(parameters) {
 		return nil, errors.New("Wrong number of arguments expected:" + strconv.Itoa(len(myabi.Methods[functionName].Inputs)) + " given:" + strconv.Itoa(len(parameters)))
 	}
-
-	input, err := myabi.Pack(functionName, ConvertArguments(myabi.Methods[functionName], parameters)...)
+	args2, err := ConvertArguments(myabi.Methods[functionName], parameters)
+	if err != nil {
+		return nil, err
+	}
+	input, err := myabi.Pack(functionName, args2...)
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +252,11 @@ func DeployContract(ctx context.Context, client Client, privateKeyHex string, bi
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse ABI: %v", err)
 		}
-		input, err := abiData.Pack("", ConvertArguments(abiData.Constructor, params)...)
+		args2, err := ConvertArguments(abiData.Constructor, params)
+		if err != nil {
+			return nil, err
+		}
+		input, err := abiData.Pack("", args2...)
 		if err != nil {
 			return nil, fmt.Errorf("cannot pack parameters: %v", err)
 		}
@@ -322,9 +332,10 @@ func convertTx(tx *types.Transaction, from common.Address) *Transaction {
 	return rtx
 }
 
-func ConvertArguments(method abi.Method, inputParams []interface{}) []interface{} {
+func ConvertArguments(method abi.Method, inputParams []interface{}) ([]interface{}, error) {
 	var convertedParams []interface{}
 	for i, input := range method.Inputs {
+		// fmt.Println("INPUT TYPE:", input.Type.T, "SIZE:", input.Type.Size)
 		switch input.Type.T {
 		case abi.BoolTy:
 			val, _ := strconv.ParseBool(inputParams[i].(string))
@@ -334,10 +345,21 @@ func ConvertArguments(method abi.Method, inputParams []interface{}) []interface{
 			switch inputParams[i].(type) {
 			case *big.Int:
 				val = inputParams[i].(*big.Int)
+				convertedParams = append(convertedParams, convertInt(input.Type, val))
+			case float64: // convenient for taking args directly from JSON values
+				// if not converted to proper sizes, you get errors like: abi: cannot use ptr as type uint16 as argument
+				f := inputParams[i].(float64)
+				f2 := big.NewFloat(f)
+				i2, a := f2.Int(nil)
+				if a != big.Exact {
+					return nil, fmt.Errorf("floating point number %v used which is not valid in web3. Please convert to big.Int.", f)
+				}
+				convertedParams = append(convertedParams, convertInt(input.Type, i2))
 			default:
 				fmt.Sscan(inputParams[i].(string), val)
+				convertedParams = append(convertedParams, val)
 			}
-			convertedParams = append(convertedParams, val)
+			// TODO: case abi.IntTy, just like above
 		case abi.AddressTy:
 			val := common.HexToAddress(inputParams[i].(string))
 			convertedParams = append(convertedParams, val)
@@ -348,7 +370,22 @@ func ConvertArguments(method abi.Method, inputParams []interface{}) []interface{
 			convertedParams = append(convertedParams, inputParams[i])
 		}
 	}
-	return convertedParams
+	return convertedParams, nil
+}
+
+func convertInt(t abi.Type, i *big.Int) interface{} {
+	switch size := t.Size; {
+	case size > 64:
+		return i
+	case size > 32:
+		return i.Uint64()
+	case size > 16:
+		return uint32(i.Uint64())
+	case size > 8:
+		return uint16(i.Uint64())
+	default:
+		return uint8(i.Uint64())
+	}
 }
 
 // WaitForReceipt polls for a transaction receipt until it is available, or ctx is cancelled.
