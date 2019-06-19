@@ -515,7 +515,6 @@ func main() {
 							fatalExit(fmt.Errorf("Failed to read file %q: %v", f, err))
 						}
 						key, err := keystore.DecryptKey(kbytes, c.String("password"))
-						// err = json.Unmarshal(kbytes,kjson )
 						if err != nil {
 							fatalExit(err)
 						}
