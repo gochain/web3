@@ -1,5 +1,6 @@
 pragma solidity ^0.5.8;
 
+import "../../lib/oz/contracts/token/ERC20/ERC20.sol";
 import "./transfers.sol";
 
 contract ProxyToken {
@@ -31,11 +32,6 @@ contract ProxyToken {
 
     function _mint(uint) internal {}
     function _burn(uint) internal {}
-}
-
-interface ERC20 {
-    function transfer(address _to, uint256 _value) external returns (bool success);
-    function transferFrom(address _from, address _to, uint256 _value) external returns (bool success);
 }
 
 contract TokenCustody {
