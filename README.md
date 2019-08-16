@@ -14,7 +14,7 @@ https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/6874
 
 ## Install web3
 
-Quick one line install:
+Quick one line install: (NOTE: this does not work on MacOS right now, use another install option if you're on a Mac)
 
 ```sh
 curl -LSs https://raw.githubusercontent.com/gochain-io/web3/master/install.sh | sh
@@ -22,7 +22,7 @@ curl -LSs https://raw.githubusercontent.com/gochain-io/web3/master/install.sh | 
 
 [Install Docker](https://docs.docker.com/install/) (optional) - While not required for all commands, many of the developer commands require Docker so we recommend installing it.
 
-[More options](#More-installation-options)
+[More installation options](#More-installation-options)
 
 ## Quickstart
 
