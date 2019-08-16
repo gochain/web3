@@ -400,6 +400,7 @@ Clone this repo:
 ```sh
 git clone https://github.com/gochain-io/web3
 cd web3
-make build
-./web3 help
+make install
+# or just `make build` to build it into current directory
+web3 help
 ```
