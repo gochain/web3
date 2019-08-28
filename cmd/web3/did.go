@@ -12,13 +12,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gochain-io/gochain/v3/accounts/abi"
-	"github.com/gochain-io/gochain/v3/common"
-	"github.com/gochain-io/gochain/v3/crypto"
-	"github.com/gochain-io/web3"
-	"github.com/gochain-io/web3/assets"
-	"github.com/gochain-io/web3/did"
-	"github.com/gochain-io/web3/vc"
+	"github.com/gochain/gochain/v3/accounts/abi"
+	"github.com/gochain/gochain/v3/common"
+	"github.com/gochain/gochain/v3/crypto"
+	"github.com/gochain/web3"
+	"github.com/gochain/web3/assets"
+	"github.com/gochain/web3/did"
+	"github.com/gochain/web3/vc"
 	"golang.org/x/crypto/sha3"
 )
 

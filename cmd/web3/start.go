@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/gochain-io/web3"
+	"github.com/gochain/web3"
 	"github.com/urfave/cli"
 )
 

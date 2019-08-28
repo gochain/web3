@@ -10,7 +10,7 @@ echo "Version: $version"
 make release
 
 # Upload to github
-url='https://api.github.com/repos/gochain-io/web3/releases'
+url='https://api.github.com/repos/gochain/web3/releases'
 output=$(curl -s "$url/tags/v$version")
 upload_url=$(echo "$output" | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["upload_url"]' | sed -E "s/\{.*//")
 html_url=$(echo "$output" | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["html_url"]')

@@ -10,14 +10,14 @@ This repository also exports the backing golang `package web3`.
 
 [![API Reference](
 https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/68747470733a2f2f676f646f632e6f72672f6769746875622e636f6d2f676f6c616e672f6764646f3f7374617475732e737667
-)](https://godoc.org/github.com/gochain-io/web3)
+)](https://godoc.org/github.com/gochain/web3)
 
 ## Install web3
 
 Quick one line install: (NOTE: this does not work on MacOS right now, use another install option if you're on a Mac)
 
 ```sh
-curl -LSs https://raw.githubusercontent.com/gochain-io/web3/master/install.sh | sh
+curl -LSs https://raw.githubusercontent.com/gochain/web3/master/install.sh | sh
 ```
 
 [Install Docker](https://docs.docker.com/install/) (optional) - While not required for all commands, many of the developer commands require Docker so we recommend installing it.
@@ -384,13 +384,13 @@ web3 transaction ADDRESS_HASH
 You can use the script to install a specific version:
 
 ```sh
-curl -LSs https://raw.githubusercontent.com/gochain-io/web3/master/install.sh | sh -s v0.0.9
+curl -LSs https://raw.githubusercontent.com/gochain/web3/master/install.sh | sh -s v0.0.9
 ```
 
 ### Install using the Go language
 
 ```sh
-go install github.com/gochain-io/web3/cmd/web3
+go install github.com/gochain/web3/cmd/web3
 ```
 
 ### Build from source
@@ -398,7 +398,7 @@ go install github.com/gochain-io/web3/cmd/web3
 Clone this repo:
 
 ```sh
-git clone https://github.com/gochain-io/web3
+git clone https://github.com/gochain/web3
 cd web3
 make install
 # or just `make build` to build it into current directory
