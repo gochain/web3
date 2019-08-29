@@ -1,4 +1,4 @@
-module github.com/gochain-io/web3
+module github.com/gochain/web3
 
 require (
 	github.com/OneOfOne/xxhash v1.2.4 // indirect
@@ -6,11 +6,7 @@ require (
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/edsrzf/mmap-go v1.0.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
-	github.com/gochain-io/gochain/v3 v3.0.11
-	github.com/kr/pretty v0.1.0 // indirect
-	github.com/urfave/cli v1.20.0
-	go.opencensus.io v0.19.0 // indirect
-	golang.org/x/crypto v0.0.0-20190123085648-057139ce5d2b
-	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4 // indirect
-	golang.org/x/text v0.3.1-0.20180807135948-17ff2d5776d2 // indirect
+	github.com/gochain/gochain/v3 v3.2.9-0.20190828231604-bef07030afb2
+	github.com/urfave/cli v1.21.0
+	golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5
 )

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gochain-io/web3"
+	"github.com/gochain/web3"
 )
 
 func ListContract(contractFile string) {

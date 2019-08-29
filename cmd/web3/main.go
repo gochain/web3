@@ -19,13 +19,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gochain-io/gochain/v3/accounts/abi"
-	"github.com/gochain-io/gochain/v3/accounts/keystore"
-	"github.com/gochain-io/gochain/v3/common"
-	"github.com/gochain-io/gochain/v3/common/hexutil"
-	"github.com/gochain-io/gochain/v3/core/types"
-	"github.com/gochain-io/web3"
-	"github.com/gochain-io/web3/assets"
+	"github.com/gochain/gochain/v3/accounts/abi"
+	"github.com/gochain/gochain/v3/accounts/keystore"
+	"github.com/gochain/gochain/v3/common"
+	"github.com/gochain/gochain/v3/common/hexutil"
+	"github.com/gochain/gochain/v3/core/types"
+	"github.com/gochain/web3"
+	"github.com/gochain/web3/assets"
 	"github.com/urfave/cli"
 )
 
