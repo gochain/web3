@@ -135,6 +135,27 @@ And you'll get a JSON response like this:
 }
 ```
 
+## Generating Common Contracts
+
+web3 includes some of the most common contracts so you can generate and deploy things like a token contract (ERC20)
+or a collectible contract (ERC721) in seconds. The generated contract uses [OpenZeppelin](https://openzeppelin.org/) contracts so you can be sure these are secure and industry standard.
+
+Generate an ERC20 contract:
+
+```sh
+web3 generate contract erc20 --name "Test Tokens" --symbol TEST
+```
+
+That's it! Now you can literally just deploy it and be done. Or open the generated code to see what was generated and modify it to your liking. To see all the available options for generating an ERC20 contract, use `web3 generate contract erc20 --help`
+
+Generate an ERC721 contract:
+
+```sh
+web3 generate contract erc721 --name "Kitties" --symbol CAT
+```
+
+To see all the available options for generating an ERC721 contract, use `web3 generate contract erc721 --help`
+
 ## Deploying an Upgradeable Contract
 
 The `web3` tool comes with built-in support for deploying contracts that can be
