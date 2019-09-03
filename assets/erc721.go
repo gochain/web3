@@ -16,7 +16,7 @@ import "./lib/oz/contracts/token/ERC721/ERC721Mintable.sol";{{end}}
 {{if .Burnable}}import "./lib/oz/contracts/token/ERC721/ERC721Burnable.sol";{{end}}
 import "./lib/oz/contracts/token/ERC721/ERC721Full.sol";
 
-contract {{.Symbol}}Token is
+contract {{.Symbol}} is
 	{{if .Pausable}}ERC721Pausable,{{end}}
 	{{if .Mintable}}ERC721Mintable, ERC721MetadataMintable,{{end}}
 	{{if .Burnable}}ERC721Burnable,{{end}}
