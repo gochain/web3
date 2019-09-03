@@ -22,7 +22,7 @@ func GenERC20(ctx context.Context, params *Erc20Params) (string, error) {
 	part1.WriteString("pragma solidity ^0.5.2;\n\nimport \"./lib/oz/contracts/token/ERC20/ERC20Detailed.sol\";\n")
 	part2.WriteString("\ncontract ")
 	part2.WriteString(params.Symbol)
-	part2.WriteString("Token is")
+	part2.WriteString(" is")
 	{
 		part3.WriteString("    constructor() ERC20Detailed(\"")
 		part3.WriteString(params.TokenName)

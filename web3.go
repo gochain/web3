@@ -96,23 +96,6 @@ func FloatAsInt(amountF *big.Float, decimals int) *big.Int {
 	return amountI
 }
 
-func convertOutputParameter(t abi.Argument) interface{} {
-	switch t.Type.T {
-	case abi.BoolTy:
-		return new(bool)
-	case abi.UintTy, abi.IntTy:
-		return new(big.Int)
-	case abi.StringTy:
-		return new(string)
-	case abi.AddressTy:
-		return new(common.Address)
-	case abi.BytesTy, abi.FixedBytesTy:
-		return new([]byte)
-	default:
-		return new(string)
-	}
-}
-
 // CallConstantFunction executes a contract function call without submitting a transaction.
 func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, address, functionName string, parameters ...interface{}) (interface{}, error) {
 	if parameters == nil {
@@ -154,11 +137,13 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 		}
 		return out, nil
 	}
-	err = myabi.Unpack(&out[0], functionName, res)
+	v := out[0]
+	err = myabi.Unpack(v, functionName, res)
 	if err != nil {
 		return nil, err
 	}
-	return out[0], nil
+	ret := reflect.ValueOf(v).Elem().Interface()
+	return ret, nil
 }
 
 // CallTransactFunction submits a transaction to execute a smart contract function call.
@@ -371,6 +356,47 @@ func ConvertArguments(method abi.Method, inputParams []interface{}) ([]interface
 		}
 	}
 	return convertedParams, nil
+}
+
+func convertOutputParameter(t abi.Argument) interface{} {
+	switch t.Type.T {
+	case abi.BoolTy:
+		return new(bool)
+	case abi.UintTy:
+		switch size := t.Type.Size; {
+		case size > 64:
+			return new(big.Int)
+		case size > 32:
+			return new(uint64)
+		case size > 16:
+			return new(uint32)
+		case size > 8:
+			return new(uint16)
+		default:
+			return new(uint8)
+		}
+	case abi.IntTy:
+		switch size := t.Type.Size; {
+		case size > 64:
+			return new(big.Int)
+		case size > 32:
+			return new(int64)
+		case size > 16:
+			return new(int32)
+		case size > 8:
+			return new(int16)
+		default:
+			return new(int8)
+		}
+	case abi.StringTy:
+		return new(string)
+	case abi.AddressTy:
+		return new(common.Address)
+	case abi.BytesTy, abi.FixedBytesTy:
+		return new([]byte)
+	default:
+		return new(string)
+	}
 }
 
 func convertInt(t abi.Type, i *big.Int) interface{} {
