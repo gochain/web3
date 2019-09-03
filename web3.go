@@ -365,7 +365,8 @@ func convertOutputParameter(t abi.Argument) interface{} {
 	case abi.UintTy:
 		switch size := t.Type.Size; {
 		case size > 64:
-			return new(big.Int)
+			i := new(big.Int)
+			return &i
 		case size > 32:
 			return new(uint64)
 		case size > 16:
@@ -378,7 +379,8 @@ func convertOutputParameter(t abi.Argument) interface{} {
 	case abi.IntTy:
 		switch size := t.Type.Size; {
 		case size > 64:
-			return new(big.Int)
+			i := new(big.Int)
+			return &i
 		case size > 32:
 			return new(int64)
 		case size > 16:
