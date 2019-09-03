@@ -138,7 +138,7 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 		return out, nil
 	}
 	v := out[0]
-	err = myabi.Unpack(v, functionName, res)
+	err = myabi.Unpack(&v, functionName, res)
 	if err != nil {
 		return nil, err
 	}
