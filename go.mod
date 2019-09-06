@@ -1,5 +1,7 @@
 module github.com/gochain/web3
 
+go 1.13
+
 require (
 	github.com/OneOfOne/xxhash v1.2.5 // indirect
 	github.com/allegro/bigcache v1.2.1 // indirect
