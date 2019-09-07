@@ -287,7 +287,7 @@ func Send(ctx context.Context, client Client, privateKeyHex string, address comm
 	if err != nil {
 		return nil, fmt.Errorf("cannot get nonce: %v", err)
 	}
-	tx := types.NewTransaction(nonce, address, amount, 21000, gasPrice, nil)
+	tx := types.NewTransaction(nonce, address, amount, 100000, gasPrice, nil)
 	signedTx, err := types.SignTx(tx, types.HomesteadSigner{}, privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign transaction: %v", err)
@@ -365,7 +365,8 @@ func convertOutputParameter(t abi.Argument) interface{} {
 	case abi.UintTy:
 		switch size := t.Type.Size; {
 		case size > 64:
-			return new(big.Int)
+			i := new(big.Int)
+			return &i
 		case size > 32:
 			return new(uint64)
 		case size > 16:
@@ -378,7 +379,8 @@ func convertOutputParameter(t abi.Argument) interface{} {
 	case abi.IntTy:
 		switch size := t.Type.Size; {
 		case size > 64:
-			return new(big.Int)
+			i := new(big.Int)
+			return &i
 		case size > 32:
 			return new(int64)
 		case size > 16:
