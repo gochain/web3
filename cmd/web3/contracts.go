@@ -49,8 +49,8 @@ func GetContractConst(ctx context.Context, rpcURL, contractAddress, contractFile
 	return res, nil
 }
 
-func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, contractFile, functionName string,
-	amount int, waitForReceipt bool, parameters ...interface{}) {
+func callContract(ctx context.Context, rpcURL, privateKey, contractAddress, contractFile, functionName string,
+	amount int, waitForReceipt, toString bool, parameters ...interface{}) {
 	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
@@ -64,7 +64,8 @@ func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 		fmt.Println("There is no such function:", functionName)
 		return
 	}
-	if myabi.Methods[functionName].Const {
+	m := myabi.Methods[functionName]
+	if m.Const {
 		res, err := web3.CallConstantFunction(ctx, client, *myabi, contractAddress, functionName, parameters...)
 		if err != nil {
 			fatalExit(fmt.Errorf("Cannot call the contract: %v", err))
@@ -74,6 +75,10 @@ func CallContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 			m := make(map[string]interface{})
 			m["response"] = res
 			fmt.Println(marshalJSON(m))
+			return
+		}
+		if toString {
+			fmt.Printf("%s", res)
 			return
 		}
 		fmt.Println(res)
