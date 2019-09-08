@@ -26,7 +26,7 @@ curl -LSs https://raw.githubusercontent.com/gochain/web3/master/install.sh | sh
 
 ## Quickstart
 
-If you just plan to read from the blockchain, you do not need any GO tokens and you do not need to set your `PRIVATE_KEY`. If you plan to deploy contracts or write anything to the blockchain, you'll need tokens and you'll need to set your `PRIVATE_KEY` for the account that has those tokens.
+If you just plan to read from the blockchain, you do not need any GO tokens and you do not need to set your `WEB3_PRIVATE_KEY`. If you plan to deploy contracts or write anything to the blockchain, you'll need tokens and you'll need to set your `WEB3_PRIVATE_KEY` for the account that has those tokens.
 
 ### Pick a network to use
 
