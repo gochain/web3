@@ -321,23 +321,26 @@ func convertTx(tx *types.Transaction, from common.Address) *Transaction {
 	return rtx
 }
 
+// ConvertArguments takes the abi Method along with a set of matching arguments and attempts
+// to convert the arguments to the appropriate EVM type.
 func ConvertArguments(method abi.Method, inputParams []interface{}) ([]interface{}, error) {
 	var convertedParams []interface{}
 	for i, input := range method.Inputs {
 		// fmt.Println("INPUT TYPE:", input.Type.T, "SIZE:", input.Type.Size)
+		p := inputParams[i]
 		switch input.Type.T {
 		case abi.BoolTy:
-			val, _ := strconv.ParseBool(inputParams[i].(string))
+			val, _ := strconv.ParseBool(p.(string))
 			convertedParams = append(convertedParams, val)
 		case abi.UintTy:
 			val := new(big.Int)
-			switch inputParams[i].(type) {
+			switch p.(type) {
 			case *big.Int:
-				val = inputParams[i].(*big.Int)
+				val = p.(*big.Int)
 				convertedParams = append(convertedParams, convertInt(input.Type, val))
 			case float64: // convenient for taking args directly from JSON values
 				// if not converted to proper sizes, you get errors like: abi: cannot use ptr as type uint16 as argument
-				f := inputParams[i].(float64)
+				f := p.(float64)
 				f2 := big.NewFloat(f)
 				i2, a := f2.Int(nil)
 				if a != big.Exact {
@@ -345,15 +348,32 @@ func ConvertArguments(method abi.Method, inputParams []interface{}) ([]interface
 				}
 				convertedParams = append(convertedParams, convertInt(input.Type, i2))
 			default:
-				fmt.Sscan(inputParams[i].(string), val)
-				convertedParams = append(convertedParams, val)
+				fmt.Sscan(p.(string), val)
+				convertedParams = append(convertedParams, convertInt(input.Type, val))
 			}
 			// TODO: case abi.IntTy, just like above
 		case abi.AddressTy:
-			val := common.HexToAddress(inputParams[i].(string))
+			val := common.HexToAddress(p.(string))
 			convertedParams = append(convertedParams, val)
 		case abi.StringTy:
-			convertedParams = append(convertedParams, inputParams[i])
+			convertedParams = append(convertedParams, p)
+		case abi.BytesTy:
+			val := p.(string)
+			val2 := []byte(val)
+			convertedParams = append(convertedParams, val2)
+		case abi.FixedBytesTy:
+			// slice didn't work, seems to want a fixed array...
+			// a := make([]byte, t.Type.Size)
+			// return &a, nil
+			switch size := input.Type.Size; {
+			case size == 32:
+				val := p.(string)
+				arr := [32]byte{}
+				copy(arr[:], val)
+				convertedParams = append(convertedParams, arr)
+			default:
+				return nil, fmt.Errorf("unsupported input byte array size %v", size)
+			}
 		default:
 			return nil, fmt.Errorf("unsupported input type %v", input.Type.T)
 		}

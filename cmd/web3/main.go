@@ -270,7 +270,7 @@ func main() {
 						for i, v := range c.Args() {
 							args[i] = v
 						}
-						CallContract(ctx, network.URL, privateKey, contractAddress, contractFile, function, amount, waitForReceipt, args...)
+						callContract(ctx, network.URL, privateKey, contractAddress, contractFile, function, amount, waitForReceipt, c.Bool("to-string"), args...)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -305,6 +305,10 @@ func main() {
 							Usage:       "Wait for the receipt for transact functions",
 							Destination: &waitForReceipt,
 							Hidden:      false},
+						cli.BoolFlag{
+							Name:  "to-string",
+							Usage: "Convert result to a string, useful if using byte arrays that are strings and you want to see the string value.",
+						},
 					},
 				},
 				{
@@ -1359,7 +1363,7 @@ func Transfer(ctx context.Context, rpcURL, privateKey, toAddress string, tail []
 		// fmt.Println("DECIMALS:", decimals, reflect.TypeOf(decimals))
 		// todo: could get symbol here to display
 		amount := web3.FloatAsInt(amountF, int(decimals.(uint8)))
-		CallContract(ctx, rpcURL, privateKey, contractAddress, "erc20", "transfer", 0, false, toAddress, amount)
+		callContract(ctx, rpcURL, privateKey, contractAddress, "erc20", "transfer", 0, false, false, toAddress, amount)
 		return
 	}
 
