@@ -109,7 +109,11 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 	}
 	var out []interface{}
 	for _, t := range myabi.Methods[functionName].Outputs {
-		out = append(out, convertOutputParameter(t))
+		x, err := convertOutputParameter(t)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, x)
 	}
 	args2, err := ConvertArguments(myabi.Methods[functionName], parameters)
 	if err != nil {
@@ -348,56 +352,65 @@ func ConvertArguments(method abi.Method, inputParams []interface{}) ([]interface
 		case abi.AddressTy:
 			val := common.HexToAddress(inputParams[i].(string))
 			convertedParams = append(convertedParams, val)
-		case abi.ArrayTy:
-			val := common.HexToAddress(inputParams[i].(string))
-			convertedParams = append(convertedParams, val)
-		default:
+		case abi.StringTy:
 			convertedParams = append(convertedParams, inputParams[i])
+		default:
+			return nil, fmt.Errorf("unsupported input type %v", input.Type.T)
 		}
 	}
 	return convertedParams, nil
 }
 
-func convertOutputParameter(t abi.Argument) interface{} {
+func convertOutputParameter(t abi.Argument) (interface{}, error) {
 	switch t.Type.T {
 	case abi.BoolTy:
-		return new(bool)
+		return new(bool), nil
 	case abi.UintTy:
 		switch size := t.Type.Size; {
 		case size > 64:
 			i := new(big.Int)
-			return &i
+			return &i, nil
 		case size > 32:
-			return new(uint64)
+			return new(uint64), nil
 		case size > 16:
-			return new(uint32)
+			return new(uint32), nil
 		case size > 8:
-			return new(uint16)
+			return new(uint16), nil
 		default:
-			return new(uint8)
+			return new(uint8), nil
 		}
 	case abi.IntTy:
 		switch size := t.Type.Size; {
 		case size > 64:
 			i := new(big.Int)
-			return &i
+			return &i, nil
 		case size > 32:
-			return new(int64)
+			return new(int64), nil
 		case size > 16:
-			return new(int32)
+			return new(int32), nil
 		case size > 8:
-			return new(int16)
+			return new(int16), nil
 		default:
-			return new(int8)
+			return new(int8), nil
 		}
 	case abi.StringTy:
-		return new(string)
+		return new(string), nil
 	case abi.AddressTy:
-		return new(common.Address)
-	case abi.BytesTy, abi.FixedBytesTy:
-		return new([]byte)
+		return new(common.Address), nil
+	case abi.BytesTy:
+		return new([]byte), nil
+	case abi.FixedBytesTy:
+		// slice didn't work, seems to want a fixed array...
+		// a := make([]byte, t.Type.Size)
+		// return &a, nil
+		switch size := t.Type.Size; {
+		case size == 32:
+			return new([32]byte), nil
+		default:
+			return nil, fmt.Errorf("unsupported output byte array size %v", size)
+		}
 	default:
-		return new(string)
+		return nil, fmt.Errorf("unsupported output type %v", t.Type.T)
 	}
 }
 
@@ -463,7 +476,11 @@ func ParseLogs(myabi abi.ABI, logs []*types.Log) ([]Event, error) {
 		fields := make(map[string]interface{})
 		nonIndexed := getInputs(event.Inputs, false)
 		for _, t := range nonIndexed {
-			out = append(out, convertOutputParameter(t))
+			x, err := convertOutputParameter(t)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, x)
 		}
 		if len(nonIndexed) > 1 {
 			err := myabi.Unpack(&out, event.Name, log.Data)
