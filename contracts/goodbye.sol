@@ -1,7 +1,7 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.3;
 
 contract Goodbye {
-    
+
     string name;
 
     /* This runs when the contract is executed */
@@ -9,11 +9,11 @@ contract Goodbye {
         name = "World";
     }
 
-    function hello() public view returns (string, string) {
+    function hello() public view returns (string memory, string memory) {
         return ("Goodbye", name);
     }
 
-    function setName(string _name) public {
+    function setName(string memory _name) public {
         name = _name;
     }
 }
