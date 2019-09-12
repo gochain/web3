@@ -33,6 +33,9 @@ jobs:
         echo "Branch2: $branch2"
         git config --global user.email "ci@gochain.io"
         git config --global user.name "CI"
+        git remote -v
+        echo "set origin url"
+        git remote set-url origin https://$GH_DEPLOY_USER:$GH_DEPLOY_KEY@github.com/$GITHUB_REPOSITORY.git
         git checkout $branch2
         git branch --set-upstream-to=origin/$branch2 $branch2
         echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
