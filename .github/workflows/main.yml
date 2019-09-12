@@ -28,7 +28,7 @@ jobs:
         # I couldn't get the releases to work with the GITHUB_TOKEN so made secrets... :(
         GH_DEPLOY_USER: ${{ secrets.GH_DEPLOY_USER }}
         GH_DEPLOY_KEY: ${{ secrets.GH_DEPLOY_KEY }}
-        BRANCH2: "$(echo ${{ github.ref }} | sed -E 's|refs/[a-zA-Z]+/||')"
+        BRANCH2: "$(echo "$GITHUB_REF" | awk -F / '{ print $3 })"
       run: |
         echo "Branch2: $BRANCH2"
         git config --global user.email "ci@gochain.io"
