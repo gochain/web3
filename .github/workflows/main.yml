@@ -33,6 +33,7 @@ jobs:
         echo "Branch2: $branch2"
         git config --global user.email "ci@gochain.io"
         git config --global user.name "CI"
+        git checkout $branch2
         git branch --set-upstream-to=origin/$branch2 $branch2
         echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
         ./release.sh        
