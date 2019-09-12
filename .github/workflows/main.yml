@@ -19,9 +19,6 @@ jobs:
 
     - name: Check out code into the Go module directory
       uses: actions/checkout@v1
-
-    - name: Build
-      run: go build -o web3_mac ./cmd/web3
       
     - name: release
       env:
@@ -29,6 +26,8 @@ jobs:
         GH_DEPLOY_USER: ${{ secrets.GH_DEPLOY_USER }}
         GH_DEPLOY_KEY: ${{ secrets.GH_DEPLOY_KEY }}
       run: |
+        ls -al
+        pwd
         ./release.sh        
   build-mac:
     name: Build MacOS
