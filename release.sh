@@ -18,7 +18,7 @@ version_file="cmd/web3/version.go"
 #docker cp $version_file file:/data/version.go
 # Bump version, patch by default - also checks if previous commit message contains `[bump X]`, and if so, bumps the appropriate semver number - https://github.com/treeder/dockers/tree/master/bump
 lastcommitmsg=$(git log -1 --pretty=%B)
-version=$(docker run --rm -it -w / treeder/bump --filename $version_file $lastcommitmsg)
+version=$(docker run --rm -i -w / treeder/bump --filename $version_file $lastcommitmsg)
 # docker cp file:/data/version.go $version_file
 #version=$(grep -m1 -Eo "[0-9]+\.[0-9]+\.[0-9]+" $version_file)
 echo "Version: $version"
