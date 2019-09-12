@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - master
+    paths:
+      - '*'   
+      - '!*version.go'
 
 jobs:
 
@@ -15,6 +18,8 @@ jobs:
       run: |
         # https://developer.github.com/webhooks/#events
         echo "comment: ${{ github.event.commits[0].message }}"
+        # could do a steps.if thing to look for [skip ci] - https://help.github.com/en/articles/workflow-syntax-for-github-actions#jobsjob_idsteps
+        # but I don't know how to exit early from a workflow?
 
     - name: Set up Go
       uses: actions/setup-go@v1
