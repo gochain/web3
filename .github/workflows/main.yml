@@ -69,9 +69,6 @@ jobs:
 
     - name: Check out code into the Go module directory
       uses: actions/checkout@v1
-
-    - name: Build
-      run: go build -o web3_mac ./cmd/web3
       
     - name: release
       env:
@@ -80,6 +77,8 @@ jobs:
         GH_DEPLOY_KEY: ${{ secrets.GH_DEPLOY_KEY }}
       run: |
         version=$(git describe --match "v[0-9]*" --abbrev=0 HEAD)
+        git checkout $version
+        go build -o web3_mac ./cmd/web3
         url='https://api.github.com/repos/gochain/web3/releases'
         output=$(curl $url)
         upload_url=$(echo "$output" | python -c 'import json,sys;obj=json.load(sys.stdin);print obj[0]["upload_url"]' | sed -E "s/\{.*//")
