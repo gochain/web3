@@ -14,13 +14,8 @@ set -ex
 # git pull
 
 version_file="cmd/web3/version.go"
-#docker create -v /data --name file alpine /bin/true
-#docker cp $version_file file:/data/version.go
-# Bump version, patch by default - also checks if previous commit message contains `[bump X]`, and if so, bumps the appropriate semver number - https://github.com/treeder/dockers/tree/master/bump
 lastcommitmsg=$(git log -1 --pretty=%B)
 version=$(docker run --rm -i -w /bump -v $PWD:/bump treeder/bump --filename $version_file $lastcommitmsg)
-# docker cp file:/data/version.go $version_file
-#version=$(grep -m1 -Eo "[0-9]+\.[0-9]+\.[0-9]+" $version_file)
 echo "Version: $version"
 
 make release
@@ -29,8 +24,6 @@ tag="v$version"
 git add -u
 git commit -m "web3 CLI: $version release [skip ci]"
 git tag -f -a $tag -m "version $version"
-# git remote add origin https://github.com/{USER_NAME}/{REPOSITORY_NAME}.git
-# git push --set-upstream origin master
 git push --follow-tags --set-upstream origin master
 
 # For GitHub
