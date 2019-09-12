@@ -1,0 +1,40 @@
+name: Go
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+
+  build:
+    name: Build
+    runs-on: macOS-latest
+    steps:
+
+    - name: Set up Go 1.12
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.12
+      id: go
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v1
+
+    - name: Build
+      run: go build -o web3_mac ./cmd/web3
+      
+    - name: release
+      env:
+        # I couldn't get the releases to work with the GITHUB_TOKEN so made secrets... :(
+        GH_DEPLOY_USER: ${{ secrets.GH_DEPLOY_USER }}
+        GH_DEPLOY_KEY: ${{ secrets.GH_DEPLOY_KEY }}
+      run: |
+        echo "actor: $GITHUB_ACTOR"
+        version=0.1.9
+        url='https://api.github.com/repos/gochain/web3/releases'
+        output=$(curl -s -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY -d "{\"tag_name\": \"v$version\", \"name\": \"v$version\"}" $url)
+        echo "output: $output"
+        upload_url=$(echo "$output" | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["upload_url"]' | sed -E "s/\{.*//")
+        html_url=$(echo "$output" | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["html_url"]')
+        curl --data-binary "@web3_mac"  -H "Content-Type: application/octet-stream" -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY $upload_url\?name\=web3_mac >/dev/null
+        
