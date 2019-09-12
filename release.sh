@@ -28,9 +28,10 @@ make release
 tag="v$version"
 git add -u
 git commit -m "web3 CLI: $version release [skip ci]"
-
 git tag -f -a $tag -m "version $version"
-git push --follow-tags
+# git remote add origin https://github.com/{USER_NAME}/{REPOSITORY_NAME}.git
+# git push --set-upstream origin master
+git push --follow-tags --set-upstream origin master
 
 # For GitHub
 url='https://api.github.com/repos/gochain/web3/releases'
