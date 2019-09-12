@@ -13,7 +13,7 @@ jobs:
     
     - name: stuffs
       run: |
-        echo "push: $(github.event)"
+        echo "push: ${{ github.event }}"
 
     - name: Set up Go
       uses: actions/setup-go@v1
