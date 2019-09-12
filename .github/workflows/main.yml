@@ -13,7 +13,8 @@ jobs:
     
     - name: stuffs
       run: |
-        echo "push: ${{ github.event }}"
+        # https://developer.github.com/webhooks/#events
+        echo "comment: ${{ github.event.commit_comment }}"
 
     - name: Set up Go
       uses: actions/setup-go@v1
