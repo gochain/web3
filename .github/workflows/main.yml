@@ -3,9 +3,6 @@ on:
   push:
     branches:
       - master
-#     paths:
-#       - '*'   
-#       - '!/cmd/web3/version.go'
 
 jobs:
 
