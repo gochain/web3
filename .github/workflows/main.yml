@@ -31,6 +31,7 @@ jobs:
         DOCKER_USER: ${{ secrets.DOCKER_USER }}
         DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
       run: |
+        # mucho help from https://github.com/elstudio/actions-js-build/blob/v2/commit/entrypoint.sh - thanks!
         branch2="$(echo $GITHUB_REF | awk -F / '{ print $3 }')"
         echo "Branch2: $branch2"
         git config --global user.email "ci@gochain.io"
