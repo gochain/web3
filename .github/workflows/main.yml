@@ -10,6 +10,10 @@ jobs:
     name: Build Linux
     runs-on: ubuntu-latest
     steps:
+    
+    - name: stuffs
+      run: |
+        echo "push: $(github.event)"
 
     - name: Set up Go
       uses: actions/setup-go@v1
