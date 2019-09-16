@@ -592,7 +592,7 @@ func main() {
 							Name:  "erc20",
 							Usage: "Generate a erc20 contract",
 							Flags: []cli.Flag{
-								cli.BoolFlag{
+								cli.BoolTFlag{
 									Name:  "pausable, p",
 									Usage: "Pausable contract.",
 								},
@@ -630,7 +630,7 @@ func main() {
 							Name:  "erc721",
 							Usage: "Generate a erc721 contract",
 							Flags: []cli.Flag{
-								cli.BoolFlag{
+								cli.BoolTFlag{
 									Name:  "pausable, p",
 									Usage: "Pausable contract.",
 								},
