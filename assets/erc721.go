@@ -8,7 +8,7 @@ type Erc721Params struct {
 	Burnable  bool
 }
 
-const ERC721Template = `pragma solidity ^0.5.2;
+const ERC721Template = `pragma solidity ^0.5.11;
 
 {{if .Pausable}}import "./lib/oz/contracts/token/ERC721/ERC721Pausable.sol";{{end}}
 {{if .Mintable}}import "./lib/oz/contracts/token/ERC721/ERC721MetadataMintable.sol";

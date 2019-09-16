@@ -19,7 +19,7 @@ type Erc20Params struct {
 
 func GenERC20(ctx context.Context, params *Erc20Params) (string, error) {
 	var part1, part2, part3 strings.Builder
-	part1.WriteString("pragma solidity ^0.5.2;\n\nimport \"./lib/oz/contracts/token/ERC20/ERC20Detailed.sol\";\n")
+	part1.WriteString("pragma solidity ^0.5.11;\n\nimport \"./lib/oz/contracts/token/ERC20/ERC20Detailed.sol\";\n")
 	part2.WriteString("\ncontract ")
 	part2.WriteString(params.Symbol)
 	part2.WriteString(" is")
