@@ -14,7 +14,7 @@ require (
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5 // indirect
 	github.com/go-ini/ini v1.46.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
-	github.com/gochain/gochain/v3 v3.2.9
+	github.com/gochain/gochain/v3 v3.2.10
 	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/google/go-cmp v0.3.1 // indirect
@@ -38,8 +38,10 @@ require (
 	github.com/stretchr/testify v1.4.0 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/urfave/cli v1.21.0
-	golang.org/x/crypto v0.0.0-20190829043050-9756ffdc2472
+	go.opencensus.io v0.22.1 // indirect
+	golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7
 	golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297 // indirect
-	golang.org/x/sys v0.0.0-20190826190057-c7b8b68b1456 // indirect
+	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
+	golang.org/x/sys v0.0.0-20190916202348-b4ddaad3f8a3 // indirect
 	gopkg.in/ini.v1 v1.46.0 // indirect
 )

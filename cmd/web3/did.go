@@ -135,9 +135,10 @@ func DIDOwner(ctx context.Context, rpcURL, privateKey, id, registryAddress strin
 	if err != nil {
 		log.Fatalf("Cannot call the contract: %v", err)
 	}
-
-	ctx, _ = context.WithTimeout(ctx, 10*time.Second)
-	address := result.(common.Address)
+	if len(result) != 1 {
+		log.Fatalf("Expected single result but got: %v", result)
+	}
+	address := result[0].(common.Address)
 	fmt.Println(address.Hex())
 }
 
@@ -169,9 +170,10 @@ func DIDHash(ctx context.Context, rpcURL, privateKey, id, registryAddress string
 	if err != nil {
 		log.Fatalf("Cannot call the contract: %v", err)
 	}
-
-	ctx, _ = context.WithTimeout(ctx, 10*time.Second)
-	hash := result.(string)
+	if len(result) != 1 {
+		log.Fatalf("Expected single result but got: %v", result)
+	}
+	hash := result[0].(string)
 	fmt.Println(hash)
 }
 
@@ -375,10 +377,11 @@ func readDIDDocument(ctx context.Context, rpcURL, registryAddress, id string) (*
 	if err != nil {
 		return nil, fmt.Errorf("Cannot call the contract: %v", err)
 	}
+	if len(result) != 1 {
+		log.Fatalf("Expected single result but got: %v", result)
+	}
 
-	ctx, _ = context.WithTimeout(ctx, 10*time.Second)
-
-	hash := result.(string)
+	hash := result[0].(string)
 	resp, err := http.Get(fmt.Sprintf("https://ipfs.infura.io:5001/api/v0/cat?arg=%s", hash))
 	if err != nil {
 		return nil, fmt.Errorf("Unable to fetch DID document from IPFS: %s", err)
