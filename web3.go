@@ -97,12 +97,12 @@ func FloatAsInt(amountF *big.Float, decimals int) *big.Int {
 }
 
 // CallConstantFunction executes a contract function call without submitting a transaction.
-func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, address string, functionName string, parameters ...interface{}) ([]interface{}, error) {
+func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, address string, functionName string, params ...interface{}) ([]interface{}, error) {
 	if address == "" {
 		return nil, errors.New("no contract address specified")
 	}
-	function := myabi.Methods[functionName]
-	goParams, err := ConvertArguments(function, parameters)
+	fn := myabi.Methods[functionName]
+	goParams, err := ConvertArguments(fn.Inputs, params)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 	if err != nil {
 		return nil, err
 	}
-	vals, err := function.Outputs.UnpackValues(res)
+	vals, err := fn.Outputs.UnpackValues(res)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unpack values from %s: %v", hexutil.Encode(res), err)
 	}
@@ -123,16 +123,12 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 }
 
 // CallTransactFunction submits a transaction to execute a smart contract function call.
-func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, address, privateKeyHex, functionName string, amount int, parameters ...interface{}) (*Transaction, error) {
+func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, address, privateKeyHex, functionName string, amount int, params ...interface{}) (*Transaction, error) {
 	if address == "" {
 		return nil, errors.New("no contract address specified")
 	}
-
 	fn := myabi.Methods[functionName]
-	if len(fn.Inputs) != len(parameters) {
-		return nil, errors.New("Wrong number of arguments expected:" + strconv.Itoa(len(fn.Inputs)) + " given:" + strconv.Itoa(len(parameters)))
-	}
-	goParams, err := ConvertArguments(myabi.Methods[functionName], parameters)
+	goParams, err := ConvertArguments(fn.Inputs, params)
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +210,7 @@ func DeployContract(ctx context.Context, client Client, privateKeyHex string, bi
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse ABI: %v", err)
 		}
-		goParams, err := ConvertArguments(abiData.Constructor, params)
+		goParams, err := ConvertArguments(abiData.Constructor.Inputs, params)
 		if err != nil {
 			return nil, err
 		}
@@ -294,57 +290,81 @@ func convertTx(tx *types.Transaction, from common.Address) *Transaction {
 	return rtx
 }
 
-// ConvertArguments takes the abi Method along with a set of matching arguments and attempts
-// to convert the arguments to the appropriate EVM type.
-func ConvertArguments(method abi.Method, inputParams []interface{}) ([]interface{}, error) {
+// ConvertArguments attempts to parse any string params in to the matching args type.
+// Non-strings are passed through unchanged.
+func ConvertArguments(args abi.Arguments, params []interface{}) ([]interface{}, error) {
+	if len(args) != len(params) {
+		return nil, fmt.Errorf("mismatched argument (%d) and parameter (%d) counts", len(args), len(params))
+	}
 	var convertedParams []interface{}
-	for i, input := range method.Inputs {
-		// fmt.Println("INPUT TYPE:", input.Type.T, "SIZE:", input.Type.Size)
-		p := inputParams[i]
-		switch input.Type.T {
-		case abi.BoolTy:
-			val, _ := strconv.ParseBool(p.(string))
-			convertedParams = append(convertedParams, val)
-		case abi.UintTy:
-			val := new(big.Int)
-			switch p.(type) {
-			case *big.Int:
-				val = p.(*big.Int)
-				convertedParams = append(convertedParams, convertInt(input.Type, val))
-			case float64: // convenient for taking args directly from JSON values
-				// if not converted to proper sizes, you get errors like: abi: cannot use ptr as type uint16 as argument
-				f := p.(float64)
-				f2 := big.NewFloat(f)
-				i2, a := f2.Int(nil)
-				if a != big.Exact {
-					return nil, fmt.Errorf("floating point number %v used which is not valid in web3. Please convert to big.Int.", f)
-				}
-				convertedParams = append(convertedParams, convertInt(input.Type, i2))
-			default:
-				fmt.Sscan(p.(string), val)
-				convertedParams = append(convertedParams, convertInt(input.Type, val))
+	for i, input := range args {
+		arg := params[i]
+		if s, ok := arg.(string); ok {
+			val, err := parseParam(input.Type, s)
+			if err != nil {
+				return nil, err
 			}
-			// TODO: case abi.IntTy, just like above
-		case abi.AddressTy:
-			convertedParams = append(convertedParams, common.HexToAddress(p.(string)))
-		case abi.StringTy:
-			convertedParams = append(convertedParams, p)
-		case abi.BytesTy:
-			convertedParams = append(convertedParams, common.FromHex(p.(string)))
-		case abi.HashTy:
-			convertedParams = append(convertedParams, common.HexToHash(p.(string)))
-		case abi.FixedBytesTy:
-			switch size := input.Type.Size; {
-			case size == 32:
-				convertedParams = append(convertedParams, common.HexToHash(p.(string)))
-			default:
-				return nil, fmt.Errorf("unsupported input byte array size %v", size)
-			}
-		default:
-			return nil, fmt.Errorf("unsupported input type %v", input.Type.T)
+			arg = val
 		}
+		convertedParams = append(convertedParams, arg)
 	}
 	return convertedParams, nil
+}
+
+func parseParam(t abi.Type, param string) (interface{}, error) {
+	// fmt.Println("INPUT TYPE:", t.T, "SIZE:", t.Size)
+	switch t.T {
+	case abi.BoolTy:
+		val, err := strconv.ParseBool(param)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse bool %q: %v", param, err)
+		}
+		return val, nil
+	case abi.UintTy, abi.IntTy:
+		val, err := hexutil.DecodeBig(param)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse big.Int %q: %v", param, err)
+		}
+		return val, nil
+	case abi.AddressTy:
+		if !common.IsHexAddress(param) {
+			return nil, fmt.Errorf("invalid hex address: %s", param)
+		}
+		return common.HexToAddress(param), nil
+	case abi.StringTy:
+		return param, nil
+	case abi.BytesTy:
+		val, err := hexutil.Decode(param)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse bytes %q: %v", param, err)
+		}
+		return val, nil
+	case abi.HashTy:
+		val, err := hexutil.Decode(param)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse hash %q: %v", param, err)
+		}
+		if len(val) != common.HashLength {
+			return nil, fmt.Errorf("invalid hash length %d:hash must be 32 bytes", len(val))
+		}
+		return common.BytesToHash(val), nil
+	case abi.FixedBytesTy:
+		switch size := t.Size; {
+		case size == 32:
+			val, err := hexutil.Decode(param)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse hash %q: %v", param, err)
+			}
+			if len(val) != common.HashLength {
+				return nil, fmt.Errorf("invalid hash length %d:hash must be 32 bytes", len(val))
+			}
+			return common.BytesToHash(val), nil
+		default:
+			return nil, fmt.Errorf("unsupported input byte array size %v", size)
+		}
+	default:
+		return nil, fmt.Errorf("unsupported input type %v", t.T)
+	}
 }
 
 func convertOutputParams(params []interface{}) []interface{} {
