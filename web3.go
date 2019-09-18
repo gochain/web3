@@ -290,81 +290,108 @@ func convertTx(tx *types.Transaction, from common.Address) *Transaction {
 	return rtx
 }
 
-// ConvertArguments attempts to parse any string params in to the matching args type.
-// Non-strings are passed through unchanged.
+// ConvertArguments attempts to convert each param to the matching args type.
+// Unrecognized param types are passed through unmodified.
 func ConvertArguments(args abi.Arguments, params []interface{}) ([]interface{}, error) {
 	if len(args) != len(params) {
 		return nil, fmt.Errorf("mismatched argument (%d) and parameter (%d) counts", len(args), len(params))
 	}
 	var convertedParams []interface{}
 	for i, input := range args {
-		arg := params[i]
-		if s, ok := arg.(string); ok {
-			val, err := parseParam(input.Type, s)
-			if err != nil {
-				return nil, err
-			}
-			arg = val
+		param, err := convertArgument(input.Type.T, input.Type.Size, params[i])
+		if err != nil {
+			return nil, err
 		}
-		convertedParams = append(convertedParams, arg)
+		convertedParams = append(convertedParams, param)
 	}
 	return convertedParams, nil
 }
 
-func parseParam(t abi.Type, param string) (interface{}, error) {
+// convertArgument attempts to convert param to the ABI type and size.
+// Unrecognized param types are passed through unmodified.
+func convertArgument(abiType byte, size int, param interface{}) (interface{}, error) {
 	// fmt.Println("INPUT TYPE:", t.T, "SIZE:", t.Size)
-	switch t.T {
-	case abi.BoolTy:
-		val, err := strconv.ParseBool(param)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse bool %q: %v", param, err)
-		}
-		return val, nil
-	case abi.UintTy, abi.IntTy:
-		val, err := hexutil.DecodeBig(param)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse big.Int %q: %v", param, err)
-		}
-		return val, nil
-	case abi.AddressTy:
-		if !common.IsHexAddress(param) {
-			return nil, fmt.Errorf("invalid hex address: %s", param)
-		}
-		return common.HexToAddress(param), nil
+	switch abiType {
 	case abi.StringTy:
-		return param, nil
-	case abi.BytesTy:
-		val, err := hexutil.Decode(param)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse bytes %q: %v", param, err)
-		}
-		return val, nil
-	case abi.HashTy:
-		val, err := hexutil.Decode(param)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse hash %q: %v", param, err)
-		}
-		if len(val) != common.HashLength {
-			return nil, fmt.Errorf("invalid hash length %d:hash must be 32 bytes", len(val))
-		}
-		return common.BytesToHash(val), nil
-	case abi.FixedBytesTy:
-		switch size := t.Size; {
-		case size == 32:
-			val, err := hexutil.Decode(param)
+	case abi.BoolTy:
+		if s, ok := param.(string); ok {
+			val, err := strconv.ParseBool(s)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse hash %q: %v", param, err)
+				return nil, fmt.Errorf("failed to parse bool %q: %v", s, err)
+			}
+			return val, nil
+		}
+	case abi.UintTy, abi.IntTy:
+		if s, ok := param.(string); ok {
+			val, ok := new(big.Int).SetString(s, 0)
+			if !ok {
+				return nil, fmt.Errorf("failed to parse big.Int: %s", s)
+			}
+			return convertInt(abiType == abi.IntTy, size, val)
+		} else if f, ok := param.(float64); ok {
+			i, acc := big.NewFloat(f).Int(nil)
+			if acc != big.Exact {
+				return nil, fmt.Errorf("floating point number %v used which is not valid in web3. Please convert to big.Int.", f)
+			}
+			return convertInt(abiType == abi.IntTy, size, i)
+		} else if i, ok := param.(*big.Int); ok {
+			return convertInt(abiType == abi.IntTy, size, i)
+		}
+		v := reflect.ValueOf(param)
+		switch v.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			i := new(big.Int).SetInt64(v.Int())
+			return convertInt(abiType == abi.IntTy, size, i)
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			i := new(big.Int).SetUint64(v.Uint())
+			return convertInt(abiType == abi.IntTy, size, i)
+		}
+	case abi.AddressTy:
+		if s, ok := param.(string); ok {
+			if !common.IsHexAddress(s) {
+				return nil, fmt.Errorf("invalid hex address: %s", s)
+			}
+			return common.HexToAddress(s), nil
+		}
+	case abi.BytesTy:
+		if s, ok := param.(string); ok {
+			val, err := hexutil.Decode(s)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse bytes %q: %v", s, err)
+			}
+			return val, nil
+		}
+	case abi.HashTy:
+		if s, ok := param.(string); ok {
+			val, err := hexutil.Decode(s)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse hash %q: %v", s, err)
 			}
 			if len(val) != common.HashLength {
 				return nil, fmt.Errorf("invalid hash length %d:hash must be 32 bytes", len(val))
 			}
 			return common.BytesToHash(val), nil
+		}
+	case abi.FixedBytesTy:
+		switch {
+		case size == 32:
+			if s, ok := param.(string); ok {
+				val, err := hexutil.Decode(s)
+				if err != nil {
+					return nil, fmt.Errorf("failed to parse hash %q: %v", s, err)
+				}
+				if len(val) != common.HashLength {
+					return nil, fmt.Errorf("invalid hash length %d:hash must be 32 bytes", len(val))
+				}
+				return common.BytesToHash(val), nil
+			}
 		default:
 			return nil, fmt.Errorf("unsupported input byte array size %v", size)
 		}
 	default:
-		return nil, fmt.Errorf("unsupported input type %v", t.T)
+		return nil, fmt.Errorf("unsupported input type %v", abiType)
 	}
+	return param, nil
 }
 
 func convertOutputParams(params []interface{}) []interface{} {
@@ -442,18 +469,61 @@ func convertOutputParameter(t abi.Argument) (interface{}, error) {
 	}
 }
 
-func convertInt(t abi.Type, i *big.Int) interface{} {
-	switch size := t.Size; {
-	case size > 64:
-		return i
-	case size > 32:
-		return i.Uint64()
-	case size > 16:
-		return uint32(i.Uint64())
-	case size > 8:
-		return uint16(i.Uint64())
-	default:
-		return uint8(i.Uint64())
+// convertInt converts a big.Int in to the provided type.
+func convertInt(signed bool, size int, i *big.Int) (interface{}, error) {
+	if signed {
+		switch {
+		case size > 64:
+			return i, nil
+		case size > 32:
+			if !i.IsInt64() {
+				return nil, fmt.Errorf("integer overflows int64: %s", i)
+			}
+			return i.Int64(), nil
+		case size > 16:
+			if !i.IsInt64() || i.Int64() > math.MaxInt32 {
+				return nil, fmt.Errorf("integer overflows int32: %s", i)
+			}
+			return int32(i.Int64()), nil
+		case size > 8:
+			if !i.IsInt64() || i.Int64() > math.MaxInt16 {
+				return nil, fmt.Errorf("integer overflows int16: %s", i)
+			}
+			return int16(i.Int64()), nil
+		default:
+			if !i.IsInt64() || i.Int64() > math.MaxInt8 {
+				return nil, fmt.Errorf("integer overflows int8: %s", i)
+			}
+			return int8(i.Int64()), nil
+		}
+	} else {
+		switch {
+		case size > 64:
+			if i.Cmp(big.NewInt(0)) < 1 {
+				return nil, fmt.Errorf("negative value in unsigned field: %s", i)
+			}
+			return i, nil
+		case size > 32:
+			if !i.IsUint64() {
+				return nil, fmt.Errorf("integer overflows uint64: %s", i)
+			}
+			return i.Uint64(), nil
+		case size > 16:
+			if !i.IsUint64() || i.Uint64() > math.MaxUint32 {
+				return nil, fmt.Errorf("integer overflows uint32: %s", i)
+			}
+			return uint32(i.Uint64()), nil
+		case size > 8:
+			if !i.IsUint64() || i.Uint64() > math.MaxUint16 {
+				return nil, fmt.Errorf("integer overflows uint16: %s", i)
+			}
+			return uint16(i.Uint64()), nil
+		default:
+			if !i.IsUint64() || i.Uint64() > math.MaxUint8 {
+				return nil, fmt.Errorf("integer overflows uint8: %s", i)
+			}
+			return uint8(i.Uint64()), nil
+		}
 	}
 }
 
