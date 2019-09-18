@@ -97,75 +97,44 @@ func FloatAsInt(amountF *big.Float, decimals int) *big.Int {
 }
 
 // CallConstantFunction executes a contract function call without submitting a transaction.
-func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, address, functionName string, parameters ...interface{}) (interface{}, error) {
-	if parameters == nil {
-		parameters = []interface{}{}
-	}
-	if len(myabi.Methods[functionName].Inputs) != len(parameters) {
-		return nil, errors.New("Wrong number of arguments expected:" + strconv.Itoa(len(myabi.Methods[functionName].Inputs)) + " given:" + strconv.Itoa(len(parameters)))
-	}
+func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, address string, functionName string, params ...interface{}) ([]interface{}, error) {
 	if address == "" {
 		return nil, errors.New("no contract address specified")
 	}
-	var out []interface{}
-	for _, t := range myabi.Methods[functionName].Outputs {
-		x, err := convertOutputParameter(t)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, x)
-	}
-	args2, err := ConvertArguments(myabi.Methods[functionName], parameters)
+	fn := myabi.Methods[functionName]
+	goParams, err := ConvertArguments(fn.Inputs, params)
 	if err != nil {
 		return nil, err
 	}
-	input, err := myabi.Pack(functionName, args2...)
+	input, err := myabi.Pack(functionName, goParams...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to pack values: %v", err)
 	}
-
 	toAddress := common.HexToAddress(address)
-
 	res, err := client.Call(ctx, CallMsg{Data: input, To: &toAddress})
 	if err != nil {
 		return nil, err
-
 	}
-	if len(myabi.Methods[functionName].Outputs) > 1 {
-		err = myabi.Unpack(&out, functionName, res)
-		if err != nil {
-			return nil, err
-		}
-		for i, o := range out {
-			out[i] = reflect.ValueOf(o).Elem().Interface()
-		}
-		return out, nil
-	}
-	v := out[0]
-	err = myabi.Unpack(v, functionName, res)
+	vals, err := fn.Outputs.UnpackValues(res)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unpack values from %s: %v", hexutil.Encode(res), err)
 	}
-	ret := reflect.ValueOf(v).Elem().Interface()
-	return ret, nil
+	return convertOutputParams(vals), nil
 }
 
 // CallTransactFunction submits a transaction to execute a smart contract function call.
-func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, address, privateKeyHex, functionName string, amount int, parameters ...interface{}) (*Transaction, error) {
+func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, address, privateKeyHex, functionName string, amount int, params ...interface{}) (*Transaction, error) {
 	if address == "" {
 		return nil, errors.New("no contract address specified")
 	}
-
-	if len(myabi.Methods[functionName].Inputs) != len(parameters) {
-		return nil, errors.New("Wrong number of arguments expected:" + strconv.Itoa(len(myabi.Methods[functionName].Inputs)) + " given:" + strconv.Itoa(len(parameters)))
-	}
-	args2, err := ConvertArguments(myabi.Methods[functionName], parameters)
+	fn := myabi.Methods[functionName]
+	goParams, err := ConvertArguments(fn.Inputs, params)
 	if err != nil {
 		return nil, err
 	}
-	input, err := myabi.Pack(functionName, args2...)
+	input, err := myabi.Pack(functionName, goParams...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to pack values: %v", err)
 	}
 	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
 		privateKeyHex = privateKeyHex[2:]
@@ -241,11 +210,11 @@ func DeployContract(ctx context.Context, client Client, privateKeyHex string, bi
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse ABI: %v", err)
 		}
-		args2, err := ConvertArguments(abiData.Constructor, params)
+		goParams, err := ConvertArguments(abiData.Constructor.Inputs, params)
 		if err != nil {
 			return nil, err
 		}
-		input, err := abiData.Pack("", args2...)
+		input, err := abiData.Pack("", goParams...)
 		if err != nil {
 			return nil, fmt.Errorf("cannot pack parameters: %v", err)
 		}
@@ -321,66 +290,108 @@ func convertTx(tx *types.Transaction, from common.Address) *Transaction {
 	return rtx
 }
 
-// ConvertArguments takes the abi Method along with a set of matching arguments and attempts
-// to convert the arguments to the appropriate EVM type.
-func ConvertArguments(method abi.Method, inputParams []interface{}) ([]interface{}, error) {
+// ConvertArguments attempts to parse any string params in to the matching args type.
+// Non-strings are passed through unchanged.
+func ConvertArguments(args abi.Arguments, params []interface{}) ([]interface{}, error) {
+	if len(args) != len(params) {
+		return nil, fmt.Errorf("mismatched argument (%d) and parameter (%d) counts", len(args), len(params))
+	}
 	var convertedParams []interface{}
-	for i, input := range method.Inputs {
-		// fmt.Println("INPUT TYPE:", input.Type.T, "SIZE:", input.Type.Size)
-		p := inputParams[i]
-		switch input.Type.T {
-		case abi.BoolTy:
-			val, _ := strconv.ParseBool(p.(string))
-			convertedParams = append(convertedParams, val)
-		case abi.UintTy:
-			val := new(big.Int)
-			switch p.(type) {
-			case *big.Int:
-				val = p.(*big.Int)
-				convertedParams = append(convertedParams, convertInt(input.Type, val))
-			case float64: // convenient for taking args directly from JSON values
-				// if not converted to proper sizes, you get errors like: abi: cannot use ptr as type uint16 as argument
-				f := p.(float64)
-				f2 := big.NewFloat(f)
-				i2, a := f2.Int(nil)
-				if a != big.Exact {
-					return nil, fmt.Errorf("floating point number %v used which is not valid in web3. Please convert to big.Int.", f)
-				}
-				convertedParams = append(convertedParams, convertInt(input.Type, i2))
-			default:
-				fmt.Sscan(p.(string), val)
-				convertedParams = append(convertedParams, convertInt(input.Type, val))
+	for i, input := range args {
+		arg := params[i]
+		if s, ok := arg.(string); ok {
+			val, err := parseParam(input.Type, s)
+			if err != nil {
+				return nil, err
 			}
-			// TODO: case abi.IntTy, just like above
-		case abi.AddressTy:
-			val := common.HexToAddress(p.(string))
-			convertedParams = append(convertedParams, val)
-		case abi.StringTy:
-			convertedParams = append(convertedParams, p)
-		case abi.BytesTy:
-			val := p.(string)
-			val2 := []byte(val)
-			convertedParams = append(convertedParams, val2)
-		case abi.FixedBytesTy:
-			// slice didn't work, seems to want a fixed array...
-			// a := make([]byte, t.Type.Size)
-			// return &a, nil
-			switch size := input.Type.Size; {
-			case size == 32:
-				val := p.(string)
-				arr := [32]byte{}
-				copy(arr[:], val)
-				convertedParams = append(convertedParams, arr)
-			default:
-				return nil, fmt.Errorf("unsupported input byte array size %v", size)
-			}
-		default:
-			return nil, fmt.Errorf("unsupported input type %v", input.Type.T)
+			arg = val
 		}
+		convertedParams = append(convertedParams, arg)
 	}
 	return convertedParams, nil
 }
 
+func parseParam(t abi.Type, param string) (interface{}, error) {
+	// fmt.Println("INPUT TYPE:", t.T, "SIZE:", t.Size)
+	switch t.T {
+	case abi.BoolTy:
+		val, err := strconv.ParseBool(param)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse bool %q: %v", param, err)
+		}
+		return val, nil
+	case abi.UintTy, abi.IntTy:
+		val, err := hexutil.DecodeBig(param)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse big.Int %q: %v", param, err)
+		}
+		return val, nil
+	case abi.AddressTy:
+		if !common.IsHexAddress(param) {
+			return nil, fmt.Errorf("invalid hex address: %s", param)
+		}
+		return common.HexToAddress(param), nil
+	case abi.StringTy:
+		return param, nil
+	case abi.BytesTy:
+		val, err := hexutil.Decode(param)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse bytes %q: %v", param, err)
+		}
+		return val, nil
+	case abi.HashTy:
+		val, err := hexutil.Decode(param)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse hash %q: %v", param, err)
+		}
+		if len(val) != common.HashLength {
+			return nil, fmt.Errorf("invalid hash length %d:hash must be 32 bytes", len(val))
+		}
+		return common.BytesToHash(val), nil
+	case abi.FixedBytesTy:
+		switch size := t.Size; {
+		case size == 32:
+			val, err := hexutil.Decode(param)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse hash %q: %v", param, err)
+			}
+			if len(val) != common.HashLength {
+				return nil, fmt.Errorf("invalid hash length %d:hash must be 32 bytes", len(val))
+			}
+			return common.BytesToHash(val), nil
+		default:
+			return nil, fmt.Errorf("unsupported input byte array size %v", size)
+		}
+	default:
+		return nil, fmt.Errorf("unsupported input type %v", t.T)
+	}
+}
+
+func convertOutputParams(params []interface{}) []interface{} {
+	for i := range params {
+		p := params[i]
+		if h, ok := p.(common.Hash); ok {
+			params[i] = h
+		} else if a, ok := p.(common.Address); ok {
+			params[i] = a
+		} else if b, ok := p.(hexutil.Bytes); ok {
+			params[i] = b
+		} else if v := reflect.ValueOf(p); v.Kind() == reflect.Array {
+			if t := v.Type(); t.Elem().Kind() == reflect.Uint8 {
+				b := make([]byte, t.Len())
+				bv := reflect.ValueOf(b)
+				// Copy since we can't t.Slice() unaddressable arrays.
+				for i := 0; i < t.Len(); i++ {
+					bv.Index(i).Set(v.Index(i))
+				}
+				params[i] = hexutil.Bytes(b)
+			}
+		}
+	}
+	return params
+}
+
+//TODO Deprecated: prefer built-in UnpackValues() func and convertOutputParams.
 func convertOutputParameter(t abi.Argument) (interface{}, error) {
 	switch t.Type.T {
 	case abi.BoolTy:
@@ -418,14 +429,11 @@ func convertOutputParameter(t abi.Argument) (interface{}, error) {
 	case abi.AddressTy:
 		return new(common.Address), nil
 	case abi.BytesTy:
-		return new([]byte), nil
+		return new(hexutil.Bytes), nil
 	case abi.FixedBytesTy:
-		// slice didn't work, seems to want a fixed array...
-		// a := make([]byte, t.Type.Size)
-		// return &a, nil
 		switch size := t.Type.Size; {
 		case size == 32:
-			return new([32]byte), nil
+			return new(common.Hash), nil
 		default:
 			return nil, fmt.Errorf("unsupported output byte array size %v", size)
 		}
@@ -494,6 +502,7 @@ func ParseLogs(myabi abi.ABI, logs []*types.Log) ([]Event, error) {
 		//event id is always in the first topic
 		event := FindEventById(myabi, log.Topics[0])
 		fields := make(map[string]interface{})
+		//TODO use event.Inputs.UnpackIntoMap instead when available
 		nonIndexed := getInputs(event.Inputs, false)
 		for _, t := range nonIndexed {
 			x, err := convertOutputParameter(t)

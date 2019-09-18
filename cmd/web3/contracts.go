@@ -26,7 +26,7 @@ func ListContract(contractFile string) {
 
 }
 
-func GetContractConst(ctx context.Context, rpcURL, contractAddress, contractFile, functionName string, parameters ...interface{}) (interface{}, error) {
+func GetContractConst(ctx context.Context, rpcURL, contractAddress, contractFile, functionName string, parameters ...interface{}) ([]interface{}, error) {
 	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to connect to %q: %v", rpcURL, err)
@@ -34,12 +34,13 @@ func GetContractConst(ctx context.Context, rpcURL, contractAddress, contractFile
 	defer client.Close()
 	myabi, err := web3.GetABI(contractFile)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	if _, ok := myabi.Methods[functionName]; !ok {
+	fn, ok := myabi.Methods[functionName]
+	if !ok {
 		return nil, fmt.Errorf("There is no such function: %v", functionName)
 	}
-	if !myabi.Methods[functionName].Const {
+	if !fn.Const {
 		return nil, err
 	}
 	res, err := web3.CallConstantFunction(ctx, client, *myabi, contractAddress, functionName, parameters...)
@@ -60,11 +61,11 @@ func callContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 	if err != nil {
 		fatalExit(err)
 	}
-	if _, ok := myabi.Methods[functionName]; !ok {
+	m, ok := myabi.Methods[functionName]
+	if !ok {
 		fmt.Println("There is no such function:", functionName)
 		return
 	}
-	m := myabi.Methods[functionName]
 	if m.Const {
 		res, err := web3.CallConstantFunction(ctx, client, *myabi, contractAddress, functionName, parameters...)
 		if err != nil {
@@ -73,20 +74,32 @@ func callContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 		switch format {
 		case "json":
 			m := make(map[string]interface{})
-			m["response"] = res
+			if len(res) == 1 {
+				m["response"] = res[0]
+			} else {
+				m["response"] = res
+			}
 			fmt.Println(marshalJSON(m))
 			return
 		}
 		if toString {
-			fmt.Printf("%s", res)
+			for i := range res {
+				fmt.Printf("%s\n", res[i])
+			}
 			return
 		}
-		fmt.Println(res)
+		for _, r := range res {
+			// These explicit checks ensure we get hex encoded output.
+			if s, ok := r.(fmt.Stringer); ok {
+				r = s.String()
+			}
+			fmt.Println(r)
+		}
 		return
 	}
 	tx, err := web3.CallTransactFunction(ctx, client, *myabi, contractAddress, privateKey, functionName, amount, parameters...)
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot call the contract: %v", err))
+		fatalExit(fmt.Errorf("Failed to send contract call tx: %v", err))
 	}
 	if !waitForReceipt {
 		fmt.Println("Transaction address:", tx.Hash.Hex())

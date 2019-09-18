@@ -1093,7 +1093,7 @@ func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, priv
 			fatalExit(err)
 		}
 		// fmt.Println("BALANCE:", balance, reflect.TypeOf(balance))
-		fmt.Println(web3.IntAsFloat(balance.(*big.Int), int(decimals.(uint8))))
+		fmt.Println(web3.IntAsFloat(balance[0].(*big.Int), int(decimals[0].(uint8))))
 		return
 	}
 
@@ -1362,7 +1362,7 @@ func Transfer(ctx context.Context, rpcURL, privateKey, toAddress string, tail []
 		// decimals are uint8
 		// fmt.Println("DECIMALS:", decimals, reflect.TypeOf(decimals))
 		// todo: could get symbol here to display
-		amount := web3.FloatAsInt(amountF, int(decimals.(uint8)))
+		amount := web3.FloatAsInt(amountF, int(decimals[0].(uint8)))
 		callContract(ctx, rpcURL, privateKey, contractAddress, "erc20", "transfer", 0, false, false, toAddress, amount)
 		return
 	}
@@ -1468,7 +1468,10 @@ func GetTargetContract(ctx context.Context, rpcURL, contractAddress string) {
 	if err != nil {
 		log.Fatalf("Cannot upgrade the contract: %v", err)
 	}
-	switch res := res.(type) {
+	if len(res) != 1 {
+		log.Fatalf("Expected single result but got: %v", res)
+	}
+	switch res := res[0].(type) {
 	case common.Address:
 		fmt.Println(res.String())
 	default:
