@@ -31,6 +31,8 @@ web3-cli
 bin/
 *.bin
 *.abi
-/web3_*
+/web3_linux
+/web3_mac
+/web3_alpine
 /*.sol
 lib/

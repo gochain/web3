@@ -499,7 +499,7 @@ func convertInt(signed bool, size int, i *big.Int) (interface{}, error) {
 	} else {
 		switch {
 		case size > 64:
-			if i.Cmp(big.NewInt(0)) < 1 {
+			if i.Sign() == -1 {
 				return nil, fmt.Errorf("negative value in unsigned field: %s", i)
 			}
 			return i, nil
