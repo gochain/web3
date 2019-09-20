@@ -1,6 +1,7 @@
 package web3
 
 import (
+	"encoding/json"
 	"math/big"
 	"reflect"
 	"testing"
@@ -23,24 +24,21 @@ func Test_parseParam(t *testing.T) {
 	}{
 		{"int256<-int", abi.IntTy, 256, 1, big.NewInt(1), false},
 		{"int256<-big.Int", abi.IntTy, 256, big.NewInt(1), big.NewInt(1), false},
-		{"int256<-float64", abi.IntTy, 256, float64(1), big.NewInt(1), false},
 
 		{"uint256<-int", abi.UintTy, 256, 1, big.NewInt(1), false},
 		{"uint256<-big.Int", abi.UintTy, 256, big.NewInt(1), big.NewInt(1), false},
-		{"uint256<-float64", abi.UintTy, 256, float64(1), big.NewInt(1), false},
 
 		{"int8<-int", abi.IntTy, 8, 1, int8(1), false},
 		{"int8<-big.Int", abi.IntTy, 8, big.NewInt(1), int8(1), false},
-		{"int8<-float64", abi.IntTy, 8, float64(1), int8(1), false},
 
 		{"uint8<-int", abi.UintTy, 8, 1, uint8(1), false},
 		{"uint8<-big.Int", abi.UintTy, 8, big.NewInt(1), uint8(1), false},
-		{"uint8<-float64", abi.UintTy, 8, float64(1), uint8(1), false},
 
 		{"int256<-hex", abi.IntTy, 256, "0x1", big.NewInt(1), false},
 		{"int256<-string", abi.IntTy, 256, "1", big.NewInt(1), false},
 
 		{"uint256<-zero", abi.UintTy, 256, "0", big.NewInt(0), false},
+		{"uint256<-json", abi.UintTy, 64, json.Number("10000000000000001"), uint64(10000000000000001), false},
 
 		{"address<-address", abi.AddressTy, 0, common.HexToAddress(addr), common.HexToAddress(addr), false},
 		{"address<-hex", abi.AddressTy, 0, addr, common.HexToAddress(addr), false},
@@ -54,6 +52,7 @@ func Test_parseParam(t *testing.T) {
 		// Error cases:
 		{"uint256<-negative", abi.UintTy, 256, -1, nil, true},
 		{"uint8<-negative", abi.UintTy, 8, -1, nil, true},
+		{"int256<-float64", abi.IntTy, 256, float64(1), nil, true},
 		{"uint8<-float", abi.UintTy, 8, 1.1, nil, true},
 		{"uint8<-negative-float", abi.UintTy, 8, -1.1, nil, true},
 	}
