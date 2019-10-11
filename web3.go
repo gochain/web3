@@ -3,6 +3,7 @@ package web3
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -292,6 +293,11 @@ func convertTx(tx *types.Transaction, from common.Address) *Transaction {
 
 // ConvertArguments attempts to convert each param to the matching args type.
 // Unrecognized param types are passed through unmodified.
+//
+// Note: The encoding/json package uses float64 for numbers by default, which is inaccurate
+// for many web3 types, and unsupported here. The json.Decoder method UseNumber() will
+// switch to using json.Number instead, which is accurate (full precision, backed by the
+// original string) and supported here.
 func ConvertArguments(args abi.Arguments, params []interface{}) ([]interface{}, error) {
 	if len(args) != len(params) {
 		return nil, fmt.Errorf("mismatched argument (%d) and parameter (%d) counts", len(args), len(params))
@@ -322,18 +328,15 @@ func convertArgument(abiType byte, size int, param interface{}) (interface{}, er
 			return val, nil
 		}
 	case abi.UintTy, abi.IntTy:
+		if j, ok := param.(json.Number); ok {
+			param = string(j)
+		}
 		if s, ok := param.(string); ok {
 			val, ok := new(big.Int).SetString(s, 0)
 			if !ok {
 				return nil, fmt.Errorf("failed to parse big.Int: %s", s)
 			}
 			return convertInt(abiType == abi.IntTy, size, val)
-		} else if f, ok := param.(float64); ok {
-			i, acc := big.NewFloat(f).Int(nil)
-			if acc != big.Exact {
-				return nil, fmt.Errorf("floating point number %v used which is not valid in web3. Please convert to big.Int.", f)
-			}
-			return convertInt(abiType == abi.IntTy, size, i)
 		} else if i, ok := param.(*big.Int); ok {
 			return convertInt(abiType == abi.IntTy, size, i)
 		}
@@ -345,6 +348,8 @@ func convertArgument(abiType byte, size int, param interface{}) (interface{}, er
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 			i := new(big.Int).SetUint64(v.Uint())
 			return convertInt(abiType == abi.IntTy, size, i)
+		case reflect.Float64, reflect.Float32:
+			return nil, fmt.Errorf("floating point numbers are not valid in web3 - please use an integer or string instead (including big.Int and json.Number)")
 		}
 	case abi.AddressTy:
 		if s, ok := param.(string); ok {
