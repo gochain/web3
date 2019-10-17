@@ -1377,6 +1377,9 @@ func Transfer(ctx context.Context, rpcURL, privateKey, toAddress string, tail []
 	if toAddress == "" {
 		fatalExit(errors.New("The recepient address cannot be empty"))
 	}
+	if !common.IsHexAddress(toAddress) {
+		fatalExit(fmt.Errorf("Invalid to 'address': %s", toAddress))
+	}
 	address := common.HexToAddress(toAddress)
 	tx, err := web3.Send(ctx, client, privateKey, address, amount)
 	if err != nil {
