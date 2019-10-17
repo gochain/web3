@@ -21,7 +21,7 @@ jobs:
       # good functions and things here: https://help.github.com/en/articles/contexts-and-expression-syntax-for-github-actions#functions
       run: |
         echo "exiting, skip ci found"
-        exit 1
+        exit 78
 
     - name: Set up Go
       uses: actions/setup-go@v1
