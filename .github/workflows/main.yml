@@ -77,8 +77,10 @@ jobs:
         GH_DEPLOY_KEY: ${{ secrets.GH_DEPLOY_KEY }}
       run: |
         set -ex
-        version=$(git describe --match "v[0-9]*" --abbrev=0 HEAD)
-        git checkout $version
+        version_file="cmd/web3/version.go"
+        lastcommitmsg=$(git log -1 --pretty=%B)
+        version=$(docker run --rm -i -w /bump -v $PWD:/bump treeder/bump --filename $version_file $lastcommitmsg)
+        echo "Version: $version"        
         go build -o web3_mac ./cmd/web3
         url='https://api.github.com/repos/gochain/web3/releases'
         output=$(curl -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY $url)
