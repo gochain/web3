@@ -210,6 +210,19 @@ func main() {
 			Usage:   "Contract operations",
 			Subcommands: []cli.Command{
 				{
+					Name:  "flatten",
+					Usage: "Make the specified contract flat",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "output, o",
+							Usage: "The output file, by default it will add _flatten postfix",
+						},
+					},
+					Action: func(c *cli.Context) {
+						FlattenSol(ctx, c.Args().First(), c.String("output"))
+					},
+				},
+				{
 					Name:  "build",
 					Usage: "Build the specified contract",
 					Flags: []cli.Flag{
@@ -1277,6 +1290,22 @@ func BuildSol(ctx context.Context, filename, compiler string) {
 	for _, filename := range filenames {
 		fmt.Println("", filename+".bin,", filename+".abi")
 	}
+}
+
+func FlattenSol(ctx context.Context, iFile, oFile string) {
+	if iFile == "" {
+		fatalExit(errors.New("Missing file name arg"))
+	}
+	oFile, err := FlattenSourceFile(iFile, oFile)
+	if err != nil {
+		fatalExit(fmt.Errorf("Cannot generate the flattened file: %v", err))
+	}
+	switch format {
+	case "json":
+		fmt.Println(marshalJSON(oFile))
+		return
+	}
+	fmt.Println("Flattened contract:", oFile)
 }
 
 func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string, upgradeable bool, params ...interface{}) {
