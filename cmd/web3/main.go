@@ -262,6 +262,33 @@ func main() {
 					},
 				},
 				{
+					Name:  "verify",
+					Usage: "Verify the specified contract which is already deployed to the network",
+					Action: func(c *cli.Context) {
+						VerifyContract(ctx, c.String("explorer-api"), contractAddress, c.String("contract-name"), c.Args().First(), c.String("solc-version"))
+					},
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "explorer-api",
+							Usage: "Explorer API URL",
+						},
+						cli.StringFlag{
+							Name:  "contract-name",
+							Usage: "Deployed contract name",
+						},
+						cli.StringFlag{
+							Name:        "address",
+							EnvVar:      addrVarName,
+							Destination: &contractAddress,
+							Usage:       "Deployed contract address",
+							Hidden:      false},
+						cli.StringFlag{
+							Name:  "solc-version, c",
+							Usage: "The version of the solc compiler(a tag of the ethereum/solc docker image)",
+						},
+					},
+				},
+				{
 					Name:  "list",
 					Usage: "List contract functions",
 					Action: func(c *cli.Context) {
@@ -1367,6 +1394,74 @@ func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string, upg
 	fmt.Println("Upgradeable contract has been successfully deployed.")
 	fmt.Println("Contract has been successfully deployed with transaction:", proxyTx.Hash.Hex())
 	fmt.Println("Contract address is:", proxyReceipt.ContractAddress.Hex())
+}
+
+func VerifyContract(ctx context.Context, explorerURL, contractAddress, contractName, sourceCodeFile, compilerVersion string) {
+	if explorerURL == "" {
+		fatalExit(errors.New("missing explorer-api arg"))
+	}
+	if contractAddress == "" {
+		fatalExit(errors.New("missing address arg"))
+	}
+	if !common.IsHexAddress(contractAddress) {
+		fatalExit(fmt.Errorf("invalid contract 'address': %s", contractAddress))
+	}
+	if contractName == "" {
+		fatalExit(errors.New("missing contract name arg"))
+	}
+	if sourceCodeFile == "" {
+		fatalExit(errors.New("missing source file"))
+	}
+	source, err := ioutil.ReadFile(sourceCodeFile)
+	if err != nil {
+		fatalExit(fmt.Errorf("Cannot read the source code file %q: %v", sourceCodeFile, err))
+	}
+	if compilerVersion == "" {
+		sol, err := web3.SolidityVersion(string(source))
+		if err != nil {
+			fatalExit(fmt.Errorf("Cannot parse the version from the source code file %q: %v", sourceCodeFile, err))
+		}
+		compilerVersion = sol.Version
+	}
+	message := map[string]interface{}{
+		"address":          contractAddress,
+		"contract_name":    contractName,
+		"compiler_version": compilerVersion,
+		"optimization":     true,
+		"source_code":      string(source),
+	}
+
+	bytesRepresentation, err := json.Marshal(message)
+	if err != nil {
+		fatalExit(fmt.Errorf("cannot convert the message:%v", err))
+	}
+
+	resp, err := http.Post(explorerURL+"/verify", "application/json", bytes.NewBuffer(bytesRepresentation))
+	if err != nil {
+		fatalExit(fmt.Errorf("cannot make the request:%v", err))
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		fatalExit(fmt.Errorf("cannot parse the response:%v", err))
+	}
+
+	if resp.StatusCode == 202 {
+		fmt.Println("Your contract is successfully verified!")
+		return
+	}
+
+	var errResp struct {
+		Error struct {
+			Message string
+		}
+	}
+	err = json.Unmarshal([]byte(body), &errResp)
+	if err != nil {
+		fatalExit(fmt.Errorf("cannot parse the error message: %v", err))
+	}
+	fatalExit(fmt.Errorf("Cannot verify the contract: %s, error code: %v", errResp.Error.Message, resp.StatusCode))
 }
 
 func Transfer(ctx context.Context, rpcURL, privateKey, toAddress string, tail []string, contractAddress string) {
