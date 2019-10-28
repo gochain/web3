@@ -24,18 +24,22 @@ import (
 var NotFoundErr = errors.New("not found")
 
 const (
-	testnetURL = "https://testnet-rpc.gochain.io"
-	mainnetURL = "https://rpc.gochain.io"
+	testnetExplorerURL = "https://testnet-explorer.gochain.io/api"
+	mainnetExplorerURL = "https://explorer.gochain.io/api"
+	testnetURL         = "https://testnet-rpc.gochain.io"
+	mainnetURL         = "https://rpc.gochain.io"
 )
 
 var Networks = map[string]Network{
 	"testnet": {
-		URL:  testnetURL,
-		Unit: "GO",
+		URL:         testnetURL,
+		Unit:        "GO",
+		ExplorerURL: testnetExplorerURL,
 	},
 	"gochain": {
-		URL:  mainnetURL,
-		Unit: "GO",
+		URL:         mainnetURL,
+		Unit:        "GO",
+		ExplorerURL: mainnetExplorerURL,
 	},
 	"localhost": {
 		URL:  "http://localhost:8545",
@@ -52,8 +56,9 @@ var Networks = map[string]Network{
 }
 
 type Network struct {
-	URL  string
-	Unit string
+	URL         string
+	ExplorerURL string
+	Unit        string
 	//TODO net_id, chain_id
 }
 

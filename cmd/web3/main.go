@@ -265,7 +265,7 @@ func main() {
 					Name:  "verify",
 					Usage: "Verify the specified contract which is already deployed to the network",
 					Action: func(c *cli.Context) {
-						VerifyContract(ctx, c.String("explorer-api"), contractAddress, c.String("contract-name"), c.Args().First(), c.String("solc-version"))
+						VerifyContract(ctx, network, c.String("explorer-api"), contractAddress, c.String("contract-name"), c.Args().First(), c.String("solc-version"))
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -1396,9 +1396,13 @@ func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string, upg
 	fmt.Println("Contract address is:", proxyReceipt.ContractAddress.Hex())
 }
 
-func VerifyContract(ctx context.Context, explorerURL, contractAddress, contractName, sourceCodeFile, compilerVersion string) {
+func VerifyContract(ctx context.Context, network web3.Network, explorerURL, contractAddress, contractName, sourceCodeFile, compilerVersion string) {
 	if explorerURL == "" {
-		fatalExit(errors.New("missing explorer-api arg"))
+		if network.ExplorerURL == "" {
+			fatalExit(errors.New("missing explorer-api arg"))
+		} else {
+			explorerURL = network.ExplorerURL
+		}
 	}
 	if contractAddress == "" {
 		fatalExit(errors.New("missing address arg"))
