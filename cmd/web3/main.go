@@ -1266,9 +1266,16 @@ func GetID(ctx context.Context, rpcURL string) {
 }
 
 func BuildSol(ctx context.Context, filename, compiler string) {
-	b, err := ioutil.ReadFile(filename)
+	if filename == "" {
+		fatalExit(errors.New("Missing file name arg"))
+	}
+	flattenedFile, err := FlattenSourceFile(filename, "")
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to read file %q: %v", filename, err))
+		fatalExit(fmt.Errorf("Cannot generate the flattened file: %v", err))
+	}
+	b, err := ioutil.ReadFile(flattenedFile)
+	if err != nil {
+		fatalExit(fmt.Errorf("Failed to read file %q: %v", flattenedFile, err))
 	}
 	str := string(b) // convert content to a 'string'
 	if verbose {
@@ -1276,7 +1283,7 @@ func BuildSol(ctx context.Context, filename, compiler string) {
 	}
 	compileData, err := web3.CompileSolidityString(ctx, str, compiler)
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to compile %q: %v", filename, err))
+		fatalExit(fmt.Errorf("Failed to compile %q: %v", flattenedFile, err))
 	}
 	if verbose {
 		log.Println("Compiled Sol Details:", marshalJSON(compileData))
@@ -1302,9 +1309,11 @@ func BuildSol(ctx context.Context, filename, compiler string) {
 	switch format {
 	case "json":
 		data := struct {
-			Bin []string `json:"bin"`
-			ABI []string `json:"abi"`
+			Source string   `json:"source"`
+			Bin    []string `json:"bin"`
+			ABI    []string `json:"abi"`
 		}{}
+		data.Source = flattenedFile
 		for _, f := range filenames {
 			data.Bin = append(data.Bin, f+".bin")
 			data.ABI = append(data.ABI, f+".abi")
@@ -1314,6 +1323,7 @@ func BuildSol(ctx context.Context, filename, compiler string) {
 	}
 
 	fmt.Println("Successfully compiled contracts and wrote the following files:")
+	fmt.Println("Source file", flattenedFile)
 	for _, filename := range filenames {
 		fmt.Println("", filename+".bin,", filename+".abi")
 	}
