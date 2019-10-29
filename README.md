@@ -421,7 +421,7 @@ web3 contract verify --explorer-api EXPLORER_API_URL --address CONTRACT_ADDRESS 
 
 **Parameters:**
 
-* EXPLORER_API_URL - url to block explorer API (eg https://testnet-explorer.gochain.io/api)
+* EXPLORER_API_URL - url to block explorer API (eg https://testnet-explorer.gochain.io/api), you could also use -testnet instead
 * CONTRACT_ADDRESS - address of a deployed contract
 * CONTRACT_NAME - name of a deployed contract
 * FILENAME - the name of the .sol file with a contract source
