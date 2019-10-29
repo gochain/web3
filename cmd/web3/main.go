@@ -245,7 +245,7 @@ func main() {
 						for i, v := range c.Args().Tail() {
 							args[i] = v
 						}
-						DeploySol(ctx, network.URL, privateKey, name, upgradeable, args...)
+						DeploySol(ctx, network, privateKey, name, c.String("verify"), c.String("solc-version"), c.String("explorer-api"), upgradeable, args...)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -259,6 +259,18 @@ func main() {
 							Usage:       "Allow contract to be upgraded",
 							Destination: &upgradeable,
 							Hidden:      false},
+						cli.StringFlag{
+							Name:  "verify",
+							Usage: "Source code of the contract",
+						},
+						cli.StringFlag{
+							Name:  "explorer-api",
+							Usage: "Explorer API URL",
+						},
+						cli.StringFlag{
+							Name:  "solc-version, c",
+							Usage: "The version of the solc compiler(a tag of the ethereum/solc docker image)",
+						},
 					},
 				},
 				{
@@ -1345,13 +1357,14 @@ func FlattenSol(ctx context.Context, iFile, oFile string) {
 	fmt.Println("Flattened contract:", oFile)
 }
 
-func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string, upgradeable bool, params ...interface{}) {
+func DeploySol(ctx context.Context, network web3.Network, privateKey, contractName, contractSource, compilerVersion, explorerURL string, upgradeable bool, params ...interface{}) {
+
 	if contractName == "" {
 		fatalExit(errors.New("Missing contract name arg."))
 	}
-	client, err := web3.Dial(rpcURL)
+	client, err := web3.Dial(network.URL)
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
+		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
 	}
 	defer client.Close()
 	bin, err := ioutil.ReadFile(contractName)
@@ -1387,6 +1400,7 @@ func DeploySol(ctx context.Context, rpcURL, privateKey, contractName string, upg
 	if !upgradeable {
 		fmt.Println("Contract has been successfully deployed with transaction:", tx.Hash.Hex())
 		fmt.Println("Contract address is:", receipt.ContractAddress.Hex())
+		VerifyContract(ctx, network, explorerURL, receipt.ContractAddress.Hex(), strings.TrimSuffix(contractName, ".bin"), contractSource, compilerVersion)
 		return
 	}
 

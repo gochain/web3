@@ -78,6 +78,11 @@ web3 contract build hello.sol
 web3 contract deploy Hello.bin
 ```
 
+you could also verify it in the block explorer after deployment
+```sh
+web3 contract deploy --verify hello_flatten.sol Hello.bin
+```
+
 This will return a contract address, copy it and use below.
 
 ### Read from a contract
