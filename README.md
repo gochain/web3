@@ -78,6 +78,11 @@ web3 contract build hello.sol
 web3 contract deploy Hello.bin
 ```
 
+you could also verify it in the block explorer after deployment
+```sh
+web3 contract deploy --verify hello_flatten.sol Hello.bin
+```
+
 This will return a contract address, copy it and use below.
 
 ### Read from a contract
@@ -316,6 +321,20 @@ web3 contract build FILENAME.sol --solc-version SOLC_VERSION
 * FILENAME - the name of the .sol file, eg: `hello.sol`
 * SOLC_VERSION - the version of the solc compiler
 
+### Flatten a smart contract
+
+Sometimes to verify a contract you have to flatten it before.
+
+```sh
+web3 contract flatten FILENAME.sol -o OUTPUT_FILE
+```
+
+**Parameters:**
+
+* FILENAME - the name of the .sol file, eg: `hello.sol`
+
+* OUTPUT_FILE (optional) - the output file
+
 ### Deploy a smart contract to a network
 
 ```sh
@@ -397,7 +416,20 @@ web3 transaction ADDRESS_HASH
 
 **Parameters:**
 
-- ADDRESS_HASH - hash of the address
+* ADDRESS_HASH - hash of the address
+
+### Verify a smart contract to a block explorer
+
+```sh
+web3 contract verify --explorer-api EXPLORER_API_URL --address CONTRACT_ADDRESS  --contract-name CONTRACT_NAME FILENAME.sol
+```
+
+**Parameters:**
+
+* EXPLORER_API_URL - URL for block explorer API (eg https://testnet-explorer.gochain.io/api) - Optional for GoChain networks, which use `{testnet-}explorer.gochain.io` by default.
+* CONTRACT_ADDRESS - address of a deployed contract
+* CONTRACT_NAME - name of a deployed contract
+* FILENAME - the name of the .sol file with a contract source
 
 ## More installation options
 
