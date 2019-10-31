@@ -265,7 +265,7 @@ func main() {
 						},
 						cli.StringFlag{
 							Name:  "explorer-api",
-							Usage: "Explorer API URL",
+							Usage: "Explorer API URL. Optional for GoChain networks, which use `{testnet-}explorer.gochain.io` by default",
 						},
 						cli.StringFlag{
 							Name:  "solc-version, c",
