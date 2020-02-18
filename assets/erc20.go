@@ -2,6 +2,7 @@ package assets
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"strconv"
 	"strings"
@@ -17,8 +18,9 @@ type Erc20Params struct {
 	Burnable  bool
 }
 
-func GenERC20(ctx context.Context, params *Erc20Params) (string, error) {
+func GenERC20(ctx context.Context, openZeppelinVersion string, params *Erc20Params) (string, error) {
 	var part1, part2, part3 strings.Builder
+	part1.WriteString(fmt.Sprintf("// @openzeppelin v%v\n", openZeppelinVersion))
 	part1.WriteString("pragma solidity ^0.5.11;\n\nimport \"./lib/oz/contracts/token/ERC20/ERC20Detailed.sol\";\n")
 	part2.WriteString("\ncontract ")
 	part2.WriteString(params.Symbol)

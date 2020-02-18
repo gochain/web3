@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -9,8 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 )
-
-var pragma string
 
 type importRec struct {
 	FullPath  string
@@ -22,8 +21,6 @@ type importRec struct {
 	Written   bool // written out
 }
 
-var imports map[string]importRec
-
 func extractFilePath(line string) string {
 	line = strings.Replace(line, "import ", "", 2)
 	line = strings.Replace(line, "\"", "", 2)
@@ -31,7 +28,7 @@ func extractFilePath(line string) string {
 	return strings.TrimSpace(filepath.Clean(line))
 }
 
-func loadAndSplitFile(fileName string) (newFiles bool, err error) {
+func loadAndSplitFile(imports map[string]importRec, fileName string) (newFiles bool, openZeppelinVersion, pragma string, err error) {
 	thisPath := filepath.Dir(fileName)
 	shortName := filepath.Base(fileName)
 	if imports[shortName].Processed {
@@ -43,6 +40,13 @@ func loadAndSplitFile(fileName string) (newFiles bool, err error) {
 	lines := strings.Split(contents, "\n")
 	noImports := true
 	for li, line := range lines {
+		if strings.Contains(line, "@openzeppelin") {
+			// get openzep version
+			ozi := strings.Index(line, "@openzeppelin")
+			vi := strings.Index(line[ozi:], " v")
+			openZeppelinVersion = line[ozi+vi+2:]
+			// fmt.Println("VERSION:", openZeppelinVersion)
+		}
 		if strings.HasPrefix(line, "pragma solidity") {
 			pragma = line
 			continue
@@ -72,8 +76,7 @@ func loadAndSplitFile(fileName string) (newFiles bool, err error) {
 	return
 }
 
-func FlattenSourceFile(fName, oName string) (string, error) {
-	imports = make(map[string]importRec)
+func FlattenSourceFile(ctx context.Context, fName, oName string) (string, error) {
 	if oName == "" {
 		basename := filepath.Base(fName)
 		oName = strings.TrimSuffix(basename, filepath.Ext(basename)) + "_flatten.sol"
@@ -85,11 +88,16 @@ func FlattenSourceFile(fName, oName string) (string, error) {
 	if _, err := os.Stat(oName); err == nil {
 		return oName, errors.New("the output file already exist")
 	}
-	newFiles, err := loadAndSplitFile(fName)
+	imports := make(map[string]importRec)
+	newFiles, openZeppelinVersion, pragma, err := loadAndSplitFile(imports, fName)
 	if err != nil {
 		return oName, err
 	}
 	if newFiles { //file has imports
+		err = getOpenZeppelinLib(ctx, openZeppelinVersion)
+		if err != nil {
+			fatalExit(err)
+		}
 		f, _ := os.Create(oName)
 		defer f.Close()
 		w := bufio.NewWriter(f)
@@ -99,11 +107,11 @@ func FlattenSourceFile(fName, oName string) (string, error) {
 				if iRec.Processed {
 					continue
 				}
-				newFiles, err = loadAndSplitFile(iRec.FullPath)
-				if err != nil {
-					return oName, err
+				newFiles2, _, _, err2 := loadAndSplitFile(imports, iRec.FullPath)
+				if err2 != nil {
+					return oName, err2
 				}
-				repeat = repeat || newFiles
+				repeat = repeat || newFiles2
 			}
 			if !repeat {
 				break

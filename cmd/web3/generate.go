@@ -5,15 +5,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/gochain/gochain/v3/accounts/abi/bind"
-	"github.com/gochain/web3/assets"
-	"github.com/urfave/cli"
 	"html/template"
 	"io/ioutil"
 	"log"
 	"math/big"
 	"os"
 	"os/exec"
+
+	"github.com/gochain/gochain/v3/accounts/abi/bind"
+	"github.com/gochain/web3/assets"
+	"github.com/urfave/cli"
+)
+
+const (
+	OpenZeppelinVersion = "2.5.0"
 )
 
 func GenerateCode(ctx context.Context, c *cli.Context) {
@@ -56,15 +61,12 @@ func GenerateCode(ctx context.Context, c *cli.Context) {
 	fmt.Println("The generated code has been successfully written to", outFile, "file")
 }
 
-func GenerateContract(ctx context.Context, contractType string, c *cli.Context) {
-	if c.String("symbol") == "" {
-		fatalExit(errors.New("Symbol is required"))
-	}
-	if c.String("name") == "" {
-		fatalExit(errors.New("Name is required"))
-	}
+func getOpenZeppelinLib(ctx context.Context, version string) error {
 	if _, err := os.Stat("lib/oz"); os.IsNotExist(err) {
-		cmd := exec.Command("git", "clone", "--depth", "1", "--branch", "master", "https://github.com/OpenZeppelin/openzeppelin-solidity", "lib/oz")
+		if version == "" {
+			version = OpenZeppelinVersion
+		}
+		cmd := exec.Command("git", "clone", "--depth", "1", "--branch", "v"+version, "https://github.com/OpenZeppelin/openzeppelin-solidity", "lib/oz")
 		log.Printf("Cloning OpenZeppeling repo...")
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -76,6 +78,20 @@ func GenerateContract(ctx context.Context, contractType string, c *cli.Context) 
 		if err != nil {
 			fatalExit(fmt.Errorf("Cannot cleanup .git dir in lib/oz: %v", err))
 		}
+	}
+	return nil
+}
+
+func GenerateContract(ctx context.Context, contractType string, c *cli.Context) {
+	if c.String("symbol") == "" {
+		fatalExit(errors.New("Symbol is required"))
+	}
+	if c.String("name") == "" {
+		fatalExit(errors.New("Name is required"))
+	}
+	err := getOpenZeppelinLib(ctx, OpenZeppelinVersion)
+	if err != nil {
+		fatalExit(err)
 	}
 	if contractType == "erc20" {
 		var capped *big.Int
@@ -106,7 +122,7 @@ func GenerateContract(ctx context.Context, contractType string, c *cli.Context) 
 		// TODO: add initial-supply flag
 		// TODO: must have initial supply or be mintable, otherwise this is zero
 		// TODO: initial supply can be set in constructor given to owner, eg: _mint(msg.sender, initialSupply)
-		s, err := assets.GenERC20(ctx, &params)
+		s, err := assets.GenERC20(ctx, OpenZeppelinVersion, &params)
 		if err != nil {
 			fatalExit(err)
 		}
@@ -120,11 +136,11 @@ func GenerateContract(ctx context.Context, contractType string, c *cli.Context) 
 			Mintable:  c.Bool("mintable"),
 			Burnable:  c.Bool("burnable"),
 		}
-		processTemplate(params, params.Symbol, assets.ERC721Template)
+		processTemplate(OpenZeppelinVersion, params, params.Symbol, assets.ERC721Template)
 	}
 }
 
-func processTemplate(params interface{}, fileName, contractTemplate string) {
+func processTemplate(openZeppelinVersion string, params interface{}, fileName, contractTemplate string) {
 	tmpl, err := template.New("contract").Parse(contractTemplate)
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot parse the template: %v", err))
@@ -134,7 +150,9 @@ func processTemplate(params interface{}, fileName, contractTemplate string) {
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot execute the template: %v", err))
 	}
-	writeStringToFile(buff.String(), fileName)
+	s := fmt.Sprintf("// @openzeppelin v%v\n", openZeppelinVersion)
+	s += buff.String()
+	writeStringToFile(s, fileName)
 }
 func writeStringToFile(s, fileName string) {
 	err := ioutil.WriteFile(fileName+".sol", []byte(s), 0666)
