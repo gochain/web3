@@ -1281,7 +1281,7 @@ func BuildSol(ctx context.Context, filename, compiler string) {
 	if filename == "" {
 		fatalExit(errors.New("Missing file name arg"))
 	}
-	flattenedFile, err := FlattenSourceFile(filename, "")
+	flattenedFile, err := FlattenSourceFile(ctx, filename, "")
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot generate the flattened file: %v", err))
 	}
@@ -1345,7 +1345,7 @@ func FlattenSol(ctx context.Context, iFile, oFile string) {
 	if iFile == "" {
 		fatalExit(errors.New("Missing file name arg"))
 	}
-	oFile, err := FlattenSourceFile(iFile, oFile)
+	oFile, err := FlattenSourceFile(ctx, iFile, oFile)
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot generate the flattened file: %v", err))
 	}
