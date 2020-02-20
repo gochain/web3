@@ -309,7 +309,7 @@ func ConvertArguments(args abi.Arguments, params []interface{}) ([]interface{}, 
 	}
 	var convertedParams []interface{}
 	for i, input := range args {
-		param, err := convertArgument(input.Type.T, input.Type.Size, params[i])
+		param, err := ConvertArgument(input.Type.T, input.Type.Size, params[i])
 		if err != nil {
 			return nil, err
 		}
@@ -318,9 +318,9 @@ func ConvertArguments(args abi.Arguments, params []interface{}) ([]interface{}, 
 	return convertedParams, nil
 }
 
-// convertArgument attempts to convert param to the ABI type and size.
-// Unrecognized param types are passed through unmodified.
-func convertArgument(abiType byte, size int, param interface{}) (interface{}, error) {
+// ConvertArgument attempts to convert argument to the provided ABI type and size.
+// Unrecognized types are passed through unmodified.
+func ConvertArgument(abiType byte, size int, param interface{}) (interface{}, error) {
 	// fmt.Println("INPUT TYPE:", t.T, "SIZE:", t.Size)
 	switch abiType {
 	case abi.StringTy:
@@ -341,18 +341,18 @@ func convertArgument(abiType byte, size int, param interface{}) (interface{}, er
 			if !ok {
 				return nil, fmt.Errorf("failed to parse big.Int: %s", s)
 			}
-			return convertInt(abiType == abi.IntTy, size, val)
+			return ConvertInt(abiType == abi.IntTy, size, val)
 		} else if i, ok := param.(*big.Int); ok {
-			return convertInt(abiType == abi.IntTy, size, i)
+			return ConvertInt(abiType == abi.IntTy, size, i)
 		}
 		v := reflect.ValueOf(param)
 		switch v.Kind() {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			i := new(big.Int).SetInt64(v.Int())
-			return convertInt(abiType == abi.IntTy, size, i)
+			return ConvertInt(abiType == abi.IntTy, size, i)
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 			i := new(big.Int).SetUint64(v.Uint())
-			return convertInt(abiType == abi.IntTy, size, i)
+			return ConvertInt(abiType == abi.IntTy, size, i)
 		case reflect.Float64, reflect.Float32:
 			return nil, fmt.Errorf("floating point numbers are not valid in web3 - please use an integer or string instead (including big.Int and json.Number)")
 		}
@@ -479,8 +479,8 @@ func convertOutputParameter(t abi.Argument) (interface{}, error) {
 	}
 }
 
-// convertInt converts a big.Int in to the provided type.
-func convertInt(signed bool, size int, i *big.Int) (interface{}, error) {
+// ConvertInt converts a big.Int in to the provided type.
+func ConvertInt(signed bool, size int, i *big.Int) (interface{}, error) {
 	if signed {
 		switch {
 		case size > 64:
