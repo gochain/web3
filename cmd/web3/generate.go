@@ -49,7 +49,7 @@ func GenerateCode(ctx context.Context, c *cli.Context) {
 	bins := []string{c.String("")}
 	types := []string{c.String("pkg")}
 
-	code, err := bind.Bind(types, abis, bins, c.String("pkg"), lang)
+	code, err := bind.Bind(types, abis, bins, nil, c.String("pkg"), lang, nil)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to generate ABI binding %q: %v", abiFile, err))
 	}

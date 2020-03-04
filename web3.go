@@ -557,7 +557,7 @@ func WaitForReceipt(ctx context.Context, client Client, hash common.Hash) (*Rece
 
 func FindEventById(abi abi.ABI, id common.Hash) *abi.Event {
 	for _, event := range abi.Events {
-		if event.Id() == id {
+		if event.ID() == id {
 			return &event
 		}
 	}
