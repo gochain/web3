@@ -58,7 +58,7 @@ func Test_parseParam(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := convertArgument(tt.t, tt.s, tt.param)
+			got, err := ConvertArgument(tt.t, tt.s, tt.param)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("wantErr %v; error = %v", tt.wantErr, err)
 				return
