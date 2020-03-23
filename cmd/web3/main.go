@@ -1400,7 +1400,9 @@ func DeploySol(ctx context.Context, network web3.Network, privateKey, contractNa
 	if !upgradeable {
 		fmt.Println("Contract has been successfully deployed with transaction:", tx.Hash.Hex())
 		fmt.Println("Contract address is:", receipt.ContractAddress.Hex())
-		VerifyContract(ctx, network, explorerURL, receipt.ContractAddress.Hex(), strings.TrimSuffix(contractName, ".bin"), contractSource, compilerVersion)
+		if contractSource != "" {
+			VerifyContract(ctx, network, explorerURL, receipt.ContractAddress.Hex(), strings.TrimSuffix(contractName, ".bin"), contractSource, compilerVersion)
+		}
 		return
 	}
 
