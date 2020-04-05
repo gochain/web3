@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -76,29 +75,36 @@ func loadAndSplitFile(imports map[string]importRec, fileName string) (newFiles b
 	return
 }
 
-func FlattenSourceFile(ctx context.Context, fName, oName string) (string, error) {
-	if oName == "" {
-		basename := filepath.Base(fName)
-		oName = strings.TrimSuffix(basename, filepath.Ext(basename)) + "_flatten.sol"
-
+// FlattenSourceFile flattens the source solidity file, but only if it has imports.
+// The flattened file will be generated at output, or in the current directory
+// as <source_name>_flatten.sol.
+func FlattenSourceFile(ctx context.Context, source, output string) (string, error) {
+	if output == "" {
+		basename := filepath.Base(source)
+		output = strings.TrimSuffix(basename, filepath.Ext(basename)) + "_flatten.sol"
 	}
-	if _, err := os.Stat(fName); err != nil {
-		return oName, err
+	if _, err := os.Stat(source); err != nil {
+		return "", fmt.Errorf("failed to find source file: %v", err)
 	}
-	if _, err := os.Stat(oName); err == nil {
-		return oName, errors.New("the output file already exist")
+	if _, err := os.Stat(output); err == nil {
+		return "", fmt.Errorf("the output file already exist: %s", output)
+	} else if err != nil && !os.IsNotExist(err) {
+		return "", fmt.Errorf("failed to check for output file: %v", err)
 	}
 	imports := make(map[string]importRec)
-	newFiles, openZeppelinVersion, pragma, err := loadAndSplitFile(imports, fName)
+	newFiles, openZeppelinVersion, pragma, err := loadAndSplitFile(imports, source)
 	if err != nil {
-		return oName, err
+		return "", err
 	}
 	if newFiles { //file has imports
 		err = getOpenZeppelinLib(ctx, openZeppelinVersion)
 		if err != nil {
-			fatalExit(err)
+			return "", fmt.Errorf("failed to get openzepplin lib: %v", err)
 		}
-		f, _ := os.Create(oName)
+		if err := os.MkdirAll(filepath.Dir(output), 0777); err != nil {
+			return "", fmt.Errorf("failed to make parent directories: %v", err)
+		}
+		f, _ := os.OpenFile(output, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
 		defer f.Close()
 		w := bufio.NewWriter(f)
 		for {
@@ -109,7 +115,7 @@ func FlattenSourceFile(ctx context.Context, fName, oName string) (string, error)
 				}
 				newFiles2, _, _, err2 := loadAndSplitFile(imports, iRec.FullPath)
 				if err2 != nil {
-					return oName, err2
+					return output, err2
 				}
 				repeat = repeat || newFiles2
 			}
@@ -149,8 +155,8 @@ func FlattenSourceFile(ctx context.Context, fName, oName string) (string, error)
 				break
 			}
 		}
-		return oName, w.Flush()
+		return output, w.Flush()
 	} //file doesn't have any imports, so just return the same file
-	return fName, err
+	return source, err
 
 }

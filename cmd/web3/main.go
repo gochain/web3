@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sort"
 	"strings"
 	"syscall"
@@ -230,14 +231,18 @@ func main() {
 							Name:  "solc-version, c",
 							Usage: "The version of the solc compiler(a tag of the ethereum/solc docker image)",
 						},
+						cli.StringFlag{
+							Name:  "output, o",
+							Usage: "Output directory.",
+						},
 					},
 					Action: func(c *cli.Context) {
-						BuildSol(ctx, c.Args().First(), c.String("compiler"))
+						BuildSol(ctx, c.Args().First(), c.String("compiler"), c.String("output"))
 					},
 				},
 				{
 					Name:  "deploy",
-					Usage: "Build and deploy the specified contract to the network",
+					Usage: "Deploy the specified contract to the network",
 					Action: func(c *cli.Context) {
 						name := c.Args().First()
 						tail := c.Args().Tail()
@@ -1277,17 +1282,28 @@ func GetID(ctx context.Context, rpcURL string) {
 	fmt.Println("Genesis Hash:", id.GenesisHash.String())
 }
 
-func BuildSol(ctx context.Context, filename, compiler string) {
+// BuildSol builds a contract. Generated files will be under output, or the current directory.
+func BuildSol(ctx context.Context, filename, compiler, output string) {
 	if filename == "" {
 		fatalExit(errors.New("Missing file name arg"))
 	}
-	flattenedFile, err := FlattenSourceFile(ctx, filename, "")
+	flatOut := ""
+	if output != "" {
+		if err := os.MkdirAll(output, 0777); err != nil {
+			fatalExit(fmt.Errorf("Failed to create output directory: %v", err))
+		}
+		basename := filepath.Base(filename)
+		oName := strings.TrimSuffix(basename, filepath.Ext(basename)) + "_flatten.sol"
+		flatOut = filepath.Join(output, oName)
+	}
+	// Maybe flatten source file.
+	sourceFile, err := FlattenSourceFile(ctx, filename, flatOut)
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot generate the flattened file: %v", err))
 	}
-	b, err := ioutil.ReadFile(flattenedFile)
+	b, err := ioutil.ReadFile(sourceFile)
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to read file %q: %v", flattenedFile, err))
+		fatalExit(fmt.Errorf("Failed to read file %q: %v", sourceFile, err))
 	}
 	str := string(b) // convert content to a 'string'
 	if verbose {
@@ -1295,7 +1311,7 @@ func BuildSol(ctx context.Context, filename, compiler string) {
 	}
 	compileData, err := web3.CompileSolidityString(ctx, str, compiler)
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to compile %q: %v", flattenedFile, err))
+		fatalExit(fmt.Errorf("Failed to compile %q: %v", sourceFile, err))
 	}
 	if verbose {
 		log.Println("Compiled Sol Details:", marshalJSON(compileData))
@@ -1307,11 +1323,12 @@ func BuildSol(ctx context.Context, filename, compiler string) {
 		if fileparts[0] != "<stdin>" {
 			continue
 		}
-		err := ioutil.WriteFile(fileparts[1]+".bin", []byte(v.Code), 0600)
+		path := filepath.Join(output, fileparts[1])
+		err := ioutil.WriteFile(path+".bin", []byte(v.Code), 0600)
 		if err != nil {
 			fatalExit(fmt.Errorf("Cannot write the bin file: %v", err))
 		}
-		err = ioutil.WriteFile(fileparts[1]+".abi", []byte(marshalJSON(v.Info.AbiDefinition)), 0600)
+		err = ioutil.WriteFile(path+".abi", []byte(marshalJSON(v.Info.AbiDefinition)), 0600)
 		if err != nil {
 			fatalExit(fmt.Errorf("Cannot write the abi file: %v", err))
 		}
@@ -1325,7 +1342,7 @@ func BuildSol(ctx context.Context, filename, compiler string) {
 			Bin    []string `json:"bin"`
 			ABI    []string `json:"abi"`
 		}{}
-		data.Source = flattenedFile
+		data.Source = sourceFile
 		for _, f := range filenames {
 			data.Bin = append(data.Bin, f+".bin")
 			data.ABI = append(data.ABI, f+".abi")
@@ -1335,7 +1352,7 @@ func BuildSol(ctx context.Context, filename, compiler string) {
 	}
 
 	fmt.Println("Successfully compiled contracts and wrote the following files:")
-	fmt.Println("Source file", flattenedFile)
+	fmt.Println("Source file", sourceFile)
 	for _, filename := range filenames {
 		fmt.Println("", filename+".bin,", filename+".abi")
 	}
@@ -1466,7 +1483,12 @@ func VerifyContract(ctx context.Context, network web3.Network, explorerURL, cont
 		fatalExit(fmt.Errorf("cannot convert the message:%v", err))
 	}
 
-	resp, err := http.Post(explorerURL+"/verify", "application/json", bytes.NewBuffer(bytesRepresentation))
+	req, err := http.NewRequestWithContext(ctx, "POST", explorerURL+"/verify", bytes.NewBuffer(bytesRepresentation))
+	if err != nil {
+		fatalExit(fmt.Errorf("cannot create the request:%v", err))
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		fatalExit(fmt.Errorf("cannot make the request:%v", err))
 	}
@@ -1487,7 +1509,7 @@ func VerifyContract(ctx context.Context, network web3.Network, explorerURL, cont
 			Message string
 		}
 	}
-	err = json.Unmarshal([]byte(body), &errResp)
+	err = json.Unmarshal(body, &errResp)
 	if err != nil {
 		fatalExit(fmt.Errorf("cannot parse the error message: %v", err))
 	}
