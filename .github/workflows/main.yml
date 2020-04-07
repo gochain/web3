@@ -72,8 +72,8 @@ jobs:
         docker cp -a . web3_sources:/data/
         docker run --rm --volumes-from web3_sources -w /data gochain/builder go build -ldflags "-X main.Version=$VERSION" -o web3_alpine ./cmd/web3 
         docker cp web3_sources:/data/web3_alpine web3_alpine
-        docker rm -f web3_sources=      
-
+        # docker rm -f web3_sources
+        
         # For GitHub
         url='https://api.github.com/repos/gochain/web3/releases'
         output=$(curl -s -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY -d "{\"tag_name\": \"v$VERSION\", \"name\": \"v$VERSION\"}" $url)
