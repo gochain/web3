@@ -23,14 +23,22 @@ jobs:
         echo "exiting, skip ci found"
         exit 78
 
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
     - name: Set up Go
       uses: actions/setup-go@v1
       with:
-        go-version: 1.13
+        go-version: 1.14
       id: go
 
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v1
+    - name: Bump version
+      run: |
+        git config --global user.email "ci@gochain.io"
+        git config --global user.name "CI"
+        git fetch --tags
+        wget -O - https://raw.githubusercontent.com/treeder/bump/master/gitbump.sh | bash
+        echo "::set-env name=VERSION::$(git tag --sort=-refname --list "v[0-9]*" | head -n 1 | cut -c 2-)"
       
     - name: release
       env:
@@ -41,19 +49,43 @@ jobs:
         DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
       run: |
         # mucho help from https://github.com/elstudio/actions-js-build/blob/v2/commit/entrypoint.sh - thanks!
-        branch2="$(echo $GITHUB_REF | awk -F / '{ print $3 }')"
-        echo "Branch2: $branch2"
-        git config --global user.email "ci@gochain.io"
-        git config --global user.name "CI"
-        git remote -v
-        echo "set origin url"
-        git remote set-url origin https://$GH_DEPLOY_USER:$GH_DEPLOY_KEY@github.com/$GITHUB_REPOSITORY.git
-        git checkout $branch2
-        git branch --set-upstream-to=origin/$branch2 $branch2
+        # branch2="$(echo $GITHUB_REF | awk -F / '{ print $3 }')"
+        # echo "Branch2: $branch2"
+        # git config --global user.email "ci@gochain.io"
+        # git config --global user.name "CI"
+        # git fetch --tags
+        # git remote -v
+        # echo "set origin url"
+        # git remote set-url origin https://$GH_DEPLOY_USER:$GH_DEPLOY_KEY@github.com/$GITHUB_REPOSITORY.git
+        # git checkout $branch2
+        # git branch --set-upstream-to=origin/$branch2 $branch2
         echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
         ./.github/actions-setup.sh
-        ./release.sh
-        
+        # ./release.sh
+
+        echo "Version: $VERSION"
+
+        # Linux release
+        GOOS=linux go build -ldflags "-X main.Version=$VERSION" -o web3_linux ./cmd/web3 
+        # Alpine release
+        docker create -v /data --name web3_sources alpine /bin/true
+        docker cp -a . web3_sources:/data/
+        docker run --rm --volumes-from web3_sources -w /data gochain/builder go build -ldflags "-X main.Version=$VERSION" -o web3_alpine ./cmd/web3 
+        docker cp web3_sources:/data/web3_alpine web3_alpine
+        docker rm -f web3_sources=      
+
+        # For GitHub
+        url='https://api.github.com/repos/gochain/web3/releases'
+        output=$(curl -s -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY -d "{\"tag_name\": \"v$VERSION\", \"name\": \"v$VERSION\"}" $url)
+        upload_url=$(echo "$output" | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["upload_url"]' | sed -E "s/\{.*//")
+        html_url=$(echo "$output" | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["html_url"]')
+        curl --data-binary "@web3_linux"  -H "Content-Type: application/octet-stream" -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY $upload_url\?name\=web3_linux >/dev/null
+        curl --data-binary "@web3_alpine" -H "Content-Type: application/octet-stream" -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY $upload_url\?name\=web3_alpine >/dev/null
+
+        docker build -t gochain/web3:latest .
+        docker tag gochain/web3:latest gochain/web3:$VERSION
+        docker push gochain/web3:$VERSION
+        docker push gochain/web3:latest
         
   build-mac:
     name: Build MacOS
@@ -64,11 +96,11 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v1
       with:
-        go-version: 1.13
+        go-version: 1.14
       id: go
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
       
     - name: release
       env:
@@ -77,7 +109,7 @@ jobs:
         GH_DEPLOY_KEY: ${{ secrets.GH_DEPLOY_KEY }}
       run: |
         set -ex
-        go build -o web3_mac ./cmd/web3
+        go build -ldflags "-X main.Version=$VERSION" -o web3_mac ./cmd/web3
         url='https://api.github.com/repos/gochain/web3/releases'
         output=$(curl -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY $url)
         upload_url=$(echo "$output" | python -c 'import json,sys;obj=json.load(sys.stdin);print obj[0]["upload_url"]' | sed -E "s/\{.*//")

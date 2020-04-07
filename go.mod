@@ -1,6 +1,6 @@
 module github.com/gochain/web3
 
-go 1.13
+go 1.14
 
 require (
 	github.com/OneOfOne/xxhash v1.2.5 // indirect

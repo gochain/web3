@@ -36,3 +36,5 @@ bin/
 /web3_alpine
 /*.sol
 lib/
+
+secrets/

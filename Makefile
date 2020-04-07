@@ -5,6 +5,13 @@ build:
 install: build
 	sudo cp web3 /usr/local/bin/web3
 
+builder:
+	docker build -t gochain/builder:latest -f Dockerfile.build .
+
+# We need to run this every so often when we want to update the go version used for the alpine release (only the alpine release uses this)
+push-builder: builder
+	docker push gochain/builder:latest
+
 docker: 
 	docker build -t gochain/web3:latest .
 
@@ -15,16 +22,4 @@ push: docker
 test:
 	go test ./...
 
-release:
-ifeq ($(UNAME_S),Linux)
-	GOOS=linux go build -o web3_linux ./cmd/web3 
-	docker create -v /data --name web3_sources alpine /bin/true
-	docker cp -a . web3_sources:/data/
-	docker run --rm --volumes-from web3_sources -w /data treeder/go-dev go build -o web3_alpine ./cmd/web3 
-	docker cp web3_sources:/data/web3_alpine web3_alpine
-	docker rm -f web3_sources
-endif
-ifeq ($(UNAME_S),Darwin)
-	go build -o web3_mac ./cmd/web3
-endif
 .PHONY: install test build docker release
