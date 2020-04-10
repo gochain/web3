@@ -15,7 +15,7 @@ https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/6874
 
 ## Install web3
 
-Quick one line install: (NOTE: this does not work on MacOS right now, use another install option if you're on a Mac)
+Quick one line install:
 
 ```sh
 curl -LSs https://raw.githubusercontent.com/gochain/web3/master/install.sh | sh
