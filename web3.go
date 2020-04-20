@@ -46,7 +46,7 @@ var Networks = map[string]Network{
 		Unit: "GO",
 	},
 	"ethereum": {
-		URL:  "https://main-rpc.linkpool.io",
+		URL:  "https://cloudflare-eth.com",
 		Unit: "ETH",
 	},
 	"ropsten": {
@@ -64,7 +64,9 @@ type Network struct {
 
 var (
 	weiPerGO   = big.NewInt(1e18)
+	OneWei     = weiPerGO
 	weiPerGwei = big.NewInt(1e9)
+	OneGwei    = weiPerGwei
 )
 
 // WeiAsBase converts w wei in to the base unit, and formats it as a decimal fraction with full precision (up to 18 decimals).

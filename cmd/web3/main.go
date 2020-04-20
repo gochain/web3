@@ -206,6 +206,30 @@ func main() {
 			},
 		},
 		{
+			Name:  "increasegas",
+			Usage: "Increase gas for a transaction. Useful if a tx is taking too long and you want it to go faster.",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "private-key, pk",
+					Usage:       "The private key",
+					EnvVar:      pkVarName,
+					Destination: &privateKey,
+					Required:    true},
+				cli.StringFlag{
+					Name:     "tx",
+					Usage:    "The transaction hash of the pending transaction.",
+					Required: true},
+				cli.IntFlag{
+					Name:  "amount",
+					Usage: "The amount in GWEI to increase the price. 1 would add 1 more GWEI. (default: 1)",
+					Value: 1,
+				},
+			},
+			Action: func(c *cli.Context) {
+				IncreaseGas(ctx, privateKey, network, c.String("tx"), c.Int("amount"))
+			},
+		},
+		{
 			Name:    "contract",
 			Aliases: []string{"c"},
 			Usage:   "Contract operations",
@@ -1123,6 +1147,42 @@ func GetTransactionReceipt(ctx context.Context, rpcURL, txhash, contractFile str
 	}
 
 	printReceiptDetails(r, myabi)
+}
+
+func IncreaseGas(ctx context.Context, privateKey string, network web3.Network, txHash string, amount int) {
+	client, err := web3.Dial(network.URL)
+	if err != nil {
+		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
+	}
+	defer client.Close()
+	txOrig, err := client.GetTransactionByHash(ctx, common.HexToHash(txHash))
+	if err != nil {
+		fatalExit(fmt.Errorf("error on GetTransactionByHash: %v", err))
+	}
+	if txOrig.BlockNumber != nil {
+		fmt.Printf("tx isn't pending, so can't increase gas")
+		return
+	}
+	// redo transaction with higher gas, one extra gwei good?
+	amountInGwei := new(big.Int).SetInt64(int64(amount))
+	amountInGwei = amountInGwei.Mul(amountInGwei, web3.OneGwei)
+	newPrice := new(big.Int).Set(txOrig.GasPrice)
+	newPrice = newPrice.Add(newPrice, amountInGwei)
+	tx := types.NewTransaction(txOrig.Nonce, *txOrig.To, txOrig.Value, txOrig.GasLimit, newPrice, txOrig.Input)
+
+	acct, err := web3.ParsePrivateKey(privateKey)
+	if err != nil {
+		fatalExit(err)
+	}
+	signedTx, err := types.SignTx(tx, types.HomesteadSigner{}, acct.Key())
+	if err != nil {
+		fatalExit(fmt.Errorf("couldn't sign tx: %v", err))
+	}
+	hash, err := client.SendTransaction(ctx, signedTx)
+	if err != nil {
+		fatalExit(fmt.Errorf("error sending transaction: %v", err))
+	}
+	fmt.Printf("Increased gas price to %v. New transaction: %v\n", newPrice, string(hash))
 }
 
 func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, privateKey string, onlyBalance bool,
