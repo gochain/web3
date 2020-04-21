@@ -10,7 +10,6 @@ import (
 	"github.com/gochain/gochain/v3/common"
 	"github.com/gochain/gochain/v3/common/hexutil"
 	"github.com/gochain/gochain/v3/core/types"
-	"github.com/gochain/gochain/v3/rlp"
 	"github.com/gochain/gochain/v3/rpc"
 )
 
@@ -41,12 +40,8 @@ type Client interface {
 	// GetPendingTransactionCount returns the transaction count including pending txs.
 	// This value is also the next legal nonce.
 	GetPendingTransactionCount(ctx context.Context, account common.Address) (uint64, error)
-	// SendTransaction sends the Transaction
-	SendTransaction(ctx context.Context, tx *types.Transaction) (string, error)
 	// SendRawTransaction sends the signed raw transaction bytes.
 	SendRawTransaction(ctx context.Context, tx []byte) error
-	// SendRawTransaction sends the signed raw transaction bytes.
-	SendRawTransaction2(ctx context.Context, tx []byte) (string, error)
 	// Call executes a call without submitting a transaction.
 	Call(ctx context.Context, msg CallMsg) ([]byte, error)
 	Close()
@@ -196,26 +191,8 @@ func (c *client) getTransactionCount(ctx context.Context, account common.Address
 	return uint64(result), err
 }
 
-func (c *client) SendTransaction(ctx context.Context, tx *types.Transaction) (string, error) {
-	raw, err := rlp.EncodeToBytes(tx)
-	if err != nil {
-		return "", err
-	}
-	return c.SendRawTransaction2(ctx, raw)
-}
-
 func (c *client) SendRawTransaction(ctx context.Context, tx []byte) error {
-	_, err := c.SendRawTransaction2(ctx, tx)
-	return err
-}
-
-func (c *client) SendRawTransaction2(ctx context.Context, tx []byte) (string, error) {
-	var result hexutil.Bytes
-	err := c.r.CallContext(ctx, &result, "eth_sendRawTransaction", common.ToHex(tx))
-	if err != nil {
-		return "", err
-	}
-	return result.String(), nil
+	return c.r.CallContext(ctx, nil, "eth_sendRawTransaction", common.ToHex(tx))
 }
 
 func (c *client) getBlock(ctx context.Context, method string, hashOrNum string, includeTxs bool) (*Block, error) {

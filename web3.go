@@ -283,15 +283,20 @@ func Send(ctx context.Context, client Client, privateKeyHex string, address comm
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign transaction: %v", err)
 	}
-	raw, err := rlp.EncodeToBytes(signedTx)
+	err = SendTransaction(ctx, client, signedTx)
 	if err != nil {
-		return nil, err
-	}
-	err = client.SendRawTransaction(ctx, raw)
-	if err != nil {
-		return nil, fmt.Errorf("cannot send transaction: %v", err)
+		return nil, fmt.Errorf("failed to send transaction: %v", err)
 	}
 	return convertTx(signedTx, fromAddress), nil
+}
+
+// SendTransaction sends the Transaction
+func SendTransaction(ctx context.Context, client Client, signedTx *types.Transaction) error {
+	raw, err := rlp.EncodeToBytes(signedTx)
+	if err != nil {
+		return err
+	}
+	return client.SendRawTransaction(ctx, raw)
 }
 
 func convertTx(tx *types.Transaction, from common.Address) *Transaction {

@@ -1179,11 +1179,11 @@ func IncreaseGas(ctx context.Context, privateKey string, network web3.Network, t
 	if err != nil {
 		fatalExit(fmt.Errorf("couldn't sign tx: %v", err))
 	}
-	hash, err := client.SendTransaction(ctx, signedTx)
+	err = web3.SendTransaction(ctx, client, signedTx)
 	if err != nil {
 		fatalExit(fmt.Errorf("error sending transaction: %v", err))
 	}
-	fmt.Printf("Increased gas price to %v. New transaction: %v\n", newPrice, string(hash))
+	fmt.Printf("Increased gas price to %v. New transaction: %s\n", newPrice, signedTx.Hash().Hex())
 }
 
 func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, privateKey string, onlyBalance bool,
