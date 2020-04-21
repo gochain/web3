@@ -667,3 +667,40 @@ func ParseBigInt(value string) (*big.Int, error) {
 	}
 	return i, nil
 }
+
+func ParseGwei(g string) (*big.Int, error) {
+	return parseUnit(g, weiPerGwei, 9)
+}
+
+func ParseBase(b string) (*big.Int, error) {
+	return parseUnit(b, weiPerGO, 18)
+}
+
+func parseUnit(g string, mult *big.Int, digits int) (*big.Int, error) {
+	g = strings.TrimSpace(g)
+	if len(g) == 0 {
+		return nil, errors.New("empty value")
+	}
+	parts := strings.Split(g, ".")
+	whole, ok := new(big.Int).SetString(parts[0], 10)
+	if !ok {
+		return nil, fmt.Errorf("failed to integer part: %s", parts[0])
+	}
+	whole = whole.Mul(whole, mult)
+	if len(parts) == 1 {
+		return whole, nil
+	}
+	if len(parts) > 2 {
+		return nil, errors.New("invalid value: more than one decimal point")
+	}
+	decStr := parts[1]
+	if len(decStr) > digits {
+		return nil, fmt.Errorf("too many decimal digits %d: limit %d", len(decStr), digits)
+	}
+	// Parse right padded with 0s, so we get wei.
+	dec, ok := new(big.Int).SetString(decStr+strings.Repeat("0", digits-len(decStr)), 10)
+	if !ok {
+		return nil, fmt.Errorf("failed to decimal part: %s", decStr)
+	}
+	return whole.Add(whole, dec), nil
+}

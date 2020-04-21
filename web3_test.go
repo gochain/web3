@@ -69,3 +69,35 @@ func Test_parseParam(t *testing.T) {
 		})
 	}
 }
+
+func TestParseGwei(t *testing.T) {
+	for _, tt := range []struct {
+		val    string
+		exp    *big.Int
+		expErr bool
+	}{
+		{val: "1", exp: weiPerGwei},
+		{val: "10", exp: Gwei(10)},
+		{val: "1.1", exp: new(big.Int).Add(Gwei(1), big.NewInt(100000000))},
+		{val: "100000", exp: Gwei(100000)},
+		{val: "1.000000001", exp: new(big.Int).Add(Gwei(1), big.NewInt(1))},
+		{val: "1.0000000001", expErr: true},
+	} {
+		t.Run(tt.val, func(t *testing.T) {
+			got, err := ParseGwei(tt.val)
+			if err != nil {
+				if !tt.expErr {
+					t.Errorf("unexpected error: %v", err)
+				}
+				return
+			}
+			if tt.expErr {
+				t.Errorf("expected error, but got: %s", got)
+				return
+			}
+			if got.Cmp(tt.exp) != 0 {
+				t.Errorf("expected %s but got %s", tt.exp, got)
+			}
+		})
+	}
+}

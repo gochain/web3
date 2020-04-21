@@ -221,12 +221,12 @@ func main() {
 					Required: true},
 				cli.IntFlag{
 					Name:  "amount",
-					Usage: "The amount in GWEI to increase the price. 1 would add 1 more GWEI. (default: 1)",
+					Usage: "The amount in GWEI to increase the price. 1 would add 1 more GWEI. Decimal values allowed. (default: 1)",
 					Value: 1,
 				},
 			},
 			Action: func(c *cli.Context) {
-				IncreaseGas(ctx, privateKey, network, c.String("tx"), c.Int("amount"))
+				IncreaseGas(ctx, privateKey, network, c.String("tx"), c.String("amount"))
 			},
 		},
 		{
@@ -1149,7 +1149,7 @@ func GetTransactionReceipt(ctx context.Context, rpcURL, txhash, contractFile str
 	printReceiptDetails(r, myabi)
 }
 
-func IncreaseGas(ctx context.Context, privateKey string, network web3.Network, txHash string, amountGwei int) {
+func IncreaseGas(ctx context.Context, privateKey string, network web3.Network, txHash string, amountGwei string) {
 	client, err := web3.Dial(network.URL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
@@ -1163,7 +1163,12 @@ func IncreaseGas(ctx context.Context, privateKey string, network web3.Network, t
 		fmt.Printf("tx isn't pending, so can't increase gas")
 		return
 	}
-	newPrice := new(big.Int).Add(txOrig.GasPrice, web3.Gwei(int64(amountGwei)))
+	amount, err := web3.ParseGwei(amountGwei)
+	if err != nil {
+		fmt.Printf("failed to parse amount %q: %v", amountGwei, err)
+		return
+	}
+	newPrice := new(big.Int).Add(txOrig.GasPrice, amount)
 	tx := types.NewTransaction(txOrig.Nonce, *txOrig.To, txOrig.Value, txOrig.GasLimit, newPrice, txOrig.Input)
 
 	acct, err := web3.ParsePrivateKey(privateKey)
