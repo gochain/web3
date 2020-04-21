@@ -1149,7 +1149,7 @@ func GetTransactionReceipt(ctx context.Context, rpcURL, txhash, contractFile str
 	printReceiptDetails(r, myabi)
 }
 
-func IncreaseGas(ctx context.Context, privateKey string, network web3.Network, txHash string, amount int) {
+func IncreaseGas(ctx context.Context, privateKey string, network web3.Network, txHash string, amountGwei int) {
 	client, err := web3.Dial(network.URL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
@@ -1163,11 +1163,7 @@ func IncreaseGas(ctx context.Context, privateKey string, network web3.Network, t
 		fmt.Printf("tx isn't pending, so can't increase gas")
 		return
 	}
-	// redo transaction with higher gas, one extra gwei good?
-	amountInGwei := new(big.Int).SetInt64(int64(amount))
-	amountInGwei = amountInGwei.Mul(amountInGwei, web3.OneGwei)
-	newPrice := new(big.Int).Set(txOrig.GasPrice)
-	newPrice = newPrice.Add(newPrice, amountInGwei)
+	newPrice := new(big.Int).Add(txOrig.GasPrice, web3.Gwei(int64(amountGwei)))
 	tx := types.NewTransaction(txOrig.Nonce, *txOrig.To, txOrig.Value, txOrig.GasLimit, newPrice, txOrig.Input)
 
 	acct, err := web3.ParsePrivateKey(privateKey)

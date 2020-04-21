@@ -64,10 +64,20 @@ type Network struct {
 
 var (
 	weiPerGO   = big.NewInt(1e18)
-	OneWei     = weiPerGO
 	weiPerGwei = big.NewInt(1e9)
-	OneGwei    = weiPerGwei
 )
+
+// Base converts b base units to wei (*1e18).
+func Base(b int64) *big.Int {
+	i := big.NewInt(b)
+	return i.Mul(i, weiPerGO)
+}
+
+// Gwei converts g gwei to wei (*1e9).
+func Gwei(g int64) *big.Int {
+	i := big.NewInt(g)
+	return i.Mul(i, weiPerGwei)
+}
 
 // WeiAsBase converts w wei in to the base unit, and formats it as a decimal fraction with full precision (up to 18 decimals).
 func WeiAsBase(w *big.Int) string {
