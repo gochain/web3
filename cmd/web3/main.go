@@ -244,6 +244,11 @@ func main() {
 					Usage:    "The nonce to replace.",
 					Required: true},
 				cli.StringFlag{
+					Name:     "to",
+					Usage:    "to address",
+					Required: true,
+				},
+				cli.StringFlag{
 					Name:     "amountd", // adding a d for backwards compatibility. If d, then it's decimal, otherwise, the old stuff.
 					Usage:    "The amount of GO or ETH in decimal format",
 					Required: true,
@@ -259,6 +264,10 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) {
+				toS := c.String("to")
+				if toS == "" {
+					fatalExit(errors.New("to address not set"))
+				}
 				var ok bool
 				// a := c.String("amount")
 				// amount, ok := new(big.Int).SetString(a, 10)
@@ -278,7 +287,7 @@ func main() {
 						fatalExit(fmt.Errorf("invalid price %v", gp))
 					}
 				}
-				to := common.HexToAddress(c.String("to"))
+				to := common.HexToAddress(toS)
 				ReplaceTx(ctx, privateKey, network, c.Uint64("nonce"), to, amount, c.Uint64("gas-limit"), price, nil)
 			},
 		},
@@ -627,7 +636,7 @@ func main() {
 				if err != nil {
 					fatalExit(err)
 				}
-				fmt.Print(acc.PublicKey())
+				fmt.Println(acc.PublicKey())
 			},
 		},
 		{
@@ -690,12 +699,12 @@ func main() {
 					Destination: &privateKey,
 					Hidden:      false,
 				},
-				cli.StringFlag{
-					Name:        "to",
-					EnvVar:      addrVarName,
-					Destination: &recepientAddress,
-					Usage:       "The recepient address",
-					Hidden:      false},
+				// cli.StringFlag{ // this doesn't do anything
+				// 	Name:        "to",
+				// 	EnvVar:      addrVarName,
+				// 	Destination: &recepientAddress,
+				// 	Usage:       "The recepient address",
+				// 	Hidden:      false},
 				cli.BoolFlag{
 					Name:   "erc20",
 					Usage:  "set if transfering erc20 tokens",
