@@ -46,7 +46,7 @@ var Networks = map[string]Network{
 		Unit: "GO",
 	},
 	"ethereum": {
-		URL:  "https://main-rpc.linkpool.io",
+		URL:  "https://cloudflare-eth.com",
 		Unit: "ETH",
 	},
 	"ropsten": {
@@ -66,6 +66,18 @@ var (
 	weiPerGO   = big.NewInt(1e18)
 	weiPerGwei = big.NewInt(1e9)
 )
+
+// Base converts b base units to wei (*1e18).
+func Base(b int64) *big.Int {
+	i := big.NewInt(b)
+	return i.Mul(i, weiPerGO)
+}
+
+// Gwei converts g gwei to wei (*1e9).
+func Gwei(g int64) *big.Int {
+	i := big.NewInt(g)
+	return i.Mul(i, weiPerGwei)
+}
 
 // WeiAsBase converts w wei in to the base unit, and formats it as a decimal fraction with full precision (up to 18 decimals).
 func WeiAsBase(w *big.Int) string {
@@ -271,15 +283,20 @@ func Send(ctx context.Context, client Client, privateKeyHex string, address comm
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign transaction: %v", err)
 	}
-	raw, err := rlp.EncodeToBytes(signedTx)
+	err = SendTransaction(ctx, client, signedTx)
 	if err != nil {
-		return nil, err
-	}
-	err = client.SendRawTransaction(ctx, raw)
-	if err != nil {
-		return nil, fmt.Errorf("cannot send transaction: %v", err)
+		return nil, fmt.Errorf("failed to send transaction: %v", err)
 	}
 	return convertTx(signedTx, fromAddress), nil
+}
+
+// SendTransaction sends the Transaction
+func SendTransaction(ctx context.Context, client Client, signedTx *types.Transaction) error {
+	raw, err := rlp.EncodeToBytes(signedTx)
+	if err != nil {
+		return err
+	}
+	return client.SendRawTransaction(ctx, raw)
 }
 
 func convertTx(tx *types.Transaction, from common.Address) *Transaction {
@@ -654,4 +671,41 @@ func ParseBigInt(value string) (*big.Int, error) {
 		return nil, fmt.Errorf("Failed to parse integer %q", value)
 	}
 	return i, nil
+}
+
+func ParseGwei(g string) (*big.Int, error) {
+	return parseUnit(g, weiPerGwei, 9)
+}
+
+func ParseBase(b string) (*big.Int, error) {
+	return parseUnit(b, weiPerGO, 18)
+}
+
+func parseUnit(g string, mult *big.Int, digits int) (*big.Int, error) {
+	g = strings.TrimSpace(g)
+	if len(g) == 0 {
+		return nil, errors.New("empty value")
+	}
+	parts := strings.Split(g, ".")
+	whole, ok := new(big.Int).SetString(parts[0], 10)
+	if !ok {
+		return nil, fmt.Errorf("failed to integer part: %s", parts[0])
+	}
+	whole = whole.Mul(whole, mult)
+	if len(parts) == 1 {
+		return whole, nil
+	}
+	if len(parts) > 2 {
+		return nil, errors.New("invalid value: more than one decimal point")
+	}
+	decStr := parts[1]
+	if len(decStr) > digits {
+		return nil, fmt.Errorf("too many decimal digits %d: limit %d", len(decStr), digits)
+	}
+	// Parse right padded with 0s, so we get wei.
+	dec, ok := new(big.Int).SetString(decStr+strings.Repeat("0", digits-len(decStr)), 10)
+	if !ok {
+		return nil, fmt.Errorf("failed to decimal part: %s", decStr)
+	}
+	return whole.Add(whole, dec), nil
 }
