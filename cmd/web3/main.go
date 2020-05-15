@@ -27,6 +27,7 @@ import (
 	"github.com/gochain/gochain/v3/core/types"
 	"github.com/gochain/web3"
 	"github.com/gochain/web3/assets"
+	"github.com/shopspring/decimal"
 	"github.com/urfave/cli"
 )
 
@@ -63,7 +64,6 @@ func main() {
 
 	// Flags
 	var netName, rpcUrl, function, contractAddress, toContractAddress, contractFile, privateKey, txFormat, txInputFormat, recepientAddress string
-	var amount int
 	var testnet, waitForReceipt, upgradeable bool
 
 	app := cli.NewApp()
@@ -230,6 +230,59 @@ func main() {
 			},
 		},
 		{
+			Name:  "replace",
+			Usage: "Replace transaction. If a transaction is still pending, you can attempt to replace it.",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "private-key, pk",
+					Usage:       "The private key",
+					EnvVar:      pkVarName,
+					Destination: &privateKey,
+					Required:    true},
+				cli.StringFlag{
+					Name:     "nonce",
+					Usage:    "The nonce to replace.",
+					Required: true},
+				cli.StringFlag{
+					Name:     "amountd", // adding a d for backwards compatibility. If d, then it's decimal, otherwise, the old stuff.
+					Usage:    "The amount of GO or ETH in decimal format",
+					Required: true,
+				},
+				cli.Uint64Flag{
+					Name:     "gas-limit",
+					Usage:    "Gas limit (multiplied by price for total gas)",
+					Required: true,
+				},
+				cli.StringFlag{
+					Name:  "gas-price",
+					Usage: "Gas price to use, if left blank, will use suggested gas price.",
+				},
+			},
+			Action: func(c *cli.Context) {
+				var ok bool
+				// a := c.String("amount")
+				// amount, ok := new(big.Int).SetString(a, 10)
+				// if !ok {
+				// 	fatalExit(fmt.Errorf("invalid amount %v", a))
+				// }
+				amountd, err := decimal.NewFromString(c.String("amountd"))
+				if err != nil {
+					fatalExit(err)
+				}
+				amount := web3.DecToInt(amountd, 18)
+				gp := c.String("gas-price")
+				var price *big.Int
+				if gp != "" {
+					price, ok = new(big.Int).SetString(gp, 10)
+					if !ok {
+						fatalExit(fmt.Errorf("invalid price %v", gp))
+					}
+				}
+				to := common.HexToAddress(c.String("to"))
+				ReplaceTx(ctx, privateKey, network, c.Uint64("nonce"), to, amount, c.Uint64("gas-limit"), price, nil)
+			},
+		},
+		{
 			Name:    "contract",
 			Aliases: []string{"c"},
 			Usage:   "Contract operations",
@@ -351,6 +404,11 @@ func main() {
 						for i, v := range c.Args() {
 							args[i] = v
 						}
+						a := c.String("amount")
+						amount, ok := new(big.Int).SetString(a, 10)
+						if !ok {
+							fatalExit(fmt.Errorf("invalid amount %v", a))
+						}
 						callContract(ctx, network.URL, privateKey, contractAddress, contractFile, function, amount, waitForReceipt, c.Bool("to-string"), args...)
 					},
 					Flags: []cli.Flag{
@@ -370,11 +428,10 @@ func main() {
 							Destination: &contractFile,
 							Usage:       "ABI file matching deployed contract",
 							Hidden:      false},
-						cli.IntFlag{
-							Name:        "amount",
-							Destination: &amount,
-							Usage:       "Amount in wei that you want to send to the transaction",
-							Hidden:      false},
+						cli.StringFlag{
+							Name:   "amount",
+							Usage:  "Amount in wei that you want to send to the transaction",
+							Hidden: false},
 						cli.StringFlag{
 							Name:        "private-key, pk",
 							Usage:       "Private key",
@@ -396,6 +453,11 @@ func main() {
 					Name:  "upgrade",
 					Usage: "Upgrade contract to new address",
 					Action: func(c *cli.Context) {
+						a := c.String("amount")
+						amount, ok := new(big.Int).SetString(a, 10)
+						if !ok {
+							fatalExit(fmt.Errorf("invalid amount %v", a))
+						}
 						UpgradeContract(ctx, network.URL, privateKey, contractAddress, toContractAddress, amount)
 					},
 					Flags: []cli.Flag{
@@ -410,11 +472,10 @@ func main() {
 							Destination: &toContractAddress,
 							Usage:       "Contract address to upgrade to",
 							Hidden:      false},
-						cli.IntFlag{
-							Name:        "amount",
-							Destination: &amount,
-							Usage:       "Amount in wei that you want to send to the transaction",
-							Hidden:      false},
+						cli.StringFlag{
+							Name:   "amount",
+							Usage:  "Amount in wei that you want to send to the transaction",
+							Hidden: false},
 						cli.StringFlag{
 							Name:        "private-key",
 							Usage:       "Private key",
@@ -446,6 +507,11 @@ func main() {
 						if address == "" {
 							address = contractAddress
 						}
+						a := c.String("amount")
+						amount, ok := new(big.Int).SetString(a, 10)
+						if !ok {
+							fatalExit(fmt.Errorf("invalid amount %v", a))
+						}
 						PauseContract(ctx, network.URL, privateKey, address, amount)
 					},
 					Flags: []cli.Flag{
@@ -455,11 +521,10 @@ func main() {
 							Destination: &contractAddress,
 							Usage:       "Proxy contract address",
 							Hidden:      false},
-						cli.IntFlag{
-							Name:        "amount",
-							Destination: &amount,
-							Usage:       "Amount in wei that you want to send to the transaction",
-							Hidden:      false},
+						cli.StringFlag{
+							Name:   "amount",
+							Usage:  "Amount in wei that you want to send to the transaction",
+							Hidden: false},
 						cli.StringFlag{
 							Name:        "private-key",
 							Usage:       "Private key",
@@ -476,6 +541,11 @@ func main() {
 						if address == "" {
 							address = contractAddress
 						}
+						a := c.String("amount")
+						amount, ok := new(big.Int).SetString(a, 10)
+						if !ok {
+							fatalExit(fmt.Errorf("invalid amount %v", a))
+						}
 						ResumeContract(ctx, network.URL, privateKey, address, amount)
 					},
 					Flags: []cli.Flag{
@@ -485,11 +555,10 @@ func main() {
 							Destination: &contractAddress,
 							Usage:       "Proxy contract address",
 							Hidden:      false},
-						cli.IntFlag{
-							Name:        "amount",
-							Destination: &amount,
-							Usage:       "Amount in wei that you want to send to the transaction",
-							Hidden:      false},
+						cli.StringFlag{
+							Name:   "amount",
+							Usage:  "Amount in wei that you want to send to the transaction",
+							Hidden: false},
 						cli.StringFlag{
 							Name:        "private-key",
 							Usage:       "Private key",
@@ -1078,9 +1147,10 @@ func GetTransactionDetails(ctx context.Context, network web3.Network, txhash, in
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
 	}
 	defer client.Close()
+	// fmt.Println(network.URL)
 	tx, err := client.GetTransactionByHash(ctx, common.HexToHash(txhash))
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot get transaction details from the network: %v", err))
+		fatalExit(fmt.Errorf("Cannot get transaction details from %v network: %v", network.Name, err))
 	}
 	if verbose {
 		fmt.Println("Transaction details:")
@@ -1155,6 +1225,7 @@ func IncreaseGas(ctx context.Context, privateKey string, network web3.Network, t
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
 	}
 	defer client.Close()
+	// then we'll clone the original and increase gas
 	txOrig, err := client.GetTransactionByHash(ctx, common.HexToHash(txHash))
 	if err != nil {
 		fatalExit(fmt.Errorf("error on GetTransactionByHash: %v", err))
@@ -1169,8 +1240,24 @@ func IncreaseGas(ctx context.Context, privateKey string, network web3.Network, t
 		return
 	}
 	newPrice := new(big.Int).Add(txOrig.GasPrice, amount)
-	tx := types.NewTransaction(txOrig.Nonce, *txOrig.To, txOrig.Value, txOrig.GasLimit, newPrice, txOrig.Input)
+	_ = ReplaceTx(ctx, privateKey, network, txOrig.Nonce, *txOrig.To, txOrig.Value, txOrig.GasLimit, newPrice, txOrig.Input)
+	fmt.Printf("Increased gas price to %v\n", newPrice)
 
+}
+func ReplaceTx(ctx context.Context, privateKey string, network web3.Network, nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *types.Transaction {
+	client, err := web3.Dial(network.URL)
+	if err != nil {
+		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
+	}
+	defer client.Close()
+	if gasPrice == nil {
+		gasPrice, err = client.GetGasPrice(ctx)
+		if err != nil {
+			fatalExit(fmt.Errorf("couldn't get suggested gas price: %v", err))
+		}
+		fmt.Printf("Using suggested gas price: %v\n", gasPrice)
+	}
+	tx := types.NewTransaction(nonce, to, amount, gasLimit, gasPrice, data)
 	acct, err := web3.ParsePrivateKey(privateKey)
 	if err != nil {
 		fatalExit(err)
@@ -1179,11 +1266,13 @@ func IncreaseGas(ctx context.Context, privateKey string, network web3.Network, t
 	if err != nil {
 		fatalExit(fmt.Errorf("couldn't sign tx: %v", err))
 	}
+
 	err = web3.SendTransaction(ctx, client, signedTx)
 	if err != nil {
 		fatalExit(fmt.Errorf("error sending transaction: %v", err))
 	}
-	fmt.Printf("Increased gas price to %v. New transaction: %s\n", newPrice, signedTx.Hash().Hex())
+	fmt.Printf("Replaced transaction. New transaction: %s\n", signedTx.Hash().Hex())
+	return tx
 }
 
 func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, privateKey string, onlyBalance bool,
@@ -1582,6 +1671,7 @@ func Transfer(ctx context.Context, rpcURL, privateKey, toAddress string, tail []
 		fatalExit(errors.New("Invalid arguments. Format is: `transfer X to ADDRESS`"))
 	}
 
+	// TODO: change this to shopspring/decimal
 	amountS := tail[0]
 	amountF := new(big.Float)
 	amountF.SetPrec(100)
@@ -1600,7 +1690,7 @@ func Transfer(ctx context.Context, rpcURL, privateKey, toAddress string, tail []
 		// fmt.Println("DECIMALS:", decimals, reflect.TypeOf(decimals))
 		// todo: could get symbol here to display
 		amount := web3.FloatAsInt(amountF, int(decimals[0].(uint8)))
-		callContract(ctx, rpcURL, privateKey, contractAddress, "erc20", "transfer", 0, false, false, toAddress, amount)
+		callContract(ctx, rpcURL, privateKey, contractAddress, "erc20", "transfer", &big.Int{}, false, false, toAddress, amount)
 		return
 	}
 
@@ -1672,7 +1762,7 @@ func printReceiptDetails(r *web3.Receipt, myabi *abi.ABI) {
 	}
 }
 
-func UpgradeContract(ctx context.Context, rpcURL, privateKey, contractAddress, newTargetAddress string, amount int) {
+func UpgradeContract(ctx context.Context, rpcURL, privateKey, contractAddress, newTargetAddress string, amount *big.Int) {
 	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
@@ -1719,7 +1809,7 @@ func GetTargetContract(ctx context.Context, rpcURL, contractAddress string) {
 	}
 }
 
-func PauseContract(ctx context.Context, rpcURL, privateKey, contractAddress string, amount int) {
+func PauseContract(ctx context.Context, rpcURL, privateKey, contractAddress string, amount *big.Int) {
 	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
@@ -1741,7 +1831,7 @@ func PauseContract(ctx context.Context, rpcURL, privateKey, contractAddress stri
 	fmt.Println("Transaction address:", receipt.TxHash.Hex())
 }
 
-func ResumeContract(ctx context.Context, rpcURL, privateKey, contractAddress string, amount int) {
+func ResumeContract(ctx context.Context, rpcURL, privateKey, contractAddress string, amount *big.Int) {
 	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)

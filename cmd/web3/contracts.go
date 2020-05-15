@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/gochain/web3"
@@ -51,7 +52,7 @@ func GetContractConst(ctx context.Context, rpcURL, contractAddress, contractFile
 }
 
 func callContract(ctx context.Context, rpcURL, privateKey, contractAddress, contractFile, functionName string,
-	amount int, waitForReceipt, toString bool, parameters ...interface{}) {
+	amount *big.Int, waitForReceipt, toString bool, parameters ...interface{}) {
 	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
