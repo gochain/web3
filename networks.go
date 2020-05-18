@@ -27,9 +27,9 @@ var Networks = map[string]Network{
 	},
 	"ethereum": {
 		Name: "ethereum",
-		// URL:  "https://mainnet.infura.io/v3/bc5b0e5cfd9b4385befb69a68a9400c3",
-		// URL:         "https://cloudflare-eth.com",
-		URL:         "https://main-rpc.linkpool.io",
+		URL:  "https://mainnet.infura.io/v3/bc5b0e5cfd9b4385befb69a68a9400c3",
+		// URL: "https://cloudflare-eth.com", // these don't worry very well, constant problems
+		// URL: "https://main-rpc.linkpool.io",
 		Unit:        "ETH",
 		ExplorerURL: "https://etherscan.io",
 	},

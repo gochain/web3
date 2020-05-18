@@ -63,7 +63,7 @@ func main() {
 	}()
 
 	// Flags
-	var netName, rpcUrl, function, contractAddress, toContractAddress, contractFile, privateKey, txFormat, txInputFormat, recepientAddress string
+	var netName, rpcUrl, function, contractAddress, toContractAddress, contractFile, privateKey, txFormat, txInputFormat string
 	var testnet, waitForReceipt, upgradeable bool
 
 	app := cli.NewApp()
@@ -269,11 +269,6 @@ func main() {
 					fatalExit(errors.New("to address not set"))
 				}
 				var ok bool
-				// a := c.String("amount")
-				// amount, ok := new(big.Int).SetString(a, 10)
-				// if !ok {
-				// 	fatalExit(fmt.Errorf("invalid amount %v", a))
-				// }
 				amountd, err := decimal.NewFromString(c.String("amountd"))
 				if err != nil {
 					fatalExit(err)
@@ -413,11 +408,7 @@ func main() {
 						for i, v := range c.Args() {
 							args[i] = v
 						}
-						a := c.String("amount")
-						amount, ok := new(big.Int).SetString(a, 10)
-						if !ok {
-							fatalExit(fmt.Errorf("invalid amount %v", a))
-						}
+						amount := toAmountBig(c.String("amount"))
 						callContract(ctx, network.URL, privateKey, contractAddress, contractFile, function, amount, waitForReceipt, c.Bool("to-string"), args...)
 					},
 					Flags: []cli.Flag{
@@ -462,11 +453,7 @@ func main() {
 					Name:  "upgrade",
 					Usage: "Upgrade contract to new address",
 					Action: func(c *cli.Context) {
-						a := c.String("amount")
-						amount, ok := new(big.Int).SetString(a, 10)
-						if !ok {
-							fatalExit(fmt.Errorf("invalid amount %v", a))
-						}
+						amount := toAmountBig(c.String("amount"))
 						UpgradeContract(ctx, network.URL, privateKey, contractAddress, toContractAddress, amount)
 					},
 					Flags: []cli.Flag{
@@ -516,11 +503,7 @@ func main() {
 						if address == "" {
 							address = contractAddress
 						}
-						a := c.String("amount")
-						amount, ok := new(big.Int).SetString(a, 10)
-						if !ok {
-							fatalExit(fmt.Errorf("invalid amount %v", a))
-						}
+						amount := toAmountBig(c.String("amount"))
 						PauseContract(ctx, network.URL, privateKey, address, amount)
 					},
 					Flags: []cli.Flag{
@@ -550,11 +533,7 @@ func main() {
 						if address == "" {
 							address = contractAddress
 						}
-						a := c.String("amount")
-						amount, ok := new(big.Int).SetString(a, 10)
-						if !ok {
-							fatalExit(fmt.Errorf("invalid amount %v", a))
-						}
+						amount := toAmountBig(c.String("amount"))
 						ResumeContract(ctx, network.URL, privateKey, address, amount)
 					},
 					Flags: []cli.Flag{
@@ -699,12 +678,6 @@ func main() {
 					Destination: &privateKey,
 					Hidden:      false,
 				},
-				// cli.StringFlag{ // this doesn't do anything
-				// 	Name:        "to",
-				// 	EnvVar:      addrVarName,
-				// 	Destination: &recepientAddress,
-				// 	Usage:       "The recepient address",
-				// 	Hidden:      false},
 				cli.BoolFlag{
 					Name:   "erc20",
 					Usage:  "set if transfering erc20 tokens",
@@ -714,6 +687,15 @@ func main() {
 					EnvVar: addrVarName,
 					Usage:  "Contract address",
 					Hidden: false},
+				cli.BoolFlag{
+					Name:        "wait",
+					Usage:       "Wait for the receipt for transact functions",
+					Destination: &waitForReceipt,
+					Hidden:      false},
+				cli.BoolFlag{
+					Name:  "to-string",
+					Usage: "Convert result to a string, useful if using byte arrays that are strings and you want to see the string value.",
+				},
 			},
 			Action: func(c *cli.Context) {
 				contractAddress = ""
@@ -723,7 +705,7 @@ func main() {
 						fatalExit(errors.New("You must set ERC20 contract address"))
 					}
 				}
-				Transfer(ctx, network.URL, privateKey, recepientAddress, c.Args(), contractAddress)
+				Transfer(ctx, network.URL, privateKey, contractAddress, c.Bool("wait"), c.Bool("to-string"), c.Args())
 			},
 		},
 		{
@@ -999,6 +981,20 @@ func main() {
 		},
 	}
 	app.Run(os.Args)
+}
+
+func toAmountBig(a string) *big.Int {
+	var amount *big.Int
+	if a != "" {
+		var ok bool
+		amount, ok = new(big.Int).SetString(a, 10)
+		if !ok {
+			fatalExit(fmt.Errorf("invalid amount %v", a))
+		}
+	} else {
+		amount = &big.Int{}
+	}
+	return amount
 }
 
 // getNetwork resolves the rpcUrl from the user specified options, or quits if an illegal combination or value is found.
@@ -1675,7 +1671,7 @@ func VerifyContract(ctx context.Context, network web3.Network, explorerURL, cont
 	fatalExit(fmt.Errorf("Cannot verify the contract: %s, error code: %v", errResp.Error.Message, resp.StatusCode))
 }
 
-func Transfer(ctx context.Context, rpcURL, privateKey, toAddress string, tail []string, contractAddress string) {
+func Transfer(ctx context.Context, rpcURL, privateKey, contractAddress string, wait, toString bool, tail []string) {
 	if len(tail) < 3 {
 		fatalExit(errors.New("Invalid arguments. Format is: `transfer X to ADDRESS`"))
 	}
@@ -1688,7 +1684,7 @@ func Transfer(ctx context.Context, rpcURL, privateKey, toAddress string, tail []
 	if !ok {
 		fatalExit(fmt.Errorf("invalid amount %v", amountS))
 	}
-	toAddress = tail[2]
+	toAddress := tail[2]
 
 	if contractAddress != "" {
 		decimals, err := GetContractConst(ctx, rpcURL, contractAddress, "erc20", "decimals")
@@ -1699,7 +1695,7 @@ func Transfer(ctx context.Context, rpcURL, privateKey, toAddress string, tail []
 		// fmt.Println("DECIMALS:", decimals, reflect.TypeOf(decimals))
 		// todo: could get symbol here to display
 		amount := web3.FloatAsInt(amountF, int(decimals[0].(uint8)))
-		callContract(ctx, rpcURL, privateKey, contractAddress, "erc20", "transfer", &big.Int{}, false, false, toAddress, amount)
+		callContract(ctx, rpcURL, privateKey, contractAddress, "erc20", "transfer", &big.Int{}, wait, toString, toAddress, amount)
 		return
 	}
 

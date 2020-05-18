@@ -139,7 +139,8 @@ func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, add
 		return nil, fmt.Errorf("cannot get nonce: %v", err)
 	}
 	toAddress := common.HexToAddress(address)
-	tx := types.NewTransaction(nonce, toAddress, amount, 200000, gasPrice, input)
+	// fmt.Println("Price: ", gasPrice)
+	tx := types.NewTransaction(nonce, toAddress, amount, 70000, gasPrice, input)
 	signedTx, err := types.SignTx(tx, types.HomesteadSigner{}, privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign transaction: %v", err)
