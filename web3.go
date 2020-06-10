@@ -19,48 +19,10 @@ import (
 	"github.com/gochain/gochain/v3/core/types"
 	"github.com/gochain/gochain/v3/crypto"
 	"github.com/gochain/gochain/v3/rlp"
+	"github.com/shopspring/decimal"
 )
 
 var NotFoundErr = errors.New("not found")
-
-const (
-	testnetExplorerURL = "https://testnet-explorer.gochain.io/api"
-	mainnetExplorerURL = "https://explorer.gochain.io/api"
-	testnetURL         = "https://testnet-rpc.gochain.io"
-	mainnetURL         = "https://rpc.gochain.io"
-)
-
-var Networks = map[string]Network{
-	"testnet": {
-		URL:         testnetURL,
-		Unit:        "GO",
-		ExplorerURL: testnetExplorerURL,
-	},
-	"gochain": {
-		URL:         mainnetURL,
-		Unit:        "GO",
-		ExplorerURL: mainnetExplorerURL,
-	},
-	"localhost": {
-		URL:  "http://localhost:8545",
-		Unit: "GO",
-	},
-	"ethereum": {
-		URL:  "https://cloudflare-eth.com",
-		Unit: "ETH",
-	},
-	"ropsten": {
-		URL:  "https://ropsten-rpc.linkpool.io",
-		Unit: "ETH",
-	},
-}
-
-type Network struct {
-	URL         string
-	ExplorerURL string
-	Unit        string
-	//TODO net_id, chain_id
-}
 
 var (
 	weiPerGO   = big.NewInt(1e18)
@@ -141,7 +103,8 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 }
 
 // CallTransactFunction submits a transaction to execute a smart contract function call.
-func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, address, privateKeyHex, functionName string, amount int, params ...interface{}) (*Transaction, error) {
+func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, address, privateKeyHex, functionName string,
+	amount *big.Int, params ...interface{}) (*Transaction, error) {
 	if address == "" {
 		return nil, errors.New("no contract address specified")
 	}
@@ -176,7 +139,8 @@ func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, add
 		return nil, fmt.Errorf("cannot get nonce: %v", err)
 	}
 	toAddress := common.HexToAddress(address)
-	tx := types.NewTransaction(nonce, toAddress, big.NewInt(int64(amount)), 200000, gasPrice, input)
+	// fmt.Println("Price: ", gasPrice)
+	tx := types.NewTransaction(nonce, toAddress, amount, 70000, gasPrice, input)
 	signedTx, err := types.SignTx(tx, types.HomesteadSigner{}, privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign transaction: %v", err)
@@ -708,4 +672,19 @@ func parseUnit(g string, mult *big.Int, digits int) (*big.Int, error) {
 		return nil, fmt.Errorf("failed to decimal part: %s", decStr)
 	}
 	return whole.Add(whole, dec), nil
+}
+
+// DecToInt converts a decimal to a big int
+func DecToInt(d decimal.Decimal, decimals int32) *big.Int {
+	// multiply amount by number of decimals
+	d1 := decimal.New(1, decimals)
+	d = d.Mul(d1)
+	return d.BigInt()
+}
+
+// IntToDec converts a big int to a decimal
+func IntToDec(i *big.Int, decimals int32) decimal.Decimal {
+	d := decimal.NewFromBigInt(i, 0)
+	d = d.Div(decimal.New(1, decimals))
+	return d
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/gochain/web3"
@@ -51,7 +52,7 @@ func GetContractConst(ctx context.Context, rpcURL, contractAddress, contractFile
 }
 
 func callContract(ctx context.Context, rpcURL, privateKey, contractAddress, contractFile, functionName string,
-	amount int, waitForReceipt, toString bool, parameters ...interface{}) {
+	amount *big.Int, waitForReceipt, toString bool, parameters ...interface{}) {
 	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
@@ -99,17 +100,17 @@ func callContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 	}
 	tx, err := web3.CallTransactFunction(ctx, client, *myabi, contractAddress, privateKey, functionName, amount, parameters...)
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to send contract call tx: %v", err))
+		fatalExit(fmt.Errorf("Failed to call contract. error: %v", err))
 	}
+	fmt.Println("Transaction hash:", tx.Hash.Hex())
 	if !waitForReceipt {
-		fmt.Println("Transaction address:", tx.Hash.Hex())
 		return
 	}
-	ctx, _ = context.WithTimeout(ctx, 10*time.Second)
+	fmt.Println("Waiting for receipt...")
+	ctx, _ = context.WithTimeout(ctx, 60*time.Second)
 	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot get the receipt: %v", err))
+		fatalExit(fmt.Errorf("getting receipt: %v", err))
 	}
 	printReceiptDetails(receipt, myabi)
-
 }
