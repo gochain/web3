@@ -1373,7 +1373,7 @@ func BuildSol(ctx context.Context, filename, compiler, output string) {
 	// Maybe flatten source file.
 	sourceFile, err := FlattenSourceFile(ctx, filename, flatOut)
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot generate the flattened file: %v", err))
+		fatalExit(fmt.Errorf("Cannot generate flattened file: %v", err))
 	}
 	b, err := ioutil.ReadFile(sourceFile)
 	if err != nil {
@@ -1438,7 +1438,7 @@ func FlattenSol(ctx context.Context, iFile, oFile string) {
 	}
 	oFile, err := FlattenSourceFile(ctx, iFile, oFile)
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot generate the flattened file: %v", err))
+		fatalExit(fmt.Errorf("Cannot generate flattened file: %v", err))
 	}
 	switch format {
 	case "json":

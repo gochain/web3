@@ -23,8 +23,10 @@ type importRec struct {
 func extractFilePath(line string) string {
 	line = strings.Replace(line, "import ", "", 2)
 	line = strings.Replace(line, "\"", "", 2)
+	line = strings.Replace(line, "'", "", 2)
 	line = strings.Replace(line, ";", "", 2)
-	return strings.TrimSpace(filepath.Clean(line))
+	line = strings.TrimSpace(filepath.Clean(line))
+	return line
 }
 
 func loadAndSplitFile(imports map[string]importRec, fileName string) (newFiles bool, openZeppelinVersion, pragma string, err error) {
@@ -99,7 +101,7 @@ func FlattenSourceFile(ctx context.Context, source, output string) (string, erro
 	if newFiles { //file has imports
 		err = getOpenZeppelinLib(ctx, openZeppelinVersion)
 		if err != nil {
-			return "", fmt.Errorf("failed to get openzepplin lib: %v", err)
+			return "", fmt.Errorf("failed to get openzeppelin lib: %v", err)
 		}
 		if err := os.MkdirAll(filepath.Dir(output), 0777); err != nil {
 			return "", fmt.Errorf("failed to make parent directories: %v", err)
