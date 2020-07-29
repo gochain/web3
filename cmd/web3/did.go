@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gochain/gochain/v3/core/types"
+
 	"github.com/gochain/gochain/v3/accounts/abi"
 	"github.com/gochain/gochain/v3/common"
 	"github.com/gochain/gochain/v3/crypto"
@@ -103,6 +105,11 @@ func CreateDID(ctx context.Context, rpcURL, privateKey, id, registryAddress stri
 	if err != nil {
 		log.Fatalf("Cannot get the receipt: %v", err)
 	}
+
+	if receipt.Status != types.ReceiptStatusSuccessful {
+		fatalExit(fmt.Errorf("DID contract call failed: %s", tx.Hash.Hex()))
+	}
+
 	fmt.Println("Successfully registered DID:", d.String())
 	fmt.Println("DID Document IPFS Hash:", hash)
 	fmt.Println("Transaction address:", receipt.TxHash.Hex())

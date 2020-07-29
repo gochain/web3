@@ -20,6 +20,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gochain/gochain/v3/core/types"
+
 	"github.com/gochain/gochain/v3/accounts/abi"
 	"github.com/gochain/gochain/v3/accounts/keystore"
 	"github.com/gochain/gochain/v3/common"
@@ -330,7 +332,8 @@ func main() {
 						for i, v := range c.Args().Tail() {
 							args[i] = v
 						}
-						DeploySol(ctx, network, privateKey, name, c.String("verify"), c.String("solc-version"), c.String("explorer-api"), upgradeable, args...)
+						DeploySol(ctx, network, privateKey, name, c.String("verify"), c.String("solc-version"),
+							c.String("explorer-api"), c.Uint64("gas-limit"), upgradeable, args...)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -355,6 +358,10 @@ func main() {
 						cli.StringFlag{
 							Name:  "solc-version, c",
 							Usage: "The version of the solc compiler(a tag of the ethereum/solc docker image)",
+						},
+						cli.Uint64Flag{
+							Name:  "gas-limit",
+							Value: 2000000,
 						},
 					},
 				},
@@ -1448,7 +1455,9 @@ func FlattenSol(ctx context.Context, iFile, oFile string) {
 	fmt.Println("Flattened contract:", oFile)
 }
 
-func DeploySol(ctx context.Context, network web3.Network, privateKey, contractName, contractSource, compilerVersion, explorerURL string, upgradeable bool, params ...interface{}) {
+func DeploySol(ctx context.Context, network web3.Network,
+	privateKey, contractName, contractSource, compilerVersion, explorerURL string,
+	gasLimit uint64, upgradeable bool, params ...interface{}) {
 
 	if contractName == "" {
 		fatalExit(errors.New("Missing contract name arg."))
@@ -1471,7 +1480,7 @@ func DeploySol(ctx context.Context, network web3.Network, privateKey, contractNa
 		}
 		abi = string(b)
 	}
-	tx, err := web3.DeployContract(ctx, client, privateKey, string(bin), abi, params...)
+	tx, err := web3.DeployContract(ctx, client, privateKey, string(bin), abi, gasLimit, params...)
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot deploy the contract: %v", err))
 	}
@@ -1487,6 +1496,10 @@ func DeploySol(ctx context.Context, network web3.Network, privateKey, contractNa
 		return
 	}
 
+	if receipt.Status != types.ReceiptStatusSuccessful {
+		fatalExit(fmt.Errorf("Contract deploy tx failed: %s", tx.Hash.Hex()))
+	}
+
 	// Exit early if contract is static.
 	if !upgradeable {
 		fmt.Println("Contract has been successfully deployed with transaction:", tx.Hash.Hex())
@@ -1498,7 +1511,7 @@ func DeploySol(ctx context.Context, network web3.Network, privateKey, contractNa
 	}
 
 	// Deploy proxy contract.
-	proxyTx, err := web3.DeployContract(ctx, client, privateKey, string(assets.OwnerUpgradeableProxyCode(receipt.ContractAddress)), "")
+	proxyTx, err := web3.DeployContract(ctx, client, privateKey, assets.OwnerUpgradeableProxyCode(receipt.ContractAddress), "", gasLimit)
 	if err != nil {
 		log.Fatalf("Cannot deploy the upgradeable proxy contract: %v", err)
 	}
@@ -1506,6 +1519,10 @@ func DeploySol(ctx context.Context, network web3.Network, privateKey, contractNa
 	proxyReceipt, err := web3.WaitForReceipt(waitCtx, client, proxyTx.Hash)
 	if err != nil {
 		log.Fatalf("Cannot get the upgradeable proxy receipt: %v", err)
+	}
+
+	if proxyReceipt.Status != types.ReceiptStatusSuccessful {
+		fatalExit(fmt.Errorf("Upgradeable proxy contract deploy tx failed: %s", proxyTx.Hash.Hex()))
 	}
 
 	fmt.Println("Upgradeable contract has been successfully deployed.")
