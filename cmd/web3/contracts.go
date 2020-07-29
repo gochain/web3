@@ -46,7 +46,7 @@ func GetContractConst(ctx context.Context, rpcURL, contractAddress, contractFile
 	}
 	res, err := web3.CallConstantFunction(ctx, client, *myabi, contractAddress, functionName, parameters...)
 	if err != nil {
-		return nil, fmt.Errorf("Cannot call the contract: %v", err)
+		return nil, fmt.Errorf("Error calling constant function: %v", err)
 	}
 	return res, nil
 }
@@ -70,7 +70,7 @@ func callContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 	if m.Const {
 		res, err := web3.CallConstantFunction(ctx, client, *myabi, contractAddress, functionName, parameters...)
 		if err != nil {
-			fatalExit(fmt.Errorf("Cannot call the contract: %v", err))
+			fatalExit(fmt.Errorf("Error calling constant function: %v", err))
 		}
 		switch format {
 		case "json":
@@ -100,7 +100,7 @@ func callContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 	}
 	tx, err := web3.CallTransactFunction(ctx, client, *myabi, contractAddress, privateKey, functionName, amount, parameters...)
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to call contract. error: %v", err))
+		fatalExit(fmt.Errorf("Error calling contract: %v", err))
 	}
 	fmt.Println("Transaction hash:", tx.Hash.Hex())
 	if !waitForReceipt {

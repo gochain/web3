@@ -106,6 +106,7 @@ func CompileSolidityString(ctx context.Context, source, version string) (map[str
 			return nil, err
 		}
 	}
+	// fmt.Printf("Building with solidity version %v\n", s.Version)
 	args, err := s.makeArgs()
 	if err != nil {
 		return nil, err

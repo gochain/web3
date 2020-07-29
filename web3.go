@@ -95,6 +95,8 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 	if err != nil {
 		return nil, err
 	}
+	// TODO: calling a function on a contract errors on unpacking, it should probably know it's not a contract before hand if it can
+	// fmt.Printf("RESPONSE: %v\n", string(res))
 	vals, err := fn.Outputs.UnpackValues(res)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unpack values from %s: %v", hexutil.Encode(res), err)
