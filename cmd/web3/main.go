@@ -317,9 +317,14 @@ func main() {
 							Name:  "output, o",
 							Usage: "Output directory.",
 						},
+						cli.StringFlag{
+							Name:  "evm-version",
+							Usage: "Solidity EVM version",
+							Value: "petersburg",
+						},
 					},
 					Action: func(c *cli.Context) {
-						BuildSol(ctx, c.Args().First(), c.String("compiler"), c.String("output"))
+						BuildSol(ctx, c.Args().First(), c.String("compiler"), c.String("evm-version"), c.String("output"))
 					},
 				},
 				{
@@ -1364,7 +1369,7 @@ func GetID(ctx context.Context, rpcURL string) {
 }
 
 // BuildSol builds a contract. Generated files will be under output, or the current directory.
-func BuildSol(ctx context.Context, filename, compiler, output string) {
+func BuildSol(ctx context.Context, filename, compiler, evmVersion, output string) {
 	if filename == "" {
 		fatalExit(errors.New("Missing file name arg"))
 	}
@@ -1390,7 +1395,7 @@ func BuildSol(ctx context.Context, filename, compiler, output string) {
 	if verbose {
 		log.Println("Building Sol:", str)
 	}
-	compileData, err := web3.CompileSolidityString(ctx, str, compiler)
+	compileData, err := web3.CompileSolidityString(ctx, str, compiler, evmVersion)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to compile %q: %v", sourceFile, err))
 	}

@@ -43,8 +43,8 @@ type ContractInfo struct {
 
 // Solidity contains information about the solidity compiler.
 type Solidity struct {
-	Path, Version       string
-	Major, Minor, Patch int
+	Path, Version, EVMVersion string
+	Major, Minor, Patch       int
 }
 
 // --combined-output format
@@ -66,6 +66,7 @@ func (s *Solidity) makeArgs() ([]string, error) {
 		"run", "-i", "--rm", "-v", dir + ":/workdir", "-w", "/workdir", "ethereum/solc:" + s.Version,
 		"--combined-json",
 		"bin,bin-runtime,srcmap,srcmap-runtime,abi,userdoc,devdoc,metadata",
+		"--evm-version", s.EVMVersion,
 		"--optimize", // code optimizer switched on
 	}, nil
 }
@@ -92,7 +93,7 @@ func SolidityVersion(source string) (*Solidity, error) {
 }
 
 // CompileSolidityString builds and returns all the contracts contained within a source string.
-func CompileSolidityString(ctx context.Context, source, version string) (map[string]*Contract, error) {
+func CompileSolidityString(ctx context.Context, source, version, evmVersion string) (map[string]*Contract, error) {
 	var s *Solidity
 	var err error
 	if len(source) == 0 {
@@ -107,6 +108,7 @@ func CompileSolidityString(ctx context.Context, source, version string) (map[str
 		}
 	}
 	// fmt.Printf("Building with solidity version %v\n", s.Version)
+	s.EVMVersion = evmVersion
 	args, err := s.makeArgs()
 	if err != nil {
 		return nil, err
