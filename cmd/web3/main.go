@@ -741,11 +741,11 @@ func main() {
 					Subcommands: []cli.Command{
 						{
 							Name:  "erc20",
-							Usage: "Generate a erc20 contract",
+							Usage: "Generate an ERC20 contract",
 							Flags: []cli.Flag{
 								cli.BoolTFlag{
 									Name:  "pausable, p",
-									Usage: "Pausable contract.",
+									Usage: "Pausable contract. Default: true",
 								},
 								cli.BoolTFlag{
 									Name:  "mintable, m",
@@ -779,11 +779,11 @@ func main() {
 						},
 						{
 							Name:  "erc721",
-							Usage: "Generate a erc721 contract",
+							Usage: "Generate an ERC721 contract",
 							Flags: []cli.Flag{
 								cli.BoolTFlag{
 									Name:  "pausable, p",
-									Usage: "Pausable contract.",
+									Usage: "Pausable contract. Default: true",
 								},
 								cli.BoolTFlag{
 									Name:  "mintable, m",
@@ -810,7 +810,7 @@ func main() {
 				},
 				{
 					Name:  "code",
-					Usage: "Generate a code bindings",
+					Usage: "Generate code bindings",
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:  "abi, a",
@@ -839,9 +839,8 @@ func main() {
 			},
 		},
 		{
-			Name:    "did",
-			Aliases: []string{"c"},
-			Usage:   "Distributed identity operations",
+			Name:  "did",
+			Usage: "Distributed identity operations",
 			Subcommands: []cli.Command{
 				{
 					Name:  "create",
@@ -927,9 +926,8 @@ func main() {
 		},
 
 		{
-			Name:    "claim",
-			Aliases: []string{"c"},
-			Usage:   "Verifiable claims operations",
+			Name:  "claim",
+			Usage: "Verifiable claims operations",
 			Subcommands: []cli.Command{
 				{
 					Name:  "sign",
