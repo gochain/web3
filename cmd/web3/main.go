@@ -736,9 +736,8 @@ func main() {
 			Aliases: []string{"g"},
 			Subcommands: []cli.Command{
 				{
-					Name:    "contract",
-					Usage:   "Generate a contract",
-					Aliases: []string{"c"},
+					Name:  "contract",
+					Usage: "Generate a contract",
 					Subcommands: []cli.Command{
 						{
 							Name:  "erc20",
@@ -810,9 +809,8 @@ func main() {
 					},
 				},
 				{
-					Name:    "code",
-					Usage:   "Generate a code bindings",
-					Aliases: []string{"c"},
+					Name:  "code",
+					Usage: "Generate a code bindings",
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:  "abi, a",
