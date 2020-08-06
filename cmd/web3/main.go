@@ -420,7 +420,7 @@ func main() {
 							args[i] = v
 						}
 						amount := toAmountBig(c.String("amount"))
-						callContract(ctx, network.URL, privateKey, contractAddress, contractFile, function, amount, waitForReceipt, c.Bool("to-string"), args...)
+						callContract(ctx, network.URL, privateKey, contractAddress, contractFile, function, amount, c.Uint64("gas-limit"), waitForReceipt, c.Bool("to-string"), args...)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -457,6 +457,10 @@ func main() {
 						cli.BoolFlag{
 							Name:  "to-string",
 							Usage: "Convert result to a string, useful if using byte arrays that are strings and you want to see the string value.",
+						},
+						cli.Uint64Flag{
+							Name:  "gas-limit",
+							Value: 70000,
 						},
 					},
 				},
@@ -1618,7 +1622,7 @@ func UpgradeContract(ctx context.Context, rpcURL, privateKey, contractAddress, n
 	if err != nil {
 		log.Fatalf("Cannot initialize ABI: %v", err)
 	}
-	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "upgrade", amount, newTargetAddress)
+	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "upgrade", amount, 100000, newTargetAddress)
 	if err != nil {
 		log.Fatalf("Cannot upgrade the contract: %v", err)
 	}
@@ -1665,7 +1669,7 @@ func PauseContract(ctx context.Context, rpcURL, privateKey, contractAddress stri
 	if err != nil {
 		log.Fatalf("Cannot initialize ABI: %v", err)
 	}
-	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "pause", amount)
+	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "pause", amount, 70000)
 	if err != nil {
 		log.Fatalf("Cannot pause the contract: %v", err)
 	}
@@ -1687,7 +1691,7 @@ func ResumeContract(ctx context.Context, rpcURL, privateKey, contractAddress str
 	if err != nil {
 		log.Fatalf("Cannot initialize ABI: %v", err)
 	}
-	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "resume", amount)
+	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "resume", amount, 70000)
 	if err != nil {
 		log.Fatalf("Cannot resume the contract: %v", err)
 	}

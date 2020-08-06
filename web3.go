@@ -106,7 +106,7 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 
 // CallTransactFunction submits a transaction to execute a smart contract function call.
 func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, address, privateKeyHex, functionName string,
-	amount *big.Int, params ...interface{}) (*Transaction, error) {
+	amount *big.Int, gasLimit uint64, params ...interface{}) (*Transaction, error) {
 	if address == "" {
 		return nil, errors.New("no contract address specified")
 	}
@@ -142,7 +142,7 @@ func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, add
 	}
 	toAddress := common.HexToAddress(address)
 	// fmt.Println("Price: ", gasPrice)
-	tx := types.NewTransaction(nonce, toAddress, amount, 70000, gasPrice, input)
+	tx := types.NewTransaction(nonce, toAddress, amount, gasLimit, gasPrice, input)
 	signedTx, err := types.SignTx(tx, types.HomesteadSigner{}, privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign transaction: %v", err)
