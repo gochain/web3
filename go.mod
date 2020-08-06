@@ -13,7 +13,7 @@ require (
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5 // indirect
 	github.com/go-ini/ini v1.46.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
-	github.com/gochain/gochain/v3 v3.3.4
+	github.com/gochain/gochain/v3 v3.3.7
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/google/go-cmp v0.3.1 // indirect
