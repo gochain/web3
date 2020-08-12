@@ -1382,8 +1382,7 @@ func BuildSol(ctx context.Context, filename, compiler, evmVersion, output string
 		oName := strings.TrimSuffix(basename, filepath.Ext(basename)) + "_flatten.sol"
 		flatOut = filepath.Join(output, oName)
 	}
-	// Maybe flatten source file.
-	sourceFile, err := FlattenSourceFile(ctx, filename, flatOut)
+	name, sourceFile, err := FlattenSourceFile(ctx, filename, flatOut)
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot generate flattened file: %v", err))
 	}
@@ -1402,11 +1401,16 @@ func BuildSol(ctx context.Context, filename, compiler, evmVersion, output string
 	if verbose {
 		log.Println("Compiled Sol Details:", marshalJSON(compileData))
 	}
-
+	fmt.Println("NAME:", name)
 	var filenames []string
 	for contractName, v := range compileData {
+		fmt.Println("contractName:", contractName)
 		fileparts := strings.Split(contractName, ":")
 		if fileparts[0] != "<stdin>" {
+			continue
+		}
+		if name != "" && fileparts[1] != name {
+			// this will skip all the little contract files that it used to litter the the directory with
 			continue
 		}
 		path := filepath.Join(output, fileparts[1])
@@ -1448,7 +1452,7 @@ func FlattenSol(ctx context.Context, iFile, oFile string) {
 	if iFile == "" {
 		fatalExit(errors.New("Missing file name arg"))
 	}
-	oFile, err := FlattenSourceFile(ctx, iFile, oFile)
+	_, oFile, err := FlattenSourceFile(ctx, iFile, oFile)
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot generate flattened file: %v", err))
 	}
