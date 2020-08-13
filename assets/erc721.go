@@ -9,7 +9,7 @@ type Erc721Params struct {
 	// Burnable  bool
 }
 
-const ERC721Template = `pragma solidity ^0.6.0;
+const ERC721Template = `pragma solidity ^0.6.12;
 
 import "./lib/oz/contracts/presets/ERC721PresetMinterPauserAutoId.sol";
 

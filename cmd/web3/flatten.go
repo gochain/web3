@@ -71,7 +71,7 @@ func loadAndSplitFile(imports map[string]importRec, fileName string) (name strin
 			s := strings.Split(line, " ")
 			name = s[1]
 		}
-		if strings.HasPrefix(line, "contract") || strings.HasPrefix(line, "library") || strings.HasPrefix(line, "interface") {
+		if strings.HasPrefix(line, "abstract contract") || strings.HasPrefix(line, "contract") || strings.HasPrefix(line, "library") || strings.HasPrefix(line, "interface") {
 			thisRec.Code = lines[li:]
 			break
 		}
@@ -120,6 +120,7 @@ func FlattenSourceFile(ctx context.Context, source, output string) (string, stri
 				if iRec.Processed {
 					continue
 				}
+				// fmt.Println("handling:", iRec.FullPath)
 				_, newFiles2, _, _, err2 := loadAndSplitFile(imports, iRec.FullPath)
 				if err2 != nil {
 					return name, output, err2
