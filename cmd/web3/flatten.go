@@ -29,7 +29,7 @@ func extractFilePath(line string) string {
 	return line
 }
 
-func loadAndSplitFile(imports map[string]importRec, fileName string) (newFiles bool, openZeppelinVersion, pragma string, err error) {
+func loadAndSplitFile(imports map[string]importRec, fileName string) (name string, newFiles bool, openZeppelinVersion, pragma string, err error) {
 	thisPath := filepath.Dir(fileName)
 	shortName := filepath.Base(fileName)
 	if imports[shortName].Processed {
@@ -66,6 +66,11 @@ func loadAndSplitFile(imports map[string]importRec, fileName string) (newFiles b
 			}
 			thisRec.Uses[fname] = true
 		}
+		if strings.HasPrefix(line, "contract") {
+			// grab name
+			s := strings.Split(line, " ")
+			name = s[1]
+		}
 		if strings.HasPrefix(line, "contract") || strings.HasPrefix(line, "library") || strings.HasPrefix(line, "interface") {
 			thisRec.Code = lines[li:]
 			break
@@ -80,31 +85,31 @@ func loadAndSplitFile(imports map[string]importRec, fileName string) (newFiles b
 // FlattenSourceFile flattens the source solidity file, but only if it has imports.
 // The flattened file will be generated at output, or in the current directory
 // as <source_name>_flatten.sol.
-func FlattenSourceFile(ctx context.Context, source, output string) (string, error) {
+func FlattenSourceFile(ctx context.Context, source, output string) (string, string, error) {
 	if output == "" {
 		basename := filepath.Base(source)
 		output = strings.TrimSuffix(basename, filepath.Ext(basename)) + "_flatten.sol"
 	}
 	if _, err := os.Stat(source); err != nil {
-		return "", fmt.Errorf("failed to find source file: %v", err)
+		return "", "", fmt.Errorf("failed to find source file: %v", err)
 	}
 	if _, err := os.Stat(output); err == nil {
-		return "", fmt.Errorf("the output file already exist: %s", output)
+		return "", "", fmt.Errorf("the output file already exist: %s", output)
 	} else if err != nil && !os.IsNotExist(err) {
-		return "", fmt.Errorf("failed to check for output file: %v", err)
+		return "", "", fmt.Errorf("failed to check for output file: %v", err)
 	}
 	imports := make(map[string]importRec)
-	newFiles, openZeppelinVersion, pragma, err := loadAndSplitFile(imports, source)
+	name, newFiles, openZeppelinVersion, pragma, err := loadAndSplitFile(imports, source)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	if newFiles { //file has imports
 		err = getOpenZeppelinLib(ctx, openZeppelinVersion)
 		if err != nil {
-			return "", fmt.Errorf("failed to get openzeppelin lib: %v", err)
+			return name, "", fmt.Errorf("failed to get openzeppelin lib: %v", err)
 		}
 		if err := os.MkdirAll(filepath.Dir(output), 0777); err != nil {
-			return "", fmt.Errorf("failed to make parent directories: %v", err)
+			return name, "", fmt.Errorf("failed to make parent directories: %v", err)
 		}
 		f, _ := os.OpenFile(output, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
 		defer f.Close()
@@ -115,9 +120,9 @@ func FlattenSourceFile(ctx context.Context, source, output string) (string, erro
 				if iRec.Processed {
 					continue
 				}
-				newFiles2, _, _, err2 := loadAndSplitFile(imports, iRec.FullPath)
+				_, newFiles2, _, _, err2 := loadAndSplitFile(imports, iRec.FullPath)
 				if err2 != nil {
-					return output, err2
+					return name, output, err2
 				}
 				repeat = repeat || newFiles2
 			}
@@ -157,8 +162,8 @@ func FlattenSourceFile(ctx context.Context, source, output string) (string, erro
 				break
 			}
 		}
-		return output, w.Flush()
+		return name, output, w.Flush()
 	} //file doesn't have any imports, so just return the same file
-	return source, err
+	return name, source, err
 
 }
