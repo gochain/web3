@@ -366,7 +366,7 @@ func main() {
 						},
 						cli.Uint64Flag{
 							Name:  "gas-limit",
-							Value: 2000000,
+							Value: 4000000,
 						},
 					},
 				},
