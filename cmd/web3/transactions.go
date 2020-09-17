@@ -14,6 +14,7 @@ import (
 )
 
 func IncreaseGas(ctx context.Context, privateKey string, network web3.Network, txHash string, amountGwei string) {
+	fmt.Println("dailing:", network.URL)
 	client, err := web3.Dial(network.URL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
@@ -56,6 +57,9 @@ func ReplaceTx(ctx context.Context, privateKey string, network web3.Network, non
 	if err != nil {
 		fatalExit(err)
 	}
+
+	fmt.Printf("Replacing transaction nonce: %v, gasPrice: %v, gasLimit: %v\n", nonce, gasPrice, gasLimit)
+
 	signedTx, err := types.SignTx(tx, types.HomesteadSigner{}, acct.Key())
 	if err != nil {
 		fatalExit(fmt.Errorf("couldn't sign tx: %v", err))

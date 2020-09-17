@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"math/big"
 	"reflect"
@@ -158,9 +159,28 @@ func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, add
 	return convertTx(signedTx, fromAddress), nil
 }
 
+// DeployBin will deploy a bin file to the network
+func DeployBin(ctx context.Context, client Client,
+	privateKeyHex, binFilename, abiFilename string, gasLimit uint64, constructorArgs ...interface{}) (*Transaction, error) {
+	bin, err := ioutil.ReadFile(binFilename)
+	if err != nil {
+		return nil, fmt.Errorf("Cannot read the bin file %q: %v", binFilename, err)
+	}
+	var abi string
+	if len(constructorArgs) > 0 {
+		b, err := ioutil.ReadFile(abiFilename)
+		if err != nil {
+			return nil, fmt.Errorf("Cannot read the abi file %q: %v", abiFilename, err)
+		}
+		abi = string(b)
+	}
+	return DeployContract(ctx, client, privateKeyHex, string(bin), abi, gasLimit, constructorArgs...)
+
+}
+
 // DeployContract submits a contract creation transaction.
 // abiJSON is only required when including params for the constructor.
-func DeployContract(ctx context.Context, client Client, privateKeyHex string, binHex, abiJSON string, gasLimit uint64, params ...interface{}) (*Transaction, error) {
+func DeployContract(ctx context.Context, client Client, privateKeyHex string, binHex, abiJSON string, gasLimit uint64, constructorArgs ...interface{}) (*Transaction, error) {
 	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
 		privateKeyHex = privateKeyHex[2:]
 	}
@@ -189,12 +209,12 @@ func DeployContract(ctx context.Context, client Client, privateKeyHex string, bi
 	if err != nil {
 		return nil, fmt.Errorf("cannot decode contract data: %v", err)
 	}
-	if len(params) > 0 {
+	if len(constructorArgs) > 0 {
 		abiData, err := abi.JSON(strings.NewReader(abiJSON))
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse ABI: %v", err)
 		}
-		goParams, err := ConvertArguments(abiData.Constructor.Inputs, params)
+		goParams, err := ConvertArguments(abiData.Constructor.Inputs, constructorArgs)
 		if err != nil {
 			return nil, err
 		}
