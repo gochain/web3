@@ -13,6 +13,49 @@ https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/6874
 )](https://godoc.org/github.com/gochain/web3)
 ![](https://github.com/gochain/web3/workflows/release/badge.svg)
 
+```sh
+web3 --help
+NAME:
+   web3 - web3 cli tool
+
+USAGE:
+   web3 [global options] command [command options] [arguments...]
+
+VERSION:
+   0.0.0
+
+COMMANDS:
+   block, bl        Block details for a block number (decimal integer) or hash (hexadecimal with 0x prefix). Omit for latest.
+   transaction, tx  Transaction details for a tx hash
+   receipt, rc      Transaction receipt for a tx hash
+   address, addr    Account details for a specific address, or the one corresponding to the private key.
+   balance          Get balance for your private key or an address passed in. eg: `balance 0xABC123`
+   increasegas      Increase gas for a transaction. Useful if a tx is taking too long and you want it to go faster.
+   replace          Replace transaction. If a transaction is still pending, you can attempt to replace it.
+   contract, c      Contract operations
+   snapshot, sn     Clique snapshot
+   id, id           Network/Chain information
+   start            Start a local GoChain development node
+   myaddress        Returns the address associated with WEB3_PRIVATE_KEY
+   account, a       Account operations
+   transfer, send   Transfer GO/ETH to an account. eg: `web3 transfer 10.1 to 0xADDRESS`
+   env              List environment variables
+   generate, g      Generate code
+   did              Distributed identity operations
+   claim            Verifiable claims operations
+   help, h          Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --network value, -n value  The name of the network. Options: gochain/testnet/ethereum/ropsten/localhost. (default: "gochain") [$WEB3_NETWORK]
+   --testnet                  Shorthand for '-network testnet'.
+   --rpc-url value            The network RPC URL [$WEB3_RPC_URL]
+   --verbose                  Enable verbose logging
+   --format value, -f value   Output format. Options: json. Default: human readable output.
+   --help, -h                 show help
+   --version, -v              print the version
+```
+
+
 ## Install web3
 
 Quick one line install:
@@ -21,7 +64,8 @@ Quick one line install:
 curl -LSs https://raw.githubusercontent.com/gochain/web3/master/install.sh | sh
 ```
 
-[Install Docker](https://docs.docker.com/install/) (optional) - While not required for all commands, many of the developer commands require Docker so we recommend installing it.
+[Install Docker](https://docs.docker.com/install/) (optional) - not required for all commands, but if you plan on building and deploying smart contracts, 
+you'll need Docker installed.
 
 [More installation options](#More-installation-options)
 
