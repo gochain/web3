@@ -22,7 +22,7 @@ USAGE:
    web3 [global options] command [command options] [arguments...]
 
 VERSION:
-   0.0.0
+   0.2.34
 
 COMMANDS:
    block, bl        Block details for a block number (decimal integer) or hash (hexadecimal with 0x prefix). Omit for latest.
