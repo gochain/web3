@@ -255,9 +255,9 @@ func main() {
 					Required: true,
 				},
 				cli.Uint64Flag{
-					Name:     "gas-limit",
-					Usage:    "Gas limit (multiplied by price for total gas)",
-					Required: true,
+					Name:  "gas-limit",
+					Usage: "Gas limit (multiplied by price for total gas)",
+					Value: 21000,
 				},
 				cli.StringFlag{
 					Name:  "gas-price",
@@ -282,6 +282,7 @@ func main() {
 					if !ok {
 						fatalExit(fmt.Errorf("invalid price %v", gp))
 					}
+					// TODO: this should assume it's GWEI and multiply by GWEI unit
 				}
 				to := common.HexToAddress(toS)
 				ReplaceTx(ctx, privateKey, network, c.Uint64("nonce"), to, amount, c.Uint64("gas-limit"), price, nil)
@@ -736,7 +737,7 @@ func main() {
 		},
 		{
 			Name:    "generate",
-			Usage:   "Generate code",
+			Usage:   "Generate a contract",
 			Aliases: []string{"g"},
 			Subcommands: []cli.Command{
 				{

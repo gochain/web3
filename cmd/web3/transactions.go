@@ -56,6 +56,9 @@ func ReplaceTx(ctx context.Context, privateKey string, network web3.Network, non
 	if err != nil {
 		fatalExit(err)
 	}
+
+	fmt.Printf("Replacing transaction nonce: %v, gasPrice: %v, gasLimit: %v\n", nonce, gasPrice, gasLimit)
+
 	signedTx, err := types.SignTx(tx, types.HomesteadSigner{}, acct.Key())
 	if err != nil {
 		fatalExit(fmt.Errorf("couldn't sign tx: %v", err))
