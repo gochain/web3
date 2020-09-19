@@ -42,5 +42,5 @@ func (a *Account) PublicKey() string {
 }
 
 func (a *Account) PrivateKey() string {
-	return "0x" + hex.EncodeToString(a.key.D.Bytes())
+	return "0x" + hex.EncodeToString(crypto.FromECDSA(a.key))
 }

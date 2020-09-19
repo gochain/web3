@@ -20,6 +20,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gochain/gochain/crypto"
 	"github.com/gochain/gochain/v3/core/types"
 
 	"github.com/gochain/gochain/v3/accounts/abi"
@@ -676,7 +677,7 @@ func main() {
 						if err != nil {
 							fatalExit(err)
 						}
-						fmt.Printf("Private key: %v\n", "0x"+hex.EncodeToString(key.PrivateKey.D.Bytes()))
+						fmt.Printf("Private key: %v\n", "0x"+hex.EncodeToString(crypto.FromECDSA(key.PrivateKey)))
 						fmt.Printf("Public address: %v\n", key.Address.Hex())
 					},
 				},
