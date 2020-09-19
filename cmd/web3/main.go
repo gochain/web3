@@ -265,8 +265,6 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				log.Println("YO2")
-				fmt.Println("YO")
 				toS := c.String("to")
 				if toS == "" {
 					fatalExit(errors.New("to address not set"))
