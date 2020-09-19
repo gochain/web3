@@ -14,7 +14,6 @@ import (
 )
 
 func IncreaseGas(ctx context.Context, privateKey string, network web3.Network, txHash string, amountGwei string) {
-	fmt.Println("dailing:", network.URL)
 	client, err := web3.Dial(network.URL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
