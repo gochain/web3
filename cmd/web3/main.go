@@ -20,8 +20,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gochain/gochain/crypto"
 	"github.com/gochain/gochain/v3/core/types"
+	"github.com/gochain/gochain/v3/crypto"
 
 	"github.com/gochain/gochain/v3/accounts/abi"
 	"github.com/gochain/gochain/v3/accounts/keystore"
@@ -251,9 +251,8 @@ func main() {
 					Required: true,
 				},
 				cli.StringFlag{
-					Name:     "amountd", // adding a d for backwards compatibility. If d, then it's decimal, otherwise, the old stuff.
-					Usage:    "The amount of GO or ETH in decimal format",
-					Required: true,
+					Name:  "amountd", // adding a d for backwards compatibility. If d, then it's decimal, otherwise, the old stuff.
+					Usage: "The amount of GO or ETH in decimal format",
 				},
 				cli.Uint64Flag{
 					Name:  "gas-limit",
@@ -264,6 +263,14 @@ func main() {
 					Name:  "gas-price",
 					Usage: "Gas price to use, if left blank, will use suggested gas price.",
 				},
+				cli.StringFlag{
+					Name:  "gas-price-gwei",
+					Usage: "Gas price to use in GWEI, if left blank, will use suggested gas price.",
+				},
+				cli.StringFlag{
+					Name:  "data",
+					Usage: "Data for smart contract call in hex (can copy from etherscan and other explorers)",
+				},
 			},
 			Action: func(c *cli.Context) {
 				toS := c.String("to")
@@ -271,11 +278,17 @@ func main() {
 					fatalExit(errors.New("to address not set"))
 				}
 				var ok bool
-				amountd, err := decimal.NewFromString(c.String("amountd"))
-				if err != nil {
-					fatalExit(err)
+				var amount *big.Int
+				ad := c.String("amountd")
+				if ad != "" {
+					amountd, err := decimal.NewFromString(ad)
+					if err != nil {
+						fatalExit(err)
+					}
+					amount = web3.DecToInt(amountd, 18)
+				} else {
+					amount = nil
 				}
-				amount := web3.DecToInt(amountd, 18)
 				gp := c.String("gas-price")
 				var price *big.Int
 				if gp != "" {
@@ -283,10 +296,21 @@ func main() {
 					if !ok {
 						fatalExit(fmt.Errorf("invalid price %v", gp))
 					}
-					// TODO: this should assume it's GWEI and multiply by GWEI unit
+				}
+				gp = c.String("gas-price-gwei")
+				if gp != "" {
+					price, ok = new(big.Int).SetString(gp, 10)
+					if !ok {
+						fatalExit(fmt.Errorf("invalid price %v", gp))
+					}
+					price = web3.Gwei(price.Int64())
 				}
 				to := common.HexToAddress(toS)
-				ReplaceTx(ctx, privateKey, network, c.Uint64("nonce"), to, amount, c.Uint64("gas-limit"), price, nil)
+				dataB, err := hex.DecodeString(strings.TrimPrefix(c.String("data"), "0x"))
+				if err != nil {
+					fatalExit(err)
+				}
+				ReplaceTx(ctx, privateKey, network, c.Uint64("nonce"), to, amount, c.Uint64("gas-limit"), price, dataB)
 			},
 		},
 		{
@@ -993,7 +1017,10 @@ func main() {
 			},
 		},
 	}
-	app.Run(os.Args)
+	err := app.Run(os.Args)
+	if err != nil {
+		fmt.Println("ERROR:", err)
+	}
 }
 
 func toAmountBig(a string) *big.Int {

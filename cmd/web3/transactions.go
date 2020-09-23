@@ -38,7 +38,8 @@ func IncreaseGas(ctx context.Context, privateKey string, network web3.Network, t
 	fmt.Printf("Increased gas price to %v\n", newPrice)
 }
 
-func ReplaceTx(ctx context.Context, privateKey string, network web3.Network, nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *types.Transaction {
+func ReplaceTx(ctx context.Context, privateKey string, network web3.Network, nonce uint64, to common.Address, amount *big.Int,
+	gasLimit uint64, gasPrice *big.Int, data []byte) *types.Transaction {
 	client, err := web3.Dial(network.URL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
