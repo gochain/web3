@@ -277,7 +277,6 @@ func main() {
 				if toS == "" {
 					fatalExit(errors.New("to address not set"))
 				}
-				var ok bool
 				var amount *big.Int
 				ad := c.String("amountd")
 				if ad != "" {
@@ -289,28 +288,13 @@ func main() {
 				} else {
 					amount = nil
 				}
-				gp := c.String("gas-price")
-				var price *big.Int
-				if gp != "" {
-					price, ok = new(big.Int).SetString(gp, 10)
-					if !ok {
-						fatalExit(fmt.Errorf("invalid price %v", gp))
-					}
-				}
-				gp = c.String("gas-price-gwei")
-				if gp != "" {
-					price, ok = new(big.Int).SetString(gp, 10)
-					if !ok {
-						fatalExit(fmt.Errorf("invalid price %v", gp))
-					}
-					price = web3.Gwei(price.Int64())
-				}
+				price, limit := parseGasPriceAndLimit(c)
 				to := common.HexToAddress(toS)
 				dataB, err := hex.DecodeString(strings.TrimPrefix(c.String("data"), "0x"))
 				if err != nil {
 					fatalExit(err)
 				}
-				ReplaceTx(ctx, privateKey, network, c.Uint64("nonce"), to, amount, c.Uint64("gas-limit"), price, dataB)
+				ReplaceTx(ctx, privateKey, network, c.Uint64("nonce"), to, amount, limit, price, dataB)
 			},
 		},
 		{
@@ -709,7 +693,7 @@ func main() {
 		},
 		{
 			Name:    "transfer",
-			Usage:   fmt.Sprintf("Transfer GO/ETH to an account. eg: `web3 transfer 10.1 to 0xADDRESS`"),
+			Usage:   fmt.Sprintf("Transfer GO/ETH or ERC20 tokens to another account. eg: `web3 transfer 10.1 to 0xADDRESS`"),
 			Aliases: []string{"send"},
 			Flags: []cli.Flag{
 				cli.StringFlag{
@@ -737,6 +721,19 @@ func main() {
 					Name:  "to-string",
 					Usage: "Convert result to a string, useful if using byte arrays that are strings and you want to see the string value.",
 				},
+				cli.Uint64Flag{
+					Name:  "gas-limit",
+					Usage: "Gas limit (multiplied by price for total gas)",
+					Value: 21000,
+				},
+				cli.StringFlag{
+					Name:  "gas-price",
+					Usage: "Gas price to use, if left blank, will use suggested gas price.",
+				},
+				cli.StringFlag{
+					Name:  "gas-price-gwei",
+					Usage: "Gas price to use in GWEI, if left blank, will use suggested gas price.",
+				},
 			},
 			Action: func(c *cli.Context) {
 				contractAddress = ""
@@ -746,7 +743,8 @@ func main() {
 						fatalExit(errors.New("You must set ERC20 contract address"))
 					}
 				}
-				Transfer(ctx, network.URL, privateKey, contractAddress, c.Bool("wait"), c.Bool("to-string"), c.Args())
+				price, limit := parseGasPriceAndLimit(c)
+				Transfer(ctx, network.URL, privateKey, contractAddress, price, limit, c.Bool("wait"), c.Bool("to-string"), c.Args())
 			},
 		},
 		{
@@ -1071,6 +1069,28 @@ func getNetwork(name, rpcURL string, testnet bool) web3.Network {
 		log.Println("Network Info:", network)
 	}
 	return network
+}
+
+func parseGasPriceAndLimit(c *cli.Context) (*big.Int, uint64) {
+	gasLimit := c.Uint64("gas-limit")
+	gp := c.String("gas-price")
+	var price *big.Int
+	var ok bool
+	if gp != "" {
+		price, ok = new(big.Int).SetString(gp, 10)
+		if !ok {
+			fatalExit(fmt.Errorf("invalid price %v", gp))
+		}
+	}
+	gp = c.String("gas-price-gwei")
+	if gp != "" {
+		price, ok = new(big.Int).SetString(gp, 10)
+		if !ok {
+			fatalExit(fmt.Errorf("invalid price %v", gp))
+		}
+		price = web3.Gwei(price.Int64())
+	}
+	return price, gasLimit
 }
 
 func GetBlockDetails(ctx context.Context, network web3.Network, numberOrHash string, txFormat, txInputFormat string) {
