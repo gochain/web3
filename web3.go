@@ -242,6 +242,7 @@ func DeployContract(ctx context.Context, client Client, privateKeyHex string, bi
 	return convertTx(signedTx, fromAddress), nil
 }
 
+// Send performs a regular native coin transaction (not a contract)
 func Send(ctx context.Context, client Client, privateKeyHex string, address common.Address, amount *big.Int) (*Transaction, error) {
 	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
 		privateKeyHex = privateKeyHex[2:]
@@ -264,7 +265,7 @@ func Send(ctx context.Context, client Client, privateKeyHex string, address comm
 	if err != nil {
 		return nil, fmt.Errorf("cannot get nonce: %v", err)
 	}
-	tx := types.NewTransaction(nonce, address, amount, 100000, gasPrice, nil)
+	tx := types.NewTransaction(nonce, address, amount, 21000, gasPrice, nil)
 	signedTx, err := types.SignTx(tx, types.HomesteadSigner{}, privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign transaction: %v", err)
