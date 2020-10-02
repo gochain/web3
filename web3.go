@@ -242,7 +242,8 @@ func DeployContract(ctx context.Context, client Client, privateKeyHex string, bi
 	return convertTx(signedTx, fromAddress), nil
 }
 
-func Send(ctx context.Context, client Client, privateKeyHex string, address common.Address, amount *big.Int) (*Transaction, error) {
+// Send performs a regular native coin transaction (not a contract)
+func Send(ctx context.Context, client Client, privateKeyHex string, address common.Address, amount *big.Int, gasPrice *big.Int, gasLimit uint64) (*Transaction, error) {
 	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
 		privateKeyHex = privateKeyHex[2:]
 	}
@@ -250,9 +251,14 @@ func Send(ctx context.Context, client Client, privateKeyHex string, address comm
 	if err != nil {
 		return nil, fmt.Errorf("invalid private key: %v", err)
 	}
-	gasPrice, err := client.GetGasPrice(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("cannot get gas price: %v", err)
+	if gasPrice == nil || gasPrice.Int64() == 0 {
+		gasPrice, err = client.GetGasPrice(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("cannot get gas price: %v", err)
+		}
+	}
+	if gasLimit == 0 {
+		gasLimit = 21000
 	}
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
@@ -264,7 +270,7 @@ func Send(ctx context.Context, client Client, privateKeyHex string, address comm
 	if err != nil {
 		return nil, fmt.Errorf("cannot get nonce: %v", err)
 	}
-	tx := types.NewTransaction(nonce, address, amount, 100000, gasPrice, nil)
+	tx := types.NewTransaction(nonce, address, amount, gasLimit, gasPrice, nil)
 	signedTx, err := types.SignTx(tx, types.HomesteadSigner{}, privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign transaction: %v", err)

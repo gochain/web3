@@ -73,7 +73,7 @@ func ReplaceTx(ctx context.Context, privateKey string, network web3.Network, non
 	return tx
 }
 
-func Transfer(ctx context.Context, rpcURL, privateKey, contractAddress string, wait, toString bool, tail []string) {
+func Transfer(ctx context.Context, rpcURL, privateKey, contractAddress string, gasPrice *big.Int, gasLimit uint64, wait, toString bool, tail []string) {
 	if len(tail) < 3 {
 		fatalExit(errors.New("Invalid arguments. Format is: `transfer X to ADDRESS`"))
 	}
@@ -112,7 +112,7 @@ func Transfer(ctx context.Context, rpcURL, privateKey, contractAddress string, w
 		fatalExit(fmt.Errorf("Invalid to 'address': %s", toAddress))
 	}
 	address := common.HexToAddress(toAddress)
-	tx, err := web3.Send(ctx, client, privateKey, address, amount)
+	tx, err := web3.Send(ctx, client, privateKey, address, amount, gasPrice, gasLimit)
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot create transaction: %v", err))
 	}
