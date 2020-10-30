@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	OpenZeppelinVersion = "3.1.0"
+	OpenZeppelinVersion = "3.2.0"
 )
 
 func GenerateCode(ctx context.Context, c *cli.Context) {
@@ -129,9 +129,10 @@ func GenerateContract(ctx context.Context, contractType string, c *cli.Context) 
 	} else if contractType == "erc721" {
 		// we're going to assume metadata
 		params := assets.Erc721Params{
-			Symbol:    c.String("symbol"),
-			TokenName: c.String("name"),
-			BaseURI:   c.String("base-uri"),
+			Symbol:       c.String("symbol"),
+			ContractName: assets.EscapeName(c.String("contract-name")),
+			TokenName:    c.String("name"),
+			BaseURI:      c.String("base-uri"),
 			// Pausable:  c.Bool("pausable"),
 			// Mintable:  c.Bool("mintable"),
 			// Burnable:  c.Bool("burnable"),

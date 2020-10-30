@@ -1,9 +1,10 @@
 package assets
 
 type Erc721Params struct {
-	Symbol    string
-	TokenName string
-	BaseURI   string // Base URL to look up token metadata
+	Symbol       string
+	TokenName    string
+	BaseURI      string // Base URL to look up token metadata
+	ContractName string // for the contract, has to be escaped
 	// Pausable  bool
 	// Mintable  bool
 	// Burnable  bool
@@ -13,7 +14,7 @@ const ERC721Template = `pragma solidity ^0.6.12;
 
 import "./lib/oz/contracts/presets/ERC721PresetMinterPauserAutoId.sol";
 
-contract {{.Symbol}} is ERC721PresetMinterPauserAutoId {
+contract {{.ContractName}} is ERC721PresetMinterPauserAutoId {
 
     constructor() public
 	ERC721PresetMinterPauserAutoId("{{.TokenName}}", "{{.Symbol}}", "{{.BaseURI}}") 	

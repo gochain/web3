@@ -9,11 +9,11 @@ import (
 type Erc20Params struct {
 	Symbol    string
 	TokenName string
-	// Cap       *big.Int
-	// Decimals  int
-	// Pausable  bool
-	// Mintable  bool
-	// Burnable  bool
+}
+
+func EscapeName(symbol string) string {
+	name := strings.ReplaceAll(symbol, "-", "_")
+	return name
 }
 
 func GenERC20(ctx context.Context, openZeppelinVersion string, params *Erc20Params) (string, error) {
@@ -21,7 +21,7 @@ func GenERC20(ctx context.Context, openZeppelinVersion string, params *Erc20Para
 	part1.WriteString(fmt.Sprintf("// @openzeppelin v%v\n", openZeppelinVersion))
 	part1.WriteString("pragma solidity ^0.6.12;\n\nimport \"./lib/oz/contracts/presets/ERC20PresetMinterPauser.sol\";\n")
 	part2.WriteString("\ncontract ")
-	part2.WriteString(params.Symbol)
+	part2.WriteString(EscapeName(params.Symbol))
 	part2.WriteString(" is")
 	{
 		part3.WriteString("    constructor() public ERC20PresetMinterPauser(\"")
