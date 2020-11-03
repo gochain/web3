@@ -376,7 +376,7 @@ func main() {
 						},
 						cli.Uint64Flag{
 							Name:  "gas-limit",
-							Value: 2000000,
+							Value: 4000000,
 						},
 					},
 				},
@@ -771,35 +771,37 @@ func main() {
 							Name:  "erc20",
 							Usage: "Generate an ERC20 contract",
 							Flags: []cli.Flag{
-								cli.BoolTFlag{
-									Name:  "pausable, p",
-									Usage: "Pausable contract. Default: true",
-								},
-								cli.BoolTFlag{
-									Name:  "mintable, m",
-									Usage: "Mintable contract. Default: true",
-								},
-								cli.BoolTFlag{
-									Name:  "burnable, b",
-									Usage: "Burnable contract. Default: true",
+								// cli.BoolTFlag{
+								// 	Name:  "pausable, p",
+								// 	Usage: "Pausable contract. Default: true",
+								// },
+								// cli.BoolTFlag{
+								// 	Name:  "mintable, m",
+								// 	Usage: "Mintable contract. Default: true",
+								// },
+								// cli.BoolTFlag{
+								// 	Name:  "burnable, b",
+								// 	Usage: "Burnable contract. Default: true",
+								// },
+								cli.StringFlag{
+									Name:     "symbol, s",
+									Usage:    "Token Symbol.",
+									Required: true,
 								},
 								cli.StringFlag{
-									Name:  "symbol, s",
-									Usage: "Token Symbol.",
+									Name:     "name, n",
+									Usage:    "Token Name",
+									Required: true,
 								},
-								cli.StringFlag{
-									Name:  "name, n",
-									Usage: "Token Name",
-								},
-								cli.StringFlag{
-									Name:  "capped, c",
-									Usage: "Cap, total supply(in GO/ETH)",
-								},
-								cli.IntFlag{
-									Name:  "decimals, d",
-									Usage: "Decimals",
-									Value: 18,
-								},
+								// cli.StringFlag{
+								// 	Name:  "capped, c",
+								// 	Usage: "Cap, total supply(in GO/ETH)",
+								// },
+								// cli.IntFlag{
+								// 	Name:  "decimals, d",
+								// 	Usage: "Decimals",
+								// 	Value: 18,
+								// },
 							},
 							Action: func(c *cli.Context) {
 								GenerateContract(ctx, "erc20", c)
@@ -809,25 +811,32 @@ func main() {
 							Name:  "erc721",
 							Usage: "Generate an ERC721 contract",
 							Flags: []cli.Flag{
-								cli.BoolTFlag{
-									Name:  "pausable, p",
-									Usage: "Pausable contract. Default: true",
-								},
-								cli.BoolTFlag{
-									Name:  "mintable, m",
-									Usage: "Mintable contract. Default: true",
-								},
-								cli.BoolTFlag{
-									Name:  "burnable, b",
-									Usage: "Burnable contract. Default: true",
+								// cli.BoolTFlag{
+								// 	Name:  "pausable, p",
+								// 	Usage: "Pausable contract. Default: true",
+								// },
+								// cli.BoolTFlag{
+								// 	Name:  "mintable, m",
+								// 	Usage: "Mintable contract. Default: true",
+								// },
+								// cli.BoolTFlag{
+								// 	Name:  "burnable, b",
+								// 	Usage: "Burnable contract. Default: true",
+								// },
+								cli.StringFlag{
+									Name:     "symbol, s",
+									Usage:    "Token Symbol.",
+									Required: true,
 								},
 								cli.StringFlag{
-									Name:  "symbol, s",
-									Usage: "Token Symbol.",
+									Name:     "name, n",
+									Usage:    "Token Name",
+									Required: true,
 								},
 								cli.StringFlag{
-									Name:  "name, n",
-									Usage: "Token Name",
+									Name:     "base-uri",
+									Usage:    "Base URI for fetching token metadata",
+									Required: true,
 								},
 							},
 							Action: func(c *cli.Context) {

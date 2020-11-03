@@ -3,60 +3,37 @@ package assets
 import (
 	"context"
 	"fmt"
-	"math/big"
-	"strconv"
 	"strings"
 )
 
 type Erc20Params struct {
 	Symbol    string
 	TokenName string
-	Cap       *big.Int
-	Decimals  int
-	Pausable  bool
-	Mintable  bool
-	Burnable  bool
+}
+
+func EscapeName(symbol string) string {
+	name := strings.ReplaceAll(symbol, "-", "_")
+	return name
 }
 
 func GenERC20(ctx context.Context, openZeppelinVersion string, params *Erc20Params) (string, error) {
 	var part1, part2, part3 strings.Builder
 	part1.WriteString(fmt.Sprintf("// @openzeppelin v%v\n", openZeppelinVersion))
-	part1.WriteString("pragma solidity ^0.5.11;\n\nimport \"./lib/oz/contracts/token/ERC20/ERC20Detailed.sol\";\n")
+	part1.WriteString("pragma solidity ^0.6.12;\n\nimport \"./lib/oz/contracts/presets/ERC20PresetMinterPauser.sol\";\n")
 	part2.WriteString("\ncontract ")
-	part2.WriteString(params.Symbol)
+	part2.WriteString(EscapeName(params.Symbol))
 	part2.WriteString(" is")
 	{
-		part3.WriteString("    constructor() ERC20Detailed(\"")
+		part3.WriteString("    constructor() public ERC20PresetMinterPauser(\"")
 		part3.WriteString(params.TokenName)
 		part3.WriteString("\", \"")
 		part3.WriteString(params.Symbol)
-		part3.WriteString("\", ")
-		part3.WriteString(strconv.Itoa(params.Decimals))
-		part3.WriteString(")")
+		part3.WriteString("\")")
 
 	}
-	if params.Pausable {
-		part1.WriteString("import \"./lib/oz/contracts/token/ERC20/ERC20Pausable.sol\";\n")
-		part2.WriteString(" ERC20Pausable,")
-	}
-	if params.Burnable {
-		part1.WriteString("import \"./lib/oz/contracts/token/ERC20/ERC20Burnable.sol\";\n")
-		part2.WriteString(" ERC20Burnable,")
-	}
-	if params.Mintable {
-		part1.WriteString("import \"./lib/oz/contracts/token/ERC20/ERC20Mintable.sol\";\n")
-		part2.WriteString(" ERC20Mintable,")
-	}
-	if params.Cap != nil {
-		part1.WriteString("import \"./lib/oz/contracts/token/ERC20/ERC20Capped.sol\";\n")
-		part2.WriteString(" ERC20Capped,")
-		part3.WriteString(" ERC20Capped(")
-		part3.WriteString(params.Cap.String())
-		part3.WriteString(")")
-	}
-	part2.WriteString(" ERC20Detailed {\n\n")
+	part2.WriteString(" ERC20PresetMinterPauser {\n\n")
 
-	part3.WriteString(" public {}\n\n}\n")
+	part3.WriteString(" {}\n\n}\n")
 
 	return part1.String() + part2.String() + part3.String(), nil
 }
