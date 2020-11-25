@@ -13,44 +13,44 @@ import (
 )
 
 // GetABI accepts either built in contracts (erc20, erc721), a file location or a URL
-func GetABI(contractLocation string) (*abi.ABI, error) {
-	abi, err := ABIBuiltIn(contractLocation)
+func GetABI(abiFile string) (*abi.ABI, error) {
+	abi, err := ABIBuiltIn(abiFile)
 	if err != nil {
 		return nil, fmt.Errorf("Cannot get ABI from the bundled storage: %v", err)
 	}
 	if abi != nil {
 		return abi, nil
 	}
-	abi, err = ABIOpenFile(contractLocation)
+	abi, err = ABIOpenFile(abiFile)
 	if err == nil {
 		return abi, nil
 	}
 	// else most likely just not found, log it?
 
-	abi, err = ABIOpenURL(contractLocation)
+	abi, err = ABIOpenURL(abiFile)
 	if err == nil {
 		return abi, nil
 	}
 	return nil, err
 }
 
-func ABIBuiltIn(contractFile string) (*abi.ABI, error) {
-	if val, ok := bundledContracts[contractFile]; ok {
+func ABIBuiltIn(abiFile string) (*abi.ABI, error) {
+	if val, ok := bundledContracts[abiFile]; ok {
 		return readAbi(strings.NewReader(val))
 	}
 	return nil, nil
 }
 
-func ABIOpenFile(contractFile string) (*abi.ABI, error) {
-	jsonReader, err := os.Open(contractFile)
+func ABIOpenFile(abiFile string) (*abi.ABI, error) {
+	jsonReader, err := os.Open(abiFile)
 	if err != nil {
 		return nil, err
 	}
 	return readAbi(jsonReader)
 }
 
-func ABIOpenURL(contractURL string) (*abi.ABI, error) {
-	resp, err := http.Get(contractURL)
+func ABIOpenURL(abiFile string) (*abi.ABI, error) {
+	resp, err := http.Get(abiFile)
 	if err != nil {
 		return nil, fmt.Errorf("error getting ABI: %v", err)
 	}

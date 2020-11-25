@@ -20,16 +20,16 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gochain/gochain/v3/core/types"
-	"github.com/gochain/gochain/v3/crypto"
-
 	"github.com/gochain/gochain/v3/accounts/abi"
 	"github.com/gochain/gochain/v3/accounts/keystore"
 	"github.com/gochain/gochain/v3/common"
 	"github.com/gochain/gochain/v3/common/hexutil"
+	"github.com/gochain/gochain/v3/core/types"
+	"github.com/gochain/gochain/v3/crypto"
 	"github.com/gochain/web3"
 	"github.com/gochain/web3/assets"
 	"github.com/shopspring/decimal"
+	"github.com/treeder/gotils"
 	"github.com/urfave/cli"
 )
 
@@ -339,15 +339,15 @@ func main() {
 				},
 				{
 					Name:  "deploy",
-					Usage: "Deploy the specified contract to the network",
+					Usage: "Deploy the specified contract to the network. eg: web3 contract deploy MyContract.bin",
 					Action: func(c *cli.Context) {
-						name := c.Args().First()
+						binFile := c.Args().First()
 						tail := c.Args().Tail()
 						args := make([]interface{}, len(tail))
 						for i, v := range c.Args().Tail() {
 							args[i] = v
 						}
-						DeploySol(ctx, network, privateKey, name, c.String("verify"), c.String("solc-version"),
+						DeploySol(ctx, network, privateKey, binFile, c.String("verify"), c.String("solc-version"),
 							c.String("explorer-api"), c.Uint64("gas-limit"), upgradeable, args...)
 					},
 					Flags: []cli.Flag{
@@ -1523,10 +1523,10 @@ func FlattenSol(ctx context.Context, iFile, oFile string) {
 }
 
 func DeploySol(ctx context.Context, network web3.Network,
-	privateKey, contractName, contractSource, compilerVersion, explorerURL string,
+	privateKey, binFile, contractSource, compilerVersion, explorerURL string,
 	gasLimit uint64, upgradeable bool, params ...interface{}) {
 
-	if contractName == "" {
+	if binFile == "" {
 		fatalExit(errors.New("Missing contract name arg."))
 	}
 	client, err := web3.Dial(network.URL)
@@ -1534,22 +1534,33 @@ func DeploySol(ctx context.Context, network web3.Network,
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
 	}
 	defer client.Close()
-	bin, err := ioutil.ReadFile(contractName)
+	// get file
+	var bin []byte
+	if strings.HasPrefix(binFile, "http") {
+		bin, err = gotils.GetBytes(binFile)
+	} else {
+		bin, err = ioutil.ReadFile(binFile)
+	}
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot read the bin file %q: %v", contractName, err))
+		fatalExit(fmt.Errorf("Cannot read bin file %q: %v", binFile, err))
 	}
 	var abi string
 	if len(params) > 0 {
-		abiName := strings.TrimSuffix(contractName, ".bin") + ".abi"
-		b, err := ioutil.ReadFile(abiName)
+		abiFile := strings.TrimSuffix(binFile, ".bin") + ".abi"
+		var b []byte
+		if strings.HasPrefix(binFile, "http") {
+			b, err = gotils.GetBytes(abiFile)
+		} else {
+			b, err = ioutil.ReadFile(abiFile)
+		}
 		if err != nil {
-			fatalExit(fmt.Errorf("Cannot read the abi file %q: %v", abiName, err))
+			fatalExit(fmt.Errorf("Cannot read abi file %q: %v", abiFile, err))
 		}
 		abi = string(b)
 	}
 	tx, err := web3.DeployContract(ctx, client, privateKey, string(bin), abi, gasLimit, params...)
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot deploy the contract: %v", err))
+		fatalExit(fmt.Errorf("Error deploying contract: %v", err))
 	}
 	waitCtx, _ := context.WithTimeout(ctx, 60*time.Second)
 	receipt, err := web3.WaitForReceipt(waitCtx, client, tx.Hash)
@@ -1564,7 +1575,7 @@ func DeploySol(ctx context.Context, network web3.Network,
 	}
 
 	if receipt.Status != types.ReceiptStatusSuccessful {
-		fatalExit(fmt.Errorf("Contract deploy tx failed: %s", tx.Hash.Hex()))
+		fatalExit(fmt.Errorf("Contract deploy tx failed: %s. Did you pass in the correct constructor arguments?", tx.Hash.Hex()))
 	}
 
 	// Exit early if contract is static.
@@ -1572,7 +1583,7 @@ func DeploySol(ctx context.Context, network web3.Network,
 		fmt.Println("Contract has been successfully deployed with transaction:", tx.Hash.Hex())
 		fmt.Println("Contract address is:", receipt.ContractAddress.Hex())
 		if contractSource != "" {
-			VerifyContract(ctx, network, explorerURL, receipt.ContractAddress.Hex(), strings.TrimSuffix(contractName, ".bin"), contractSource, compilerVersion)
+			VerifyContract(ctx, network, explorerURL, receipt.ContractAddress.Hex(), strings.TrimSuffix(binFile, ".bin"), contractSource, compilerVersion)
 		}
 		return
 	}
