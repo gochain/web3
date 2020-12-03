@@ -38,7 +38,7 @@ jobs:
         git config --global user.name "CI"
         git fetch --tags
         wget -O - https://raw.githubusercontent.com/treeder/bump/master/gitbump.sh | bash
-        echo "::set-env name=VERSION::$(git tag --sort=-v:refname --list "v[0-9]*" | head -n 1 | cut -c 2-)"
+        echo "VERSION=$(git tag --sort=-v:refname --list 'v[0-9]*' | head -n 1 | cut -c 2-)" >> $GITHUB_ENV        
       
     - name: release
       env:
