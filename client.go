@@ -256,8 +256,10 @@ func toBlockNumArg(number *big.Int) string {
 
 func toCallArg(msg CallMsg) interface{} {
 	arg := map[string]interface{}{
-		"from": msg.From,
 		"to":   msg.To,
+	}
+	if msg.From != nil {
+		arg["from"] = msg.From
 	}
 	if len(msg.Data) > 0 {
 		arg["data"] = hexutil.Bytes(msg.Data)
