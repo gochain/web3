@@ -294,7 +294,7 @@ func main() {
 				if err != nil {
 					fatalExit(err)
 				}
-				ReplaceTx(ctx, privateKey, network, c.Uint64("nonce"), to, amount, limit, price, dataB)
+				ReplaceTx(ctx, privateKey, network, c.Uint64("nonce"), to, amount, price, limit, dataB)
 			},
 		},
 		{
@@ -347,8 +347,9 @@ func main() {
 						for i, v := range c.Args().Tail() {
 							args[i] = v
 						}
+						price, limit := parseGasPriceAndLimit(c)
 						DeploySol(ctx, network, privateKey, binFile, c.String("verify"), c.String("solc-version"),
-							c.String("explorer-api"), c.Uint64("gas-limit"), upgradeable, args...)
+							c.String("explorer-api"), price, limit, upgradeable, args...)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -430,7 +431,8 @@ func main() {
 							args[i] = v
 						}
 						amount := toAmountBig(c.String("amount"))
-						callContract(ctx, network.URL, privateKey, contractAddress, contractFile, function, amount, c.Uint64("gas-limit"), waitForReceipt, c.Bool("to-string"), args...)
+						price, limit := parseGasPriceAndLimit(c)
+						callContract(ctx, network.URL, privateKey, contractAddress, contractFile, function, amount, price, limit, waitForReceipt, c.Bool("to-string"), args...)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -1524,7 +1526,7 @@ func FlattenSol(ctx context.Context, iFile, oFile string) {
 
 func DeploySol(ctx context.Context, network web3.Network,
 	privateKey, binFile, contractSource, compilerVersion, explorerURL string,
-	gasLimit uint64, upgradeable bool, params ...interface{}) {
+	gasPrice *big.Int, gasLimit uint64, upgradeable bool, params ...interface{}) {
 
 	if binFile == "" {
 		fatalExit(errors.New("Missing contract name arg."))
@@ -1558,7 +1560,7 @@ func DeploySol(ctx context.Context, network web3.Network,
 		}
 		abi = string(b)
 	}
-	tx, err := web3.DeployContract(ctx, client, privateKey, string(bin), abi, gasLimit, params...)
+	tx, err := web3.DeployContract(ctx, client, privateKey, string(bin), abi, gasPrice, gasLimit, params...)
 	if err != nil {
 		fatalExit(fmt.Errorf("Error deploying contract: %v", err))
 	}
@@ -1589,7 +1591,7 @@ func DeploySol(ctx context.Context, network web3.Network,
 	}
 
 	// Deploy proxy contract.
-	proxyTx, err := web3.DeployContract(ctx, client, privateKey, assets.OwnerUpgradeableProxyCode(receipt.ContractAddress), "", gasLimit)
+	proxyTx, err := web3.DeployContract(ctx, client, privateKey, assets.OwnerUpgradeableProxyCode(receipt.ContractAddress), "", gasPrice, gasLimit)
 	if err != nil {
 		log.Fatalf("Cannot deploy the upgradeable proxy contract: %v", err)
 	}
@@ -1695,7 +1697,7 @@ func UpgradeContract(ctx context.Context, rpcURL, privateKey, contractAddress, n
 	if err != nil {
 		log.Fatalf("Cannot initialize ABI: %v", err)
 	}
-	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "upgrade", amount, 100000, newTargetAddress)
+	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "upgrade", amount, nil, 100000, newTargetAddress)
 	if err != nil {
 		log.Fatalf("Cannot upgrade the contract: %v", err)
 	}
@@ -1742,7 +1744,7 @@ func PauseContract(ctx context.Context, rpcURL, privateKey, contractAddress stri
 	if err != nil {
 		log.Fatalf("Cannot initialize ABI: %v", err)
 	}
-	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "pause", amount, 70000)
+	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "pause", amount, nil, 70000)
 	if err != nil {
 		log.Fatalf("Cannot pause the contract: %v", err)
 	}
@@ -1764,7 +1766,7 @@ func ResumeContract(ctx context.Context, rpcURL, privateKey, contractAddress str
 	if err != nil {
 		log.Fatalf("Cannot initialize ABI: %v", err)
 	}
-	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "resume", amount, 70000)
+	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "resume", amount, nil, 70000)
 	if err != nil {
 		log.Fatalf("Cannot resume the contract: %v", err)
 	}
