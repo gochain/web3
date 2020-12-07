@@ -347,7 +347,8 @@ func main() {
 						for i, v := range c.Args().Tail() {
 							args[i] = v
 						}
-						DeploySol(ctx, network, privateKey, binFile, c.String("verify"), c.String("solc-version"),
+						DeploySol(ctx, network, privateKey, binFile, c.String("verify"),
+							c.String("solc-version"), c.String("evm-version"),
 							c.String("explorer-api"), c.Uint64("gas-limit"), upgradeable, args...)
 					},
 					Flags: []cli.Flag{
@@ -373,6 +374,10 @@ func main() {
 						cli.StringFlag{
 							Name:  "solc-version, c",
 							Usage: "The version of the solc compiler(a tag of the ethereum/solc docker image)",
+						}, cli.StringFlag{
+							Name:  "evm-version",
+							Usage: "Solidity EVM version",
+							Value: "petersburg",
 						},
 						cli.Uint64Flag{
 							Name:  "gas-limit",
@@ -384,17 +389,17 @@ func main() {
 					Name:  "verify",
 					Usage: "Verify the specified contract which is already deployed to the network",
 					Action: func(c *cli.Context) {
-						VerifyContract(ctx, network, c.String("explorer-api"), contractAddress, c.String("contract-name"), c.Args().First(), c.String("solc-version"))
+						VerifyContract(ctx, network, c.String("explorer-api"), contractAddress,
+							c.String("contract-name"), c.Args().First(), c.String("solc-version"),
+							c.String("evm-version"), c.BoolT("optimize"))
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:  "explorer-api",
-							Usage: "Explorer API URL",
-						},
+							Usage: "Explorer API URL"},
 						cli.StringFlag{
 							Name:  "contract-name",
-							Usage: "Deployed contract name",
-						},
+							Usage: "Deployed contract name"},
 						cli.StringFlag{
 							Name:        "address",
 							EnvVar:      addrVarName,
@@ -403,8 +408,14 @@ func main() {
 							Hidden:      false},
 						cli.StringFlag{
 							Name:  "solc-version, c",
-							Usage: "The version of the solc compiler(a tag of the ethereum/solc docker image)",
-						},
+							Usage: "The version of the solc compiler(a tag of the ethereum/solc docker image)"},
+						cli.StringFlag{
+							Name:  "evm-version",
+							Usage: "Solidity EVM version",
+							Value: "petersburg"},
+						cli.BoolTFlag{
+							Name:  "optimize",
+							Usage: "Solidity optimization"},
 					},
 				},
 				{
@@ -1523,7 +1534,7 @@ func FlattenSol(ctx context.Context, iFile, oFile string) {
 }
 
 func DeploySol(ctx context.Context, network web3.Network,
-	privateKey, binFile, contractSource, compilerVersion, explorerURL string,
+	privateKey, binFile, contractSource, compilerVersion, evmVersion, explorerURL string,
 	gasLimit uint64, upgradeable bool, params ...interface{}) {
 
 	if binFile == "" {
@@ -1583,7 +1594,8 @@ func DeploySol(ctx context.Context, network web3.Network,
 		fmt.Println("Contract has been successfully deployed with transaction:", tx.Hash.Hex())
 		fmt.Println("Contract address is:", receipt.ContractAddress.Hex())
 		if contractSource != "" {
-			VerifyContract(ctx, network, explorerURL, receipt.ContractAddress.Hex(), strings.TrimSuffix(binFile, ".bin"), contractSource, compilerVersion)
+			VerifyContract(ctx, network, explorerURL, receipt.ContractAddress.Hex(),
+				strings.TrimSuffix(binFile, ".bin"), contractSource, compilerVersion, evmVersion, true)
 		}
 		return
 	}
@@ -1608,7 +1620,8 @@ func DeploySol(ctx context.Context, network web3.Network,
 	fmt.Println("Contract address is:", proxyReceipt.ContractAddress.Hex())
 }
 
-func VerifyContract(ctx context.Context, network web3.Network, explorerURL, contractAddress, contractName, sourceCodeFile, compilerVersion string) {
+func VerifyContract(ctx context.Context, network web3.Network, explorerURL, contractAddress, contractName,
+	sourceCodeFile, compilerVersion, evmVersion string, optimize bool) {
 	if explorerURL == "" {
 		if network.ExplorerURL == "" {
 			fatalExit(errors.New("missing explorer-api arg"))
@@ -1643,8 +1656,11 @@ func VerifyContract(ctx context.Context, network web3.Network, explorerURL, cont
 		"address":          contractAddress,
 		"contract_name":    contractName,
 		"compiler_version": compilerVersion,
-		"optimization":     true,
+		"optimization":     optimize,
 		"source_code":      string(source),
+	}
+	if evmVersion != "" {
+		message["evm_version"] = evmVersion
 	}
 
 	bytesRepresentation, err := json.Marshal(message)
