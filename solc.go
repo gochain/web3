@@ -97,7 +97,7 @@ func SolidityVersion(source string) (*Solidity, error) {
 }
 
 // CompileSolidityString builds and returns all the contracts contained within a source string.
-func CompileSolidityString(ctx context.Context, source, solcVersion, evmVersion string) (map[string]*Contract, error) {
+func CompileSolidityString(ctx context.Context, source, solcVersion, evmVersion string, optimize bool) (map[string]*Contract, error) {
 	var s *Solidity
 	var err error
 	if len(source) == 0 {

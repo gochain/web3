@@ -338,7 +338,8 @@ func main() {
 						},
 					},
 					Action: func(c *cli.Context) {
-						BuildSol(ctx, c.Args().First(), c.String("solc-version"), c.String("evm-version"), c.String("output"))
+						BuildSol(ctx, c.Args().First(), c.String("solc-version"), c.String("evm-version"),
+							c.BoolT("optimize"), c.String("output"))
 					},
 				},
 				{
@@ -352,7 +353,7 @@ func main() {
 							args[i] = v
 						}
 						DeploySol(ctx, network, privateKey, binFile, c.String("verify"),
-							c.String("solc-version"), c.String("evm-version"),
+							c.String("solc-version"), c.String("evm-version"), c.BoolT("optimize"),
 							c.String("explorer-api"), c.Uint64("gas-limit"), upgradeable, args...)
 					},
 					Flags: []cli.Flag{
@@ -382,6 +383,10 @@ func main() {
 							Name:  "evm-version",
 							Usage: "Solidity EVM version",
 							Value: "petersburg",
+						},
+						cli.BoolTFlag{
+							Name:  "optimize",
+							Usage: "Solidity optimization",
 						},
 						cli.Uint64Flag{
 							Name:  "gas-limit",
@@ -1443,7 +1448,7 @@ func GetID(ctx context.Context, rpcURL string) {
 }
 
 // BuildSol builds a contract. Generated files will be under output, or the current directory.
-func BuildSol(ctx context.Context, filename, solcVersion, evmVersion, output string) {
+func BuildSol(ctx context.Context, filename, solcVersion, evmVersion string, optimize bool, output string) {
 	if filename == "" {
 		fatalExit(errors.New("Missing file name arg"))
 	}
@@ -1468,7 +1473,7 @@ func BuildSol(ctx context.Context, filename, solcVersion, evmVersion, output str
 	if verbose {
 		log.Println("Building Sol:", str)
 	}
-	compileData, err := web3.CompileSolidityString(ctx, str, solcVersion, evmVersion)
+	compileData, err := web3.CompileSolidityString(ctx, str, solcVersion, evmVersion, optimize)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to compile %q: %v", sourceFile, err))
 	}
@@ -1539,7 +1544,7 @@ func FlattenSol(ctx context.Context, iFile, oFile string) {
 }
 
 func DeploySol(ctx context.Context, network web3.Network,
-	privateKey, binFile, contractSource, solcVersion, evmVersion, explorerURL string,
+	privateKey, binFile, contractSource, solcVersion, evmVersion string, optimize bool, explorerURL string,
 	gasLimit uint64, upgradeable bool, params ...interface{}) {
 
 	if binFile == "" {
@@ -1600,7 +1605,7 @@ func DeploySol(ctx context.Context, network web3.Network,
 		fmt.Println("Contract address is:", receipt.ContractAddress.Hex())
 		if contractSource != "" {
 			VerifyContract(ctx, network, explorerURL, receipt.ContractAddress.Hex(),
-				strings.TrimSuffix(binFile, ".bin"), contractSource, solcVersion, evmVersion, true)
+				strings.TrimSuffix(binFile, ".bin"), contractSource, solcVersion, evmVersion, optimize)
 		}
 		return
 	}
