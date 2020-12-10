@@ -352,9 +352,10 @@ func main() {
 						for i, v := range c.Args().Tail() {
 							args[i] = v
 						}
+						price, limit := parseGasPriceAndLimit(c)
 						DeploySol(ctx, network, privateKey, binFile, c.String("verify"),
 							c.String("solc-version"), c.String("evm-version"), c.BoolT("optimize"),
-							c.String("explorer-api"), c.Uint64("gas-limit"), upgradeable, args...)
+							c.String("explorer-api"), price, limit, upgradeable, args...)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -1545,7 +1546,7 @@ func FlattenSol(ctx context.Context, iFile, oFile string) {
 
 func DeploySol(ctx context.Context, network web3.Network,
 	privateKey, binFile, contractSource, solcVersion, evmVersion string, optimize bool, explorerURL string,
-	gasLimit uint64, upgradeable bool, params ...interface{}) {
+	gasPrice *big.Int, gasLimit uint64, upgradeable bool, params ...interface{}) {
 
 	if binFile == "" {
 		fatalExit(errors.New("Missing contract name arg."))
