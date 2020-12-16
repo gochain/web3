@@ -95,7 +95,7 @@ func CreateDID(ctx context.Context, rpcURL, privateKey, id, registryAddress stri
 	var idBytes32 [32]byte
 	copy(idBytes32[:], d.ID)
 
-	tx, err := web3.CallTransactFunction(ctx, client, myabi, registryAddress, privateKey, "register", &big.Int{}, 70000, idBytes32, hash)
+	tx, err := web3.CallTransactFunction(ctx, client, myabi, registryAddress, privateKey, "register", &big.Int{}, nil, 70000, idBytes32, hash)
 	if err != nil {
 		log.Fatalf("Cannot register DID identifier: %v", err)
 	}

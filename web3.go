@@ -107,7 +107,7 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 
 // CallTransactFunction submits a transaction to execute a smart contract function call.
 func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, address, privateKeyHex, functionName string,
-	amount *big.Int, gasLimit uint64, params ...interface{}) (*Transaction, error) {
+	amount *big.Int, gasPrice *big.Int, gasLimit uint64, params ...interface{}) (*Transaction, error) {
 	if address == "" {
 		return nil, errors.New("no contract address specified")
 	}
@@ -127,9 +127,11 @@ func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, add
 	if err != nil {
 		return nil, fmt.Errorf("invalid private key: %v", err)
 	}
-	gasPrice, err := client.GetGasPrice(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("cannot get gas price: %v", err)
+	if gasPrice == nil || gasPrice.Int64() == 0 {
+		gasPrice, err = client.GetGasPrice(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("cannot get gas price: %v", err)
+		}
 	}
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
@@ -161,7 +163,7 @@ func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, add
 
 // DeployBin will deploy a bin file to the network
 func DeployBin(ctx context.Context, client Client,
-	privateKeyHex, binFilename, abiFilename string, gasLimit uint64, constructorArgs ...interface{}) (*Transaction, error) {
+	privateKeyHex, binFilename, abiFilename string, gasPrice *big.Int, gasLimit uint64, constructorArgs ...interface{}) (*Transaction, error) {
 	bin, err := ioutil.ReadFile(binFilename)
 	if err != nil {
 		return nil, fmt.Errorf("Cannot read the bin file %q: %v", binFilename, err)
@@ -174,13 +176,13 @@ func DeployBin(ctx context.Context, client Client,
 		}
 		abi = string(b)
 	}
-	return DeployContract(ctx, client, privateKeyHex, string(bin), abi, gasLimit, constructorArgs...)
+	return DeployContract(ctx, client, privateKeyHex, string(bin), abi, gasPrice, gasLimit, constructorArgs...)
 
 }
 
 // DeployContract submits a contract creation transaction.
 // abiJSON is only required when including params for the constructor.
-func DeployContract(ctx context.Context, client Client, privateKeyHex string, binHex, abiJSON string, gasLimit uint64, constructorArgs ...interface{}) (*Transaction, error) {
+func DeployContract(ctx context.Context, client Client, privateKeyHex string, binHex, abiJSON string, gasPrice *big.Int, gasLimit uint64, constructorArgs ...interface{}) (*Transaction, error) {
 	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
 		privateKeyHex = privateKeyHex[2:]
 	}
@@ -189,9 +191,11 @@ func DeployContract(ctx context.Context, client Client, privateKeyHex string, bi
 		return nil, fmt.Errorf("invalid private key: %v", err)
 	}
 
-	gasPrice, err := client.GetGasPrice(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("cannot get gas price: %v", err)
+	if gasPrice == nil || gasPrice.Int64() == 0 {
+		gasPrice, err = client.GetGasPrice(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("cannot get gas price: %v", err)
+		}
 	}
 
 	publicKey := privateKey.Public()

@@ -34,12 +34,12 @@ func IncreaseGas(ctx context.Context, privateKey string, network web3.Network, t
 		return
 	}
 	newPrice := new(big.Int).Add(txOrig.GasPrice, amount)
-	_ = ReplaceTx(ctx, privateKey, network, txOrig.Nonce, *txOrig.To, txOrig.Value, txOrig.GasLimit, newPrice, txOrig.Input)
+	_ = ReplaceTx(ctx, privateKey, network, txOrig.Nonce, *txOrig.To, txOrig.Value, newPrice, txOrig.GasLimit, txOrig.Input)
 	fmt.Printf("Increased gas price to %v\n", newPrice)
 }
 
 func ReplaceTx(ctx context.Context, privateKey string, network web3.Network, nonce uint64, to common.Address, amount *big.Int,
-	gasLimit uint64, gasPrice *big.Int, data []byte) *types.Transaction {
+	gasPrice *big.Int, gasLimit uint64, data []byte) *types.Transaction {
 	client, err := web3.Dial(network.URL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
@@ -95,7 +95,7 @@ func Transfer(ctx context.Context, rpcURL, privateKey, contractAddress string, g
 		// fmt.Println("DECIMALS:", decimals, reflect.TypeOf(decimals))
 		// todo: could get symbol here to display
 		amount := web3.DecToInt(amountD, int32(decimals[0].(uint8)))
-		callContract(ctx, rpcURL, privateKey, contractAddress, "erc20", "transfer", &big.Int{}, 70000, wait, toString, toAddress, amount)
+		callContract(ctx, rpcURL, privateKey, contractAddress, "erc20", "transfer", &big.Int{}, nil, 70000, wait, toString, toAddress, amount)
 		return
 	}
 
