@@ -1159,7 +1159,7 @@ func GetBlockDetails(ctx context.Context, network web3.Network, numberOrHash str
 		if numberOrHash != "" {
 			blockN, err = web3.ParseBigInt(numberOrHash)
 			if err != nil {
-				fatalExit(fmt.Errorf("Block argument must be a number (decimal integer) or hash (hexadecimal with 0x prefix) %q: %v", numberOrHash, err))
+				fatalExit(fmt.Errorf("Block argument must be a number (decimal integer) %q: %v", numberOrHash, err))
 			}
 		}
 		block, err = client.GetBlockByNumber(ctx, blockN, includeTxs)
@@ -1334,7 +1334,7 @@ func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, priv
 	if blockNumber != "" {
 		blockN, err = web3.ParseBigInt(blockNumber)
 		if err != nil {
-			fatalExit(fmt.Errorf("Block argument must be a number (decimal integer) or hash (hexadecimal with 0x prefix) %q: %v", blockNumber, err))
+			fatalExit(fmt.Errorf("Block argument must be a number (decimal integer) %q: %v", blockNumber, err))
 		}
 	}
 
