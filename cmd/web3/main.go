@@ -171,9 +171,13 @@ func main() {
 					EnvVar:      pkVarName,
 					Destination: &privateKey,
 					Hidden:      false},
+				cli.StringFlag{
+					Name:   "block",
+					Usage:  "Block number",
+					Hidden: false},
 			},
 			Action: func(c *cli.Context) {
-				GetAddressDetails(ctx, network, c.Args().First(), privateKey, false, "")
+				GetAddressDetails(ctx, network, c.Args().First(), privateKey, false, "", c.String("block"))
 			},
 		},
 		{
@@ -195,6 +199,10 @@ func main() {
 					EnvVar: addrVarName,
 					Usage:  "Contract address",
 					Hidden: false},
+				cli.StringFlag{
+					Name:   "block",
+					Usage:  "Block number",
+					Hidden: false},
 			},
 			Action: func(c *cli.Context) {
 				contractAddress = ""
@@ -204,7 +212,7 @@ func main() {
 						fatalExit(errors.New("You must set ERC20 contract address"))
 					}
 				}
-				GetAddressDetails(ctx, network, c.Args().First(), privateKey, true, contractAddress)
+				GetAddressDetails(ctx, network, c.Args().First(), privateKey, true, contractAddress, c.String("block"))
 			},
 		},
 		{
@@ -1151,7 +1159,7 @@ func GetBlockDetails(ctx context.Context, network web3.Network, numberOrHash str
 		if numberOrHash != "" {
 			blockN, err = web3.ParseBigInt(numberOrHash)
 			if err != nil {
-				fatalExit(fmt.Errorf("Block argument must be a number (decimal integer) or hash (hexadecimal with 0x prefix) %q: %v", numberOrHash, err))
+				fatalExit(fmt.Errorf("Block argument must be a number (decimal integer) %q: %v", numberOrHash, err))
 			}
 		}
 		block, err = client.GetBlockByNumber(ctx, blockN, includeTxs)
@@ -1292,7 +1300,7 @@ func printInputData(data []byte, format string) {
 }
 
 func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, privateKey string, onlyBalance bool,
-	contractAddress string) {
+	contractAddress string, blockNumber string) {
 	if addrHash == "" {
 		if privateKey == "" {
 			fatalExit(errors.New("Missing address. Must be specified as only argument, or implied from a private key."))
@@ -1320,12 +1328,22 @@ func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, priv
 		return
 	}
 
+	var blockN *big.Int
+	var err error
+	// Don't try to parse empty string, which means 'latest'.
+	if blockNumber != "" {
+		blockN, err = web3.ParseBigInt(blockNumber)
+		if err != nil {
+			fatalExit(fmt.Errorf("Block argument must be a number (decimal integer) %q: %v", blockNumber, err))
+		}
+	}
+
 	client, err := web3.Dial(network.URL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
 	}
 	defer client.Close()
-	bal, err := client.GetBalance(ctx, addrHash, nil)
+	bal, err := client.GetBalance(ctx, addrHash, blockN)
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot get address balance from the network: %v", err))
 	}

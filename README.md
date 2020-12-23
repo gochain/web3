@@ -29,7 +29,7 @@ COMMANDS:
    transaction, tx  Transaction details for a tx hash
    receipt, rc      Transaction receipt for a tx hash
    address, addr    Account details for a specific address, or the one corresponding to the private key.
-   balance          Get balance for your private key or an address passed in. eg: `balance 0xABC123`
+   balance          Get balance for your private key or an address passed in(you could also use "block" as an optional parameter). eg: `balance 0xABC123` 
    increasegas      Increase gas for a transaction. Useful if a tx is taking too long and you want it to go faster.
    replace          Replace transaction. If a transaction is still pending, you can attempt to replace it.
    contract, c      Contract operations
