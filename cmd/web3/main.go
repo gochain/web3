@@ -501,6 +501,19 @@ func main() {
 						cli.Uint64Flag{
 							Name:  "gas-limit",
 							Value: 70000,
+							
+						},
+
+                                		cli.StringFlag{
+                                       		 	Name:  "gas-price",
+                                        		Usage: "Gas price to use, if left blank, will use suggested gas price.",
+                                		},
+                                		cli.StringFlag{
+                                        	Name:  "gas-price-gwei",
+                                        	Usage: "Gas price to use in GWEI, if left blank, will use suggested gas price.",
+	
+							
+							
 						},
 					},
 				},
