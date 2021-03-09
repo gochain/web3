@@ -130,7 +130,7 @@ func GenerateContract(ctx context.Context, contractType string, c *cli.Context) 
 		// we're going to assume metadata
 		params := assets.Erc721Params{
 			Symbol:       c.String("symbol"),
-			ContractName: assets.EscapeName(c.String("contract-name")),
+			ContractName: assets.EscapeName(c.String("symbol")),
 			TokenName:    c.String("name"),
 			BaseURI:      c.String("base-uri"),
 			// Pausable:  c.Bool("pausable"),

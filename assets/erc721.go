@@ -22,7 +22,9 @@ contract {{.ContractName}} is ERC721PresetMinterPauserAutoId {
 
 	// This allows the minter to update the tokenURI after it's been minted.
 	// To disable this, delete this function.
-	function setTokenURI(uint256 tokenId, string memory tokenURI) public onlyMinter {
+	function setTokenURI(uint256 tokenId, string memory tokenURI) public {
+        require(hasRole(MINTER_ROLE, _msgSender()), "web3 CLI: must have minter role to update tokenURI");
+
         _setTokenURI(tokenId, tokenURI);
     }
 }`
