@@ -612,13 +612,14 @@ func ParseLogs(myabi abi.ABI, logs []*types.Log) ([]Event, error) {
 			for i, o := range out {
 				fields[nonIndexed[i].Name] = reflect.ValueOf(o).Elem().Interface()
 			}
-		} else {
+		} else if len(out) > 0 {
 			err := myabi.Unpack(&out[0], event.Name, log.Data)
 			if err != nil {
 				return nil, err
 			}
 			fields[nonIndexed[0].Name] = out[0]
 		}
+
 		for i, input := range getInputs(event.Inputs, true) {
 			fields[input.Name] = log.Topics[i+1].String()
 		}
