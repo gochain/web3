@@ -17,7 +17,7 @@ import "./lib/oz/contracts/presets/ERC721PresetMinterPauserAutoId.sol";
 contract {{.ContractName}} is ERC721PresetMinterPauserAutoId {
 
     constructor() public
-	ERC721PresetMinterPauserAutoId("{{.TokenName}}", "{{.Symbol}}", "{{.BaseURI}}") 	
+	ERC721PresetMinterPauserAutoId("{{.TokenName}}", "{{.Symbol}}", "{{.BaseURI}}")
 	{}
 
 	// This allows the minter to update the tokenURI after it's been minted.
