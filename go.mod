@@ -6,7 +6,7 @@ require (
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/aristanetworks/goarista v0.0.0-20210319202508-5b0c587084ea // indirect
 	github.com/cespare/cp v1.1.1 // indirect
-	github.com/gochain/gochain/v3 v3.4.5-0.20210330061902-25441dab0ebb
+	github.com/gochain/gochain/v3 v3.4.6
 	github.com/google/uuid v1.2.0 // indirect
 	github.com/nxadm/tail v1.4.5 // indirect
 	github.com/onsi/ginkgo v1.14.2 // indirect
