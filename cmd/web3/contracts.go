@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/gochain/gochain/v3/accounts/abi"
 	"github.com/gochain/web3"
 )
 
@@ -42,7 +41,7 @@ func GetContractConst(ctx context.Context, rpcURL, contractAddress, contractFile
 	if !ok {
 		return nil, fmt.Errorf("There is no such function: %v", functionName)
 	}
-	if !fn.Const {
+	if !fn.IsConstant() {
 		return nil, err
 	}
 	res, err := web3.CallConstantFunction(ctx, client, *myabi, contractAddress, functionName, parameters...)
@@ -68,7 +67,7 @@ func callContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 		fmt.Println("There is no such function:", functionName)
 		return
 	}
-	if m.Const || m.StateMutability == abi.MutabilityView || m.StateMutability == abi.MutabilityPure { // view and pure are both read only: https://ethereum.stackexchange.com/a/57424/9815
+	if m.IsConstant() {
 		res, err := web3.CallConstantFunction(ctx, client, *myabi, contractAddress, functionName, parameters...)
 		if err != nil {
 			fatalExit(fmt.Errorf("Error calling constant function: %v", err))

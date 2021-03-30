@@ -29,7 +29,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v1
       with:
-        go-version: 1.14
+        go-version: 1.16
       id: go
 
     - name: Bump version
@@ -66,8 +66,8 @@ jobs:
         url='https://api.github.com/repos/gochain/web3/releases'
         output=$(curl -s -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY -d "{\"tag_name\": \"v$VERSION\", \"name\": \"v$VERSION\"}" $url)
         echo "release output: $output"
-        upload_url=$(echo "$output" | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["upload_url"]' | sed -E "s/\{.*//")
-        html_url=$(echo "$output" | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["html_url"]')
+        upload_url=$(echo fromJSON($output)["upload_url"] | sed -E "s/\{.*//")
+        html_url=$(echo fromJSON($output)["html_url"])
         curl --data-binary "@web3_linux"  -H "Content-Type: application/octet-stream" -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY $upload_url\?name\=web3_linux >/dev/null
         curl --data-binary "@web3_alpine" -H "Content-Type: application/octet-stream" -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY $upload_url\?name\=web3_alpine >/dev/null
 
@@ -86,7 +86,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v1
       with:
-        go-version: 1.14
+        go-version: 1.16
       id: go
 
     - name: Check out code into the Go module directory
@@ -102,5 +102,5 @@ jobs:
         go build -ldflags "-X main.Version=$VERSION" -o web3_mac ./cmd/web3
         url='https://api.github.com/repos/gochain/web3/releases'
         output=$(curl -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY $url)
-        upload_url=$(echo "$output" | python -c 'import json,sys;obj=json.load(sys.stdin);print obj[0]["upload_url"]' | sed -E "s/\{.*//")
+        upload_url=$(echo fromJSON($output)[0]["upload_url"] | sed -E "s/\{.*//")
         curl --data-binary "@web3_mac"  -H "Content-Type: application/octet-stream" -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY $upload_url\?name\=web3_mac >/dev/null

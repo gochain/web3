@@ -570,7 +570,7 @@ func WaitForReceipt(ctx context.Context, client Client, hash common.Hash) (*Rece
 
 func FindEventById(abi abi.ABI, id common.Hash) *abi.Event {
 	for _, event := range abi.Events {
-		if event.ID() == id {
+		if event.ID == id {
 			return &event
 		}
 	}
@@ -605,7 +605,7 @@ func ParseLogs(myabi abi.ABI, logs []*types.Log) ([]Event, error) {
 			out = append(out, x)
 		}
 		if len(nonIndexed) > 1 {
-			err := myabi.Unpack(&out, event.Name, log.Data)
+			out, err := myabi.Unpack(event.Name, log.Data)
 			if err != nil {
 				return nil, err
 			}
@@ -613,11 +613,11 @@ func ParseLogs(myabi abi.ABI, logs []*types.Log) ([]Event, error) {
 				fields[nonIndexed[i].Name] = reflect.ValueOf(o).Elem().Interface()
 			}
 		} else if len(out) > 0 {
-			err := myabi.Unpack(&out[0], event.Name, log.Data)
+			o, err := myabi.Unpack(event.Name, log.Data)
 			if err != nil {
 				return nil, err
 			}
-			fields[nonIndexed[0].Name] = out[0]
+			fields[nonIndexed[0].Name] = o
 		}
 
 		for i, input := range getInputs(event.Inputs, true) {
