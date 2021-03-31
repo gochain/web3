@@ -60,8 +60,8 @@ jobs:
       with:
         artifacts: "web3_linux, web3_alpine"
         token: ${{ secrets.GITHUB_TOKEN }}
-        tag: v${{ env.$VERSION }}
-        name: ${{ env.$VERSION }}
+        tag: v${{ env.VERSION }}
+        name: ${{ env.VERSION }}
 
     - name: Docker release
       env:
@@ -98,7 +98,7 @@ jobs:
       with:
         artifacts: "web3_mac"
         token: ${{ secrets.GITHUB_TOKEN }}
-        tag: v${{ env.$VERSION }}
-        name: ${{ env.$VERSION }}
+        tag: v${{ env.VERSION }}
+        name: ${{ env.VERSION }}
         allowUpdates: true
         omitNameDuringUpdate: true
