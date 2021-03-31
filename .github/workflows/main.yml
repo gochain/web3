@@ -58,6 +58,7 @@ jobs:
         # Alpine build
         docker create -v /data --name web3_sources alpine /bin/true
         docker cp -a . web3_sources:/data/
+        docker build -t gochain/builder:latest -f Dockerfile.build .
         docker run --rm --volumes-from web3_sources -w /data gochain/builder go build -ldflags "-X main.Version=$VERSION" -o web3_alpine ./cmd/web3 
         docker cp web3_sources:/data/web3_alpine web3_alpine
         # docker rm -f web3_sources
