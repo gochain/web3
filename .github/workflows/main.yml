@@ -40,21 +40,13 @@ jobs:
         wget -O - https://raw.githubusercontent.com/treeder/bump/master/gitbump.sh | bash
         echo "VERSION=$(git tag --sort=-v:refname --list 'v[0-9]*' | head -n 1 | cut -c 2-)" >> $GITHUB_ENV        
       
-    - name: release
-      env:
-        # I couldn't get the releases to work with the GITHUB_TOKEN so made secrets... :(
-        GH_DEPLOY_USER: ${{ secrets.GH_DEPLOY_USER }}
-        GH_DEPLOY_KEY: ${{ secrets.GH_DEPLOY_KEY }}
-        DOCKER_USER: ${{ secrets.DOCKER_USER }}
-        DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
+    - name: Binary build
       run: |
-        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-        ./.github/actions-setup.sh
-
         echo "Version: $VERSION"
 
         # Linux build
-        GOOS=linux go build -ldflags "-X main.Version=$VERSION" -o web3_linux ./cmd/web3 
+        GOOS=linux go build -ldflags "-X main.Version=$VERSION" -o web3_linux ./cmd/web3
+
         # Alpine build
         docker create -v /data --name web3_sources alpine /bin/true
         docker cp -a . web3_sources:/data/
@@ -63,16 +55,21 @@ jobs:
         docker cp web3_sources:/data/web3_alpine web3_alpine
         # docker rm -f web3_sources
 
-        # GitHub release
-        url='https://api.github.com/repos/gochain/web3/releases'
-        output=$(curl -s -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY -d "{\"tag_name\": \"v$VERSION\", \"name\": \"v$VERSION\"}" $url)
-        echo "release output: $output"
-        upload_url=$(echo fromJSON($output)["upload_url"] | sed -E "s/\{.*//")
-        html_url=$(echo fromJSON($output)["html_url"])
-        curl --data-binary "@web3_linux"  -H "Content-Type: application/octet-stream" -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY $upload_url\?name\=web3_linux >/dev/null
-        curl --data-binary "@web3_alpine" -H "Content-Type: application/octet-stream" -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY $upload_url\?name\=web3_alpine >/dev/null
+    - name: GitHub release
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: "web3_linux, web3_alpine"
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tag: v${{ env.$VERSION }}
+        name: ${{ env.$VERSION }}
 
-        # Docker release
+    - name: Docker release
+      env:
+        DOCKER_USER: ${{ secrets.DOCKER_USER }}
+        DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
+      run: |
+        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+
         docker build -t gochain/web3:latest .
         docker tag gochain/web3:latest gochain/web3:$VERSION
         docker push gochain/web3:$VERSION
@@ -93,15 +90,15 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
       
+    - name: build
+      run: go build -ldflags "-X main.Version=$VERSION" -o web3_mac ./cmd/web3
+
     - name: release
-      env:
-        # I couldn't get the releases to work with the GITHUB_TOKEN so made secrets... :(
-        GH_DEPLOY_USER: ${{ secrets.GH_DEPLOY_USER }}
-        GH_DEPLOY_KEY: ${{ secrets.GH_DEPLOY_KEY }}
-      run: |
-        set -ex
-        go build -ldflags "-X main.Version=$VERSION" -o web3_mac ./cmd/web3
-        url='https://api.github.com/repos/gochain/web3/releases'
-        output=$(curl -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY $url)
-        upload_url=$(echo fromJSON($output)[0]["upload_url"] | sed -E "s/\{.*//")
-        curl --data-binary "@web3_mac"  -H "Content-Type: application/octet-stream" -u $GH_DEPLOY_USER:$GH_DEPLOY_KEY $upload_url\?name\=web3_mac >/dev/null
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: "web3_mac"
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tag: v${{ env.$VERSION }}
+        name: ${{ env.$VERSION }}
+        allowUpdates: true
+        omitNameDuringUpdate: true
