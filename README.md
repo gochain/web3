@@ -90,7 +90,7 @@ export WEB3_NETWORK=localhost
 export WEB3_NETWORK=testnet
 ```
 
-To do any write operations, [get yourself some GO testnet tokens](https://help.gochain.io/en/article/getting-started-4tlo7a/) so you can deploy and interact with your contract.
+To do any write operations, you'll need some testnet GO. You can get some at https://faucet.gochain.io/ or ask in [GoChain Developers Telegram Group](https://t.me/gochain_testnet). 
 
 #### c) Use the GoChain mainnet or another web3 network
 
@@ -98,10 +98,15 @@ To do any write operations, [get yourself some GO testnet tokens](https://help.g
 export WEB3_NETWORK=gochain
 ```
 
-You'll need mainnet GO for this which you can [buy on various exchanges](https://help.gochain.io/en/article/how-to-buy-go-tokens-z12xkb/).
+You'll need mainnet GO for this which you can [buy on various exchanges](https://gochain.io/go).
 
-You can also point this to other web3 based networks such as Ethereum. Ethereum is supported by default and you
-can use one of the following: `ethereum` or `ropsten`.
+#### d) Ethereum or any other web3 compatible network
+
+Most people use Infura for Ethereum which requires an API key to use. Sign in to [Infura](https://infura.io), create a project, click the settings tab and find your unique mainnet RPC URL under "ENDPOINTS". Then set web3 to use it with:
+
+```sh
+export WEB3_RPC_URL=https://mainnet.infura.io/v3/YOURUNIQUEKEY
+```
 
 ### Set Private Key (optional)
 
