@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"strings"
 
+	"github.com/gochain/gochain/v3/common"
 	"github.com/gochain/gochain/v3/crypto"
 )
 
@@ -37,8 +38,12 @@ func (a *Account) Key() *ecdsa.PrivateKey {
 	return a.key
 }
 
+func (a *Account) Address() common.Address {
+	return crypto.PubkeyToAddress(a.key.PublicKey)
+}
+
 func (a *Account) PublicKey() string {
-	return crypto.PubkeyToAddress(a.key.PublicKey).Hex()
+	return a.Address().Hex()
 }
 
 func (a *Account) PrivateKey() string {
