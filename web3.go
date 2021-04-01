@@ -165,10 +165,6 @@ func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, add
 	return convertTx(signedTx, fromAddress), nil
 }
 func isValidUrl(toTest string) bool {
-	_, err := url.ParseRequestURI(toTest)
-	if err != nil {
-		return false
-	}
 	u, err := url.Parse(toTest)
 	if err != nil || u.Scheme == "" || u.Host == "" {
 		return false
@@ -206,21 +202,21 @@ func DeployBin(ctx context.Context, client Client,
 		}
 	}
 	var abi []byte
-	if isValidUrl(abiFilename) {
-		if len(constructorArgs) > 0 {
+	if len(constructorArgs) > 0 {
+		if isValidUrl(abiFilename) {
 			abi, err = downloadFile(abiFilename)
 			if err != nil {
 				return nil, fmt.Errorf("Cannot download the abi file %q: %v", abiFilename, err)
 			}
-		}
-	} else {
-		if len(constructorArgs) > 0 {
+
+		} else {
 			abi, err = ioutil.ReadFile(abiFilename)
 			if err != nil {
 				return nil, fmt.Errorf("Cannot read the abi file %q: %v", abiFilename, err)
 			}
 		}
 	}
+
 	return DeployContract(ctx, client, privateKeyHex, string(bin), string(abi), gasPrice, gasLimit, constructorArgs...)
 
 }
