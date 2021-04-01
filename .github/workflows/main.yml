@@ -9,6 +9,8 @@ jobs:
   build-linux:
     name: Build Linux
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ env.VERSION }}
     steps:
     
     - name: stuffs
@@ -38,7 +40,7 @@ jobs:
         git config --global user.name "CI"
         git fetch --tags
         wget -O - https://raw.githubusercontent.com/treeder/bump/master/gitbump.sh | bash
-        echo "VERSION=$(git tag --sort=-v:refname --list 'v[0-9]*' | head -n 1 | cut -c 2-)" >> $GITHUB_ENV        
+        echo "VERSION=$(git tag --sort=-v:refname --list 'v[0-9]*' | head -n 1 | cut -c 2-)" >> $GITHUB_ENV
       
     - name: Binary build
       run: |
@@ -79,6 +81,8 @@ jobs:
     name: Build MacOS
     runs-on: macOS-latest
     needs: build-linux
+    env:
+      VERSION: ${{ needs.build-linux.outputs.version }}
     steps:
 
     - name: Set up Go
