@@ -1,14 +1,18 @@
 package web3
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"math/big"
+	"net/http"
+	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
@@ -160,23 +164,60 @@ func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, add
 	}
 	return convertTx(signedTx, fromAddress), nil
 }
+func isValidUrl(toTest string) bool {
+	u, err := url.Parse(toTest)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return false
+	}
+	return true
+}
+func downloadFile(url string) ([]byte, error) {
+	var dst bytes.Buffer
+	response, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+	_, err = io.Copy(&dst, response.Body)
+	if err != nil {
+		return nil, err
+	}
+	return dst.Bytes(), nil
+}
 
 // DeployBin will deploy a bin file to the network
 func DeployBin(ctx context.Context, client Client,
 	privateKeyHex, binFilename, abiFilename string, gasPrice *big.Int, gasLimit uint64, constructorArgs ...interface{}) (*Transaction, error) {
-	bin, err := ioutil.ReadFile(binFilename)
-	if err != nil {
-		return nil, fmt.Errorf("Cannot read the bin file %q: %v", binFilename, err)
-	}
-	var abi string
-	if len(constructorArgs) > 0 {
-		b, err := ioutil.ReadFile(abiFilename)
+	var bin []byte
+	var err error
+	if isValidUrl(binFilename) {
+		bin, err = downloadFile(binFilename)
 		if err != nil {
-			return nil, fmt.Errorf("Cannot read the abi file %q: %v", abiFilename, err)
+			return nil, fmt.Errorf("Cannot download the bin file %q: %v", binFilename, err)
 		}
-		abi = string(b)
+	} else {
+		bin, err = ioutil.ReadFile(binFilename)
+		if err != nil {
+			return nil, fmt.Errorf("Cannot read the bin file %q: %v", binFilename, err)
+		}
 	}
-	return DeployContract(ctx, client, privateKeyHex, string(bin), abi, gasPrice, gasLimit, constructorArgs...)
+	var abi []byte
+	if len(constructorArgs) > 0 {
+		if isValidUrl(abiFilename) {
+			abi, err = downloadFile(abiFilename)
+			if err != nil {
+				return nil, fmt.Errorf("Cannot download the abi file %q: %v", abiFilename, err)
+			}
+
+		} else {
+			abi, err = ioutil.ReadFile(abiFilename)
+			if err != nil {
+				return nil, fmt.Errorf("Cannot read the abi file %q: %v", abiFilename, err)
+			}
+		}
+	}
+
+	return DeployContract(ctx, client, privateKeyHex, string(bin), string(abi), gasPrice, gasLimit, constructorArgs...)
 
 }
 
