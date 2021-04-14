@@ -23,9 +23,15 @@ contract {{.ContractName}} is ERC721PresetMinterPauserAutoId {
 	// This allows the minter to update the tokenURI after it's been minted.
 	// To disable this, delete this function.
 	function setTokenURI(uint256 tokenId, string memory tokenURI) public {
-        require(hasRole(MINTER_ROLE, _msgSender()), "web3 CLI: must have minter role to update tokenURI");
+        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "web3 CLI: must have admin role to update tokenURI");
 
         _setTokenURI(tokenId, tokenURI);
+    }
+
+    function setBaseURI(string memory baseURI) public {
+        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "web3 CLI: must have admin role to update tokenURI");
+
+        _setBaseURI(baseURI);
     }
 }`
 
@@ -362,5 +368,36 @@ const ERC721ABI = `[
 		],
 		"name": "Approval",
 		"type": "event"
-	}
+	},
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "tokenURI",
+        "type": "string"
+      }
+    ],
+    "name": "setTokenURI",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "baseURI",
+        "type": "string"
+      }
+    ],
+    "name": "setBaseURI",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ]`
