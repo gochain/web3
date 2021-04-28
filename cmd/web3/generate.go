@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	OpenZeppelinVersion = "3.2.0"
+	OpenZeppelinVersion = "4.0.0"
 )
 
 func GenerateCode(ctx context.Context, c *cli.Context) {
@@ -66,7 +66,7 @@ func getOpenZeppelinLib(ctx context.Context, version string) error {
 			version = OpenZeppelinVersion
 		}
 		cmd := exec.Command("git", "clone", "--depth", "1", "--branch", "v"+version, "https://github.com/OpenZeppelin/openzeppelin-contracts", "lib/oz")
-		log.Printf("Cloning OpenZeppelin repo...")
+		log.Printf("Cloning OpenZeppelin v%v...", version)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		err := cmd.Run()

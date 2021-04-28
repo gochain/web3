@@ -10,9 +10,9 @@ type Erc721Params struct {
 	// Burnable  bool
 }
 
-const ERC721Template = `pragma solidity ^0.6.12;
+const ERC721Template = `pragma solidity ^0.8.4;
 
-import "./lib/oz/contracts/presets/ERC721PresetMinterPauserAutoId.sol";
+import "./lib/oz/contracts/token/ERC721/presets/ERC721PresetMinterPauserAutoId.sol";
 
 contract {{.ContractName}} is ERC721PresetMinterPauserAutoId {
 
@@ -20,13 +20,6 @@ contract {{.ContractName}} is ERC721PresetMinterPauserAutoId {
 	ERC721PresetMinterPauserAutoId("{{.TokenName}}", "{{.Symbol}}", "{{.BaseURI}}")
 	{}
 
-	// This allows the minter to update the tokenURI after it's been minted.
-	// To disable this, delete this function.
-	function setTokenURI(uint256 tokenId, string memory tokenURI) public {
-        require(hasRole(MINTER_ROLE, _msgSender()), "web3 CLI: must have minter role to update tokenURI");
-
-        _setTokenURI(tokenId, tokenURI);
-    }
 }`
 
 const ERC721ABI = `[

@@ -19,7 +19,7 @@ func EscapeName(symbol string) string {
 func GenERC20(ctx context.Context, openZeppelinVersion string, params *Erc20Params) (string, error) {
 	var part1, part2, part3 strings.Builder
 	part1.WriteString(fmt.Sprintf("// @openzeppelin v%v\n", openZeppelinVersion))
-	part1.WriteString("pragma solidity ^0.6.12;\n\nimport \"./lib/oz/contracts/presets/ERC20PresetMinterPauser.sol\";\n")
+	part1.WriteString("pragma solidity ^0.8.4;\n\nimport \"./lib/oz/contracts/token/ERC20/presets/ERC20PresetMinterPauser.sol\";\n")
 	part2.WriteString("\ncontract ")
 	part2.WriteString(EscapeName(params.Symbol))
 	part2.WriteString(" is")

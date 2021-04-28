@@ -17,9 +17,10 @@ var versionRegexp = regexp.MustCompile(`([0-9]+)\.([0-9]+)\.([0-9]+)`)
 
 // Contract contains information about a compiled contract, alongside its code and runtime code.
 type Contract struct {
-	Code        string       `json:"code"`
-	RuntimeCode string       `json:"runtime-code"`
-	Info        ContractInfo `json:"info"`
+	Code        string            `json:"code"`
+	RuntimeCode string            `json:"runtime-code"`
+	Info        ContractInfo      `json:"info"`
+	Hashes      map[string]string `json:"hashes"`
 }
 
 // ContractInfo contains information about a compiled contract, including access
@@ -33,7 +34,7 @@ type ContractInfo struct {
 	LanguageVersion string      `json:"languageVersion"`
 	CompilerVersion string      `json:"compilerVersion"`
 	CompilerOptions string      `json:"compilerOptions"`
-	SrcMap          string      `json:"srcMap"`
+	SrcMap          interface{} `json:"srcMap"`
 	SrcMapRuntime   string      `json:"srcMapRuntime"`
 	AbiDefinition   interface{} `json:"abiDefinition"`
 	UserDoc         interface{} `json:"userDoc"`
@@ -54,6 +55,18 @@ type solcOutput struct {
 		BinRuntime                                  string `json:"bin-runtime"`
 		SrcMapRuntime                               string `json:"srcmap-runtime"`
 		Bin, SrcMap, Abi, Devdoc, Userdoc, Metadata string
+	}
+	Version string
+}
+type solcOutputV8 struct {
+	Contracts map[string]struct {
+		BinRuntime            string `json:"bin-runtime"`
+		SrcMapRuntime         string `json:"srcmap-runtime"`
+		Bin, SrcMap, Metadata string
+		Abi                   interface{}
+		Devdoc                interface{}
+		Userdoc               interface{}
+		Hashes                map[string]string
 	}
 	Version string
 }
@@ -141,7 +154,8 @@ func (s *Solidity) run(cmd *exec.Cmd, source string) (map[string]*Contract, erro
 func ParseCombinedJSON(combinedJSON []byte, source string, languageVersion string, compilerVersion string, compilerOptions string) (map[string]*Contract, error) {
 	var output solcOutput
 	if err := json.Unmarshal(combinedJSON, &output); err != nil {
-		return nil, err
+		// Try to parse the output with the new solidity v.0.8.0 rules
+		return parseCombinedJSONV8(combinedJSON, source, languageVersion, compilerVersion, compilerOptions)
 	}
 
 	// Compilation succeeded, assemble and return the contracts.
@@ -174,6 +188,38 @@ func ParseCombinedJSON(combinedJSON []byte, source string, languageVersion strin
 				AbiDefinition:   abi,
 				UserDoc:         userdoc,
 				DeveloperDoc:    devdoc,
+				Metadata:        info.Metadata,
+			},
+		}
+	}
+	return contracts, nil
+}
+
+// parseCombinedJSONV8 parses the direct output of solc --combined-output
+// and parses it using the rules from solidity v.0.8.0 and later.
+func parseCombinedJSONV8(combinedJSON []byte, source string, languageVersion string, compilerVersion string, compilerOptions string) (map[string]*Contract, error) {
+	var output solcOutputV8
+	if err := json.Unmarshal(combinedJSON, &output); err != nil {
+		return nil, err
+	}
+	// Compilation succeeded, assemble and return the contracts.
+	contracts := make(map[string]*Contract)
+	for name, info := range output.Contracts {
+		contracts[name] = &Contract{
+			Code:        "0x" + info.Bin,
+			RuntimeCode: "0x" + info.BinRuntime,
+			Hashes:      info.Hashes,
+			Info: ContractInfo{
+				Source:          source,
+				Language:        "Solidity",
+				LanguageVersion: languageVersion,
+				CompilerVersion: compilerVersion,
+				CompilerOptions: compilerOptions,
+				SrcMap:          info.SrcMap,
+				SrcMapRuntime:   info.SrcMapRuntime,
+				AbiDefinition:   info.Abi,
+				UserDoc:         info.Userdoc,
+				DeveloperDoc:    info.Devdoc,
 				Metadata:        info.Metadata,
 			},
 		}
