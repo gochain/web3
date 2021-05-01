@@ -460,7 +460,7 @@ func main() {
 						}
 						amount := toAmountBig(c.String("amount"))
 						price, limit := parseGasPriceAndLimit(c)
-						callContract(ctx, network.URL, privateKey, contractAddress, contractFile, function, amount, price, limit, waitForReceipt, c.Bool("to-string"), args...)
+						callContract(ctx, network.URL, network.ChainID, privateKey, contractAddress, contractFile, function, amount, price, limit, waitForReceipt, c.Bool("to-string"), args...)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -518,7 +518,7 @@ func main() {
 					Usage: "Upgrade contract to new address",
 					Action: func(c *cli.Context) {
 						amount := toAmountBig(c.String("amount"))
-						UpgradeContract(ctx, network.URL, privateKey, contractAddress, toContractAddress, amount)
+						UpgradeContract(ctx, network.URL, network.ChainID, privateKey, contractAddress, toContractAddress, amount)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -568,7 +568,7 @@ func main() {
 							address = contractAddress
 						}
 						amount := toAmountBig(c.String("amount"))
-						PauseContract(ctx, network.URL, privateKey, address, amount)
+						PauseContract(ctx, network.URL, network.ChainID, privateKey, address, amount)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -598,7 +598,7 @@ func main() {
 							address = contractAddress
 						}
 						amount := toAmountBig(c.String("amount"))
-						ResumeContract(ctx, network.URL, privateKey, address, amount)
+						ResumeContract(ctx, network.URL, network.ChainID, privateKey, address, amount)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -783,7 +783,7 @@ func main() {
 					}
 				}
 				price, limit := parseGasPriceAndLimit(c)
-				Transfer(ctx, network.URL, privateKey, contractAddress, price, limit, c.Bool("wait"), c.Bool("to-string"), c.Args())
+				Transfer(ctx, network.URL, network.ChainID, privateKey, contractAddress, price, limit, c.Bool("wait"), c.Bool("to-string"), c.Args())
 			},
 		},
 		{
@@ -935,7 +935,7 @@ func main() {
 						},
 					},
 					Action: func(c *cli.Context) {
-						CreateDID(ctx, network.URL, privateKey, c.Args().First(), c.String("registry"))
+						CreateDID(ctx, network.URL, network.ChainID, privateKey, c.Args().First(), c.String("registry"))
 					},
 				},
 				{
@@ -1607,7 +1607,7 @@ func DeploySol(ctx context.Context, network web3.Network,
 		}
 		abi = string(b)
 	}
-	tx, err := web3.DeployContract(ctx, client, privateKey, string(bin), abi, gasPrice, gasLimit, params...)
+	tx, err := web3.DeployContract(ctx, client, network.ChainID, privateKey, string(bin), abi, gasPrice, gasLimit, params...)
 	if err != nil {
 		fatalExit(fmt.Errorf("Error deploying contract: %v", err))
 	}
@@ -1639,7 +1639,7 @@ func DeploySol(ctx context.Context, network web3.Network,
 	}
 
 	// Deploy proxy contract.
-	proxyTx, err := web3.DeployContract(ctx, client, privateKey, assets.OwnerUpgradeableProxyCode(receipt.ContractAddress), "", gasPrice, gasLimit)
+	proxyTx, err := web3.DeployContract(ctx, client, network.ChainID, privateKey, assets.OwnerUpgradeableProxyCode(receipt.ContractAddress), "", gasPrice, gasLimit)
 	if err != nil {
 		log.Fatalf("Cannot deploy the upgradeable proxy contract: %v", err)
 	}
@@ -1739,7 +1739,7 @@ func VerifyContract(ctx context.Context, network web3.Network, explorerURL, cont
 	fatalExit(fmt.Errorf("Cannot verify the contract: %s, error code: %v", errResp.Error.Message, resp.StatusCode))
 }
 
-func UpgradeContract(ctx context.Context, rpcURL, privateKey, contractAddress, newTargetAddress string, amount *big.Int) {
+func UpgradeContract(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, contractAddress, newTargetAddress string, amount *big.Int) {
 	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
@@ -1749,7 +1749,7 @@ func UpgradeContract(ctx context.Context, rpcURL, privateKey, contractAddress, n
 	if err != nil {
 		log.Fatalf("Cannot initialize ABI: %v", err)
 	}
-	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "upgrade", amount, nil, 100000, newTargetAddress)
+	tx, err := web3.CallTransactFunction(ctx, client, chainID, myabi, contractAddress, privateKey, "upgrade", amount, nil, 100000, newTargetAddress)
 	if err != nil {
 		log.Fatalf("Cannot upgrade the contract: %v", err)
 	}
@@ -1786,7 +1786,7 @@ func GetTargetContract(ctx context.Context, rpcURL, contractAddress string) {
 	}
 }
 
-func PauseContract(ctx context.Context, rpcURL, privateKey, contractAddress string, amount *big.Int) {
+func PauseContract(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, contractAddress string, amount *big.Int) {
 	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
@@ -1796,7 +1796,7 @@ func PauseContract(ctx context.Context, rpcURL, privateKey, contractAddress stri
 	if err != nil {
 		log.Fatalf("Cannot initialize ABI: %v", err)
 	}
-	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "pause", amount, nil, 70000)
+	tx, err := web3.CallTransactFunction(ctx, client, chainID, myabi, contractAddress, privateKey, "pause", amount, nil, 70000)
 	if err != nil {
 		log.Fatalf("Cannot pause the contract: %v", err)
 	}
@@ -1808,7 +1808,7 @@ func PauseContract(ctx context.Context, rpcURL, privateKey, contractAddress stri
 	fmt.Println("Transaction address:", receipt.TxHash.Hex())
 }
 
-func ResumeContract(ctx context.Context, rpcURL, privateKey, contractAddress string, amount *big.Int) {
+func ResumeContract(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, contractAddress string, amount *big.Int) {
 	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
@@ -1818,7 +1818,7 @@ func ResumeContract(ctx context.Context, rpcURL, privateKey, contractAddress str
 	if err != nil {
 		log.Fatalf("Cannot initialize ABI: %v", err)
 	}
-	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "resume", amount, nil, 70000)
+	tx, err := web3.CallTransactFunction(ctx, client, chainID, myabi, contractAddress, privateKey, "resume", amount, nil, 70000)
 	if err != nil {
 		log.Fatalf("Cannot resume the contract: %v", err)
 	}

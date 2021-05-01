@@ -28,7 +28,7 @@ import (
 // MaxDIDLength is the maximum size of the idstring of the GoChain DID.
 const MaxDIDLength = 32
 
-func CreateDID(ctx context.Context, rpcURL, privateKey, id, registryAddress string) {
+func CreateDID(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, id, registryAddress string) {
 	if registryAddress == "" {
 		log.Fatalf("Registry contract address required")
 	} else if id == "" {
@@ -95,7 +95,7 @@ func CreateDID(ctx context.Context, rpcURL, privateKey, id, registryAddress stri
 	var idBytes32 [32]byte
 	copy(idBytes32[:], d.ID)
 
-	tx, err := web3.CallTransactFunction(ctx, client, myabi, registryAddress, privateKey, "register", &big.Int{}, nil, 70000, idBytes32, hash)
+	tx, err := web3.CallTransactFunction(ctx, client, chainID, myabi, registryAddress, privateKey, "register", &big.Int{}, nil, 70000, idBytes32, hash)
 	if err != nil {
 		log.Fatalf("Cannot register DID identifier: %v", err)
 	}

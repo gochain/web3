@@ -51,7 +51,7 @@ func GetContractConst(ctx context.Context, rpcURL, contractAddress, contractFile
 	return res, nil
 }
 
-func callContract(ctx context.Context, rpcURL, privateKey, contractAddress, contractFile, functionName string,
+func callContract(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, contractAddress, contractFile, functionName string,
 	amount *big.Int, gasPrice *big.Int, gasLimit uint64, waitForReceipt, toString bool, parameters ...interface{}) {
 	client, err := web3.Dial(rpcURL)
 	if err != nil {
@@ -98,7 +98,7 @@ func callContract(ctx context.Context, rpcURL, privateKey, contractAddress, cont
 		}
 		return
 	}
-	tx, err := web3.CallTransactFunction(ctx, client, *myabi, contractAddress, privateKey, functionName, amount, gasPrice, gasLimit, parameters...)
+	tx, err := web3.CallTransactFunction(ctx, client, chainID, *myabi, contractAddress, privateKey, functionName, amount, gasPrice, gasLimit, parameters...)
 	if err != nil {
 		fatalExit(fmt.Errorf("Error calling contract: %v", err))
 	}
