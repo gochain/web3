@@ -65,6 +65,21 @@ func IntAsFloat(i *big.Int, decimals int) *big.Float {
 	return f
 }
 
+// DecToInt converts a decimal to a big int
+func DecToInt(d decimal.Decimal, decimals int32) *big.Int {
+	// multiply amount by number of decimals
+	d1 := decimal.New(1, decimals)
+	d = d.Mul(d1)
+	return d.BigInt()
+}
+
+// IntToDec converts a big int to a decimal
+func IntToDec(i *big.Int, decimals int32) decimal.Decimal {
+	d := decimal.NewFromBigInt(i, 0)
+	d = d.Div(decimal.New(1, decimals))
+	return d
+}
+
 // FloatAsInt converts a float to a *big.Int based on the decimals passed in
 func FloatAsInt(amountF *big.Float, decimals int) *big.Int {
 	bigval := new(big.Float)
@@ -746,19 +761,4 @@ func parseUnit(g string, mult *big.Int, digits int) (*big.Int, error) {
 		return nil, fmt.Errorf("failed to decimal part: %s", decStr)
 	}
 	return whole.Add(whole, dec), nil
-}
-
-// DecToInt converts a decimal to a big int
-func DecToInt(d decimal.Decimal, decimals int32) *big.Int {
-	// multiply amount by number of decimals
-	d1 := decimal.New(1, decimals)
-	d = d.Mul(d1)
-	return d.BigInt()
-}
-
-// IntToDec converts a big int to a decimal
-func IntToDec(i *big.Int, decimals int32) decimal.Decimal {
-	d := decimal.NewFromBigInt(i, 0)
-	d = d.Div(decimal.New(1, decimals))
-	return d
 }
