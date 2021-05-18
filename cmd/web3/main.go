@@ -501,19 +501,15 @@ func main() {
 						cli.Uint64Flag{
 							Name:  "gas-limit",
 							Value: 70000,
-							
 						},
 
-                                		cli.StringFlag{
-                                       		 	Name:  "gas-price",
-                                        		Usage: "Gas price to use, if left blank, will use suggested gas price.",
-                                		},
-                                		cli.StringFlag{
-                                        	Name:  "gas-price-gwei",
-                                        	Usage: "Gas price to use in GWEI, if left blank, will use suggested gas price.",
-	
-							
-							
+						cli.StringFlag{
+							Name:  "gas-price",
+							Usage: "Gas price to use, if left blank, will use suggested gas price.",
+						},
+						cli.StringFlag{
+							Name:  "gas-price-gwei",
+							Usage: "Gas price to use in GWEI, if left blank, will use suggested gas price.",
 						},
 					},
 				},
@@ -1337,7 +1333,7 @@ func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, priv
 			fatalExit(err)
 		}
 		// fmt.Println("BALANCE:", balance, reflect.TypeOf(balance))
-		fmt.Println(web3.IntAsFloat(balance[0].(*big.Int), int(decimals[0].(uint8))))
+		fmt.Println(web3.IntToDec(balance[0].(*big.Int), int32(decimals[0].(uint8))))
 		return
 	}
 
@@ -1383,9 +1379,9 @@ func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, priv
 	}
 
 	if onlyBalance {
-		fmt.Println(web3.WeiAsBase(bal), network.Unit)
+		fmt.Println(web3.IntToDec(bal, 18))
 	} else {
-		fmt.Println("Balance:", web3.WeiAsBase(bal), network.Unit)
+		fmt.Println("Balance:", web3.IntToDec(bal, 18))
 		if len(code) > 0 {
 			fmt.Println("Code:", string(code))
 		}
