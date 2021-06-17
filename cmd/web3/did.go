@@ -28,7 +28,7 @@ import (
 // MaxDIDLength is the maximum size of the idstring of the GoChain DID.
 const MaxDIDLength = 32
 
-func CreateDID(ctx context.Context, rpcURL, privateKey, id, registryAddress string) {
+func CreateDID(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, id, registryAddress string) {
 	if registryAddress == "" {
 		log.Fatalf("Registry contract address required")
 	} else if id == "" {
@@ -85,6 +85,7 @@ func CreateDID(ctx context.Context, rpcURL, privateKey, id, registryAddress stri
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
 	}
+	client.SetChainID(chainID)
 	defer client.Close()
 
 	myabi, err := abi.JSON(strings.NewReader(assets.DIDRegistryABI))

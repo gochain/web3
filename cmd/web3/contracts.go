@@ -51,13 +51,8 @@ func GetContractConst(ctx context.Context, rpcURL, contractAddress, contractFile
 	return res, nil
 }
 
-func callContract(ctx context.Context, rpcURL, privateKey, contractAddress, contractFile, functionName string,
+func callContract(ctx context.Context, client web3.Client, privateKey, contractAddress, contractFile, functionName string,
 	amount *big.Int, gasPrice *big.Int, gasLimit uint64, waitForReceipt, toString bool, parameters ...interface{}) {
-	client, err := web3.Dial(rpcURL)
-	if err != nil {
-		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
-	}
-	defer client.Close()
 	myabi, err := web3.GetABI(contractFile)
 	if err != nil {
 		fatalExit(err)

@@ -152,6 +152,11 @@ func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, add
 			return nil, fmt.Errorf("cannot get gas price: %v", err)
 		}
 	}
+	chainID, err := client.GetChainID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't get chain ID: %v", err)
+	}
+
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
@@ -165,7 +170,7 @@ func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, add
 	toAddress := common.HexToAddress(address)
 	// fmt.Println("Price: ", gasPrice)
 	tx := types.NewTransaction(nonce, toAddress, amount, gasLimit, gasPrice, input)
-	signedTx, err := types.SignTx(tx, types.HomesteadSigner{}, privateKey)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign transaction: %v", err)
 	}
@@ -201,8 +206,8 @@ func downloadFile(url string) ([]byte, error) {
 }
 
 // DeployBin will deploy a bin file to the network
-func DeployBin(ctx context.Context, client Client,
-	privateKeyHex, binFilename, abiFilename string, gasPrice *big.Int, gasLimit uint64, constructorArgs ...interface{}) (*Transaction, error) {
+func DeployBin(ctx context.Context, client Client, privateKeyHex, binFilename, abiFilename string,
+	gasPrice *big.Int, gasLimit uint64, constructorArgs ...interface{}) (*Transaction, error) {
 	var bin []byte
 	var err error
 	if isValidUrl(binFilename) {
@@ -223,7 +228,6 @@ func DeployBin(ctx context.Context, client Client,
 			if err != nil {
 				return nil, fmt.Errorf("Cannot download the abi file %q: %v", abiFilename, err)
 			}
-
 		} else {
 			abi, err = ioutil.ReadFile(abiFilename)
 			if err != nil {
@@ -233,7 +237,6 @@ func DeployBin(ctx context.Context, client Client,
 	}
 
 	return DeployContract(ctx, client, privateKeyHex, string(bin), string(abi), gasPrice, gasLimit, constructorArgs...)
-
 }
 
 // DeployContract submits a contract creation transaction.
@@ -252,6 +255,10 @@ func DeployContract(ctx context.Context, client Client, privateKeyHex string, bi
 		if err != nil {
 			return nil, fmt.Errorf("cannot get gas price: %v", err)
 		}
+	}
+	chainID, err := client.GetChainID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't get chain ID: %v", err)
 	}
 
 	publicKey := privateKey.Public()
@@ -286,7 +293,7 @@ func DeployContract(ctx context.Context, client Client, privateKeyHex string, bi
 	}
 	//TODO try to use web3.Transaction only; can't sign currently
 	tx := types.NewContractCreation(nonce, big.NewInt(0), gasLimit, gasPrice, binData)
-	signedTx, err := types.SignTx(tx, types.HomesteadSigner{}, privateKey)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign transaction: %v", err)
 	}
@@ -317,6 +324,11 @@ func Send(ctx context.Context, client Client, privateKeyHex string, address comm
 			return nil, fmt.Errorf("cannot get gas price: %v", err)
 		}
 	}
+	chainID, err := client.GetChainID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't get chain ID: %v", err)
+	}
+
 	if gasLimit == 0 {
 		gasLimit = 21000
 	}
@@ -331,7 +343,7 @@ func Send(ctx context.Context, client Client, privateKeyHex string, address comm
 		return nil, fmt.Errorf("cannot get nonce: %v", err)
 	}
 	tx := types.NewTransaction(nonce, address, amount, gasLimit, gasPrice, nil)
-	signedTx, err := types.SignTx(tx, types.HomesteadSigner{}, privateKey)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign transaction: %v", err)
 	}

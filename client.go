@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"sync/atomic"
 
 	"github.com/gochain/gochain/v3/common"
 	"github.com/gochain/gochain/v3/common/hexutil"
@@ -45,6 +46,7 @@ type Client interface {
 	// Call executes a call without submitting a transaction.
 	Call(ctx context.Context, msg CallMsg) ([]byte, error)
 	Close()
+	SetChainID(*big.Int)
 }
 
 // Dial returns a new client backed by dialing url (supported schemes "http", "https", "ws" and "wss").
@@ -62,7 +64,8 @@ func NewClient(r *rpc.Client) Client {
 }
 
 type client struct {
-	r *rpc.Client
+	r       *rpc.Client
+	chainID atomic.Value
 }
 
 func (c *client) Close() {
@@ -156,10 +159,21 @@ func (c *client) GetNetworkID(ctx context.Context) (*big.Int, error) {
 	return version, nil
 }
 
+func (c *client) SetChainID(chainID *big.Int) {
+	c.chainID.Store(chainID)
+}
+
 func (c *client) GetChainID(ctx context.Context) (*big.Int, error) {
+	if l := c.chainID.Load(); l != nil {
+		if i := l.(*big.Int); i != nil {
+			return i, nil
+		}
+	}
 	var result hexutil.Big
 	err := c.r.CallContext(ctx, &result, "eth_chainId")
-	return (*big.Int)(&result), err
+	i := (*big.Int)(&result)
+	c.SetChainID(i)
+	return i, err
 }
 
 func (c *client) GetTransactionReceipt(ctx context.Context, hash common.Hash) (*Receipt, error) {
@@ -256,7 +270,7 @@ func toBlockNumArg(number *big.Int) string {
 
 func toCallArg(msg CallMsg) interface{} {
 	arg := map[string]interface{}{
-		"to":   msg.To,
+		"to": msg.To,
 	}
 	if msg.From != nil {
 		arg["from"] = msg.From
