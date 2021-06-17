@@ -92,6 +92,13 @@ func Transfer(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, 
 	}
 	toAddress := tail[2]
 
+	client, err := web3.Dial(rpcURL)
+	if err != nil {
+		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
+	}
+	client.SetChainID(chainID)
+	defer client.Close()
+
 	if contractAddress != "" {
 		decimals, err := GetContractConst(ctx, rpcURL, contractAddress, "erc20", "decimals")
 		if err != nil {
@@ -101,16 +108,11 @@ func Transfer(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, 
 		// fmt.Println("DECIMALS:", decimals, reflect.TypeOf(decimals))
 		// todo: could get symbol here to display
 		amount := web3.DecToInt(amountD, int32(decimals[0].(uint8)))
-		callContract(ctx, rpcURL, chainID, privateKey, contractAddress, "erc20", "transfer", &big.Int{}, nil, 70000, wait, toString, toAddress, amount)
+		callContract(ctx, client, privateKey, contractAddress, "erc20", "transfer", &big.Int{}, nil, 70000, wait, toString, toAddress, amount)
 		return
 	}
 
 	amount := web3.DecToInt(amountD, 18)
-	client, err := web3.Dial(rpcURL)
-	if err != nil {
-		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
-	}
-	defer client.Close()
 	if toAddress == "" {
 		fatalExit(errors.New("The recepient address cannot be empty"))
 	}
@@ -118,7 +120,7 @@ func Transfer(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, 
 		fatalExit(fmt.Errorf("Invalid to 'address': %s", toAddress))
 	}
 	address := common.HexToAddress(toAddress)
-	tx, err := web3.Send(ctx, client, chainID, privateKey, address, amount, gasPrice, gasLimit)
+	tx, err := web3.Send(ctx, client, privateKey, address, amount, gasPrice, gasLimit)
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot create transaction: %v", err))
 	}

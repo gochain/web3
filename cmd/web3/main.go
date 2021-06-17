@@ -460,7 +460,13 @@ func main() {
 						}
 						amount := toAmountBig(c.String("amount"))
 						price, limit := parseGasPriceAndLimit(c)
-						callContract(ctx, network.URL, network.ChainID, privateKey, contractAddress, contractFile, function, amount, price, limit, waitForReceipt, c.Bool("to-string"), args...)
+						client, err := web3.Dial(network.URL)
+						if err != nil {
+							fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
+						}
+						client.SetChainID(network.ChainID)
+						defer client.Close()
+						callContract(ctx, client, privateKey, contractAddress, contractFile, function, amount, price, limit, waitForReceipt, c.Bool("to-string"), args...)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -1582,6 +1588,7 @@ func DeploySol(ctx context.Context, network web3.Network,
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
 	}
+	client.SetChainID(network.ChainID)
 	defer client.Close()
 	// get file
 	var bin []byte
@@ -1607,7 +1614,7 @@ func DeploySol(ctx context.Context, network web3.Network,
 		}
 		abi = string(b)
 	}
-	tx, err := web3.DeployContract(ctx, client, network.ChainID, privateKey, string(bin), abi, gasPrice, gasLimit, params...)
+	tx, err := web3.DeployContract(ctx, client, privateKey, string(bin), abi, gasPrice, gasLimit, params...)
 	if err != nil {
 		fatalExit(fmt.Errorf("Error deploying contract: %v", err))
 	}
@@ -1639,7 +1646,7 @@ func DeploySol(ctx context.Context, network web3.Network,
 	}
 
 	// Deploy proxy contract.
-	proxyTx, err := web3.DeployContract(ctx, client, network.ChainID, privateKey, assets.OwnerUpgradeableProxyCode(receipt.ContractAddress), "", gasPrice, gasLimit)
+	proxyTx, err := web3.DeployContract(ctx, client, privateKey, assets.OwnerUpgradeableProxyCode(receipt.ContractAddress), "", gasPrice, gasLimit)
 	if err != nil {
 		log.Fatalf("Cannot deploy the upgradeable proxy contract: %v", err)
 	}
@@ -1744,12 +1751,13 @@ func UpgradeContract(ctx context.Context, rpcURL string, chainID *big.Int, priva
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
 	}
+	client.SetChainID(chainID)
 	defer client.Close()
 	myabi, err := abi.JSON(strings.NewReader(assets.UpgradeableProxyABI))
 	if err != nil {
 		log.Fatalf("Cannot initialize ABI: %v", err)
 	}
-	tx, err := web3.CallTransactFunction(ctx, client, chainID, myabi, contractAddress, privateKey, "upgrade", amount, nil, 100000, newTargetAddress)
+	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "upgrade", amount, nil, 100000, newTargetAddress)
 	if err != nil {
 		log.Fatalf("Cannot upgrade the contract: %v", err)
 	}
@@ -1791,12 +1799,13 @@ func PauseContract(ctx context.Context, rpcURL string, chainID *big.Int, private
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
 	}
+	client.SetChainID(chainID)
 	defer client.Close()
 	myabi, err := abi.JSON(strings.NewReader(assets.UpgradeableProxyABI))
 	if err != nil {
 		log.Fatalf("Cannot initialize ABI: %v", err)
 	}
-	tx, err := web3.CallTransactFunction(ctx, client, chainID, myabi, contractAddress, privateKey, "pause", amount, nil, 70000)
+	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "pause", amount, nil, 70000)
 	if err != nil {
 		log.Fatalf("Cannot pause the contract: %v", err)
 	}
@@ -1813,12 +1822,13 @@ func ResumeContract(ctx context.Context, rpcURL string, chainID *big.Int, privat
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
 	}
+	client.SetChainID(chainID)
 	defer client.Close()
 	myabi, err := abi.JSON(strings.NewReader(assets.UpgradeableProxyABI))
 	if err != nil {
 		log.Fatalf("Cannot initialize ABI: %v", err)
 	}
-	tx, err := web3.CallTransactFunction(ctx, client, chainID, myabi, contractAddress, privateKey, "resume", amount, nil, 70000)
+	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "resume", amount, nil, 70000)
 	if err != nil {
 		log.Fatalf("Cannot resume the contract: %v", err)
 	}

@@ -85,6 +85,7 @@ func CreateDID(ctx context.Context, rpcURL string, chainID *big.Int, privateKey,
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
 	}
+	client.SetChainID(chainID)
 	defer client.Close()
 
 	myabi, err := abi.JSON(strings.NewReader(assets.DIDRegistryABI))
@@ -95,7 +96,7 @@ func CreateDID(ctx context.Context, rpcURL string, chainID *big.Int, privateKey,
 	var idBytes32 [32]byte
 	copy(idBytes32[:], d.ID)
 
-	tx, err := web3.CallTransactFunction(ctx, client, chainID, myabi, registryAddress, privateKey, "register", &big.Int{}, nil, 70000, idBytes32, hash)
+	tx, err := web3.CallTransactFunction(ctx, client, myabi, registryAddress, privateKey, "register", &big.Int{}, nil, 70000, idBytes32, hash)
 	if err != nil {
 		log.Fatalf("Cannot register DID identifier: %v", err)
 	}

@@ -110,7 +110,7 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 }
 
 // CallTransactFunction submits a transaction to execute a smart contract function call.
-func CallTransactFunction(ctx context.Context, client Client, chainID *big.Int, myabi abi.ABI, address, privateKeyHex, functionName string,
+func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, address, privateKeyHex, functionName string,
 	amount *big.Int, gasPrice *big.Int, gasLimit uint64, params ...interface{}) (*Transaction, error) {
 	if address == "" {
 		return nil, errors.New("no contract address specified")
@@ -137,12 +137,11 @@ func CallTransactFunction(ctx context.Context, client Client, chainID *big.Int, 
 			return nil, fmt.Errorf("cannot get gas price: %v", err)
 		}
 	}
-	if chainID == nil {
-		chainID, err = client.GetChainID(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("couldn't get chain ID: %v", err)
-		}
+	chainID, err := client.GetChainID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't get chain ID: %v", err)
 	}
+
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
@@ -192,7 +191,7 @@ func downloadFile(url string) ([]byte, error) {
 }
 
 // DeployBin will deploy a bin file to the network
-func DeployBin(ctx context.Context, client Client, chainID *big.Int, privateKeyHex, binFilename, abiFilename string,
+func DeployBin(ctx context.Context, client Client, privateKeyHex, binFilename, abiFilename string,
 	gasPrice *big.Int, gasLimit uint64, constructorArgs ...interface{}) (*Transaction, error) {
 	var bin []byte
 	var err error
@@ -214,7 +213,6 @@ func DeployBin(ctx context.Context, client Client, chainID *big.Int, privateKeyH
 			if err != nil {
 				return nil, fmt.Errorf("Cannot download the abi file %q: %v", abiFilename, err)
 			}
-
 		} else {
 			abi, err = ioutil.ReadFile(abiFilename)
 			if err != nil {
@@ -223,13 +221,12 @@ func DeployBin(ctx context.Context, client Client, chainID *big.Int, privateKeyH
 		}
 	}
 
-	return DeployContract(ctx, client, chainID, privateKeyHex, string(bin), string(abi), gasPrice, gasLimit, constructorArgs...)
-
+	return DeployContract(ctx, client, privateKeyHex, string(bin), string(abi), gasPrice, gasLimit, constructorArgs...)
 }
 
 // DeployContract submits a contract creation transaction.
 // abiJSON is only required when including params for the constructor.
-func DeployContract(ctx context.Context, client Client, chainID *big.Int, privateKeyHex string, binHex, abiJSON string, gasPrice *big.Int, gasLimit uint64, constructorArgs ...interface{}) (*Transaction, error) {
+func DeployContract(ctx context.Context, client Client, privateKeyHex string, binHex, abiJSON string, gasPrice *big.Int, gasLimit uint64, constructorArgs ...interface{}) (*Transaction, error) {
 	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
 		privateKeyHex = privateKeyHex[2:]
 	}
@@ -244,11 +241,9 @@ func DeployContract(ctx context.Context, client Client, chainID *big.Int, privat
 			return nil, fmt.Errorf("cannot get gas price: %v", err)
 		}
 	}
-	if chainID == nil {
-		chainID, err = client.GetChainID(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("couldn't get chain ID: %v", err)
-		}
+	chainID, err := client.GetChainID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't get chain ID: %v", err)
 	}
 
 	publicKey := privateKey.Public()
@@ -300,7 +295,7 @@ func DeployContract(ctx context.Context, client Client, chainID *big.Int, privat
 }
 
 // Send performs a regular native coin transaction (not a contract)
-func Send(ctx context.Context, client Client, chainID *big.Int, privateKeyHex string, address common.Address, amount *big.Int, gasPrice *big.Int, gasLimit uint64) (*Transaction, error) {
+func Send(ctx context.Context, client Client, privateKeyHex string, address common.Address, amount *big.Int, gasPrice *big.Int, gasLimit uint64) (*Transaction, error) {
 	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
 		privateKeyHex = privateKeyHex[2:]
 	}
@@ -314,12 +309,11 @@ func Send(ctx context.Context, client Client, chainID *big.Int, privateKeyHex st
 			return nil, fmt.Errorf("cannot get gas price: %v", err)
 		}
 	}
-	if chainID == nil {
-		chainID, err = client.GetChainID(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("couldn't get chain ID: %v", err)
-		}
+	chainID, err := client.GetChainID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't get chain ID: %v", err)
 	}
+
 	if gasLimit == 0 {
 		gasLimit = 21000
 	}
