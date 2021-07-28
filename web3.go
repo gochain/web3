@@ -477,7 +477,17 @@ func ConvertArgument(abiType byte, size int, param interface{}) (interface{}, er
 				return common.BytesToHash(val), nil
 			}
 		default:
-			return nil, fmt.Errorf("unsupported input byte array size %v", size)
+			if s, ok := param.(string); ok {
+				fmt.Println(s)
+				val, err := hexutil.Decode(s)
+				if err != nil {
+					return nil, fmt.Errorf("failed to parse hash %q: %v", s, err)
+				}
+				if len(val) != size {
+					return nil, fmt.Errorf("invalid byte array length %d: size is %d bytes", len(val), size)
+				}
+				return val, nil
+			}
 		}
 	default:
 		return nil, fmt.Errorf("unsupported input type %v", abiType)
