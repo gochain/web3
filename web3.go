@@ -486,7 +486,10 @@ func ConvertArgument(abiType byte, size int, param interface{}) (interface{}, er
 				if len(val) != size {
 					return nil, fmt.Errorf("invalid byte array length %d: size is %d bytes", len(val), size)
 				}
-				return val, nil
+				arrayT := reflect.ArrayOf(size, reflect.TypeOf(byte(0)))
+				array := reflect.New(arrayT).Elem()
+				reflect.Copy(array, reflect.ValueOf(val))
+				return array.Interface(), nil
 			}
 		}
 	default:
