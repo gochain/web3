@@ -1,5 +1,5 @@
 # build stage
-FROM golang:1.16-alpine AS build-env
+FROM golang:1.17-alpine AS build-env
 RUN apk --no-cache add build-base git mercurial gcc linux-headers
 ENV D=/web3
 WORKDIR $D
