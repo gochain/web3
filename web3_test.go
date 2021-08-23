@@ -14,6 +14,8 @@ func Test_parseParam(t *testing.T) {
 	const addr = "0xa25b5e2d2d63dad7fa940e239925f29320f5103d"
 	const hash = "0x0123456789012345678901234567890101234567890123456789012345678901"
 	var bytes4 = hash[:10]
+	var bytes4Array [4]byte
+	copy(bytes4Array[:], common.FromHex(bytes4))
 	tests := []struct {
 		name  string
 		t     byte
@@ -47,8 +49,8 @@ func Test_parseParam(t *testing.T) {
 		{"hash<-hash", abi.FixedBytesTy, 32, common.HexToHash(hash), common.HexToHash(hash), false},
 		{"hash<-hex", abi.FixedBytesTy, 32, hash, common.HexToHash(hash), false},
 
-		{"bytes<-bytes", abi.FixedBytesTy, 4, common.FromHex(bytes4), common.FromHex(bytes4), false},
-		{"bytes<-hex", abi.FixedBytesTy, 4, bytes4, common.FromHex(bytes4), false},
+		{"[4]byte<-[4]bytes", abi.FixedBytesTy, 4, bytes4Array, bytes4Array, false},
+		{"[4]byte<-hex", abi.FixedBytesTy, 4, bytes4, bytes4Array, false},
 
 		{"bytes<-bytes", abi.BytesTy, 0, common.Hex2Bytes("1234"), common.Hex2Bytes("1234"), false},
 		{"bytes<-hex", abi.BytesTy, 0, "0x1234", common.Hex2Bytes("1234"), false},
