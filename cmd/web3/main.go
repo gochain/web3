@@ -466,7 +466,14 @@ func main() {
 						}
 						client.SetChainID(network.ChainID)
 						defer client.Close()
-						callContract(ctx, client, privateKey, contractAddress, contractFile, function, amount, price, limit, waitForReceipt, c.Bool("to-string"), args...)
+						var dataB []byte
+						if c.String("data") != "" {
+							dataB, err = hex.DecodeString(strings.TrimPrefix(c.String("data"), "0x"))
+							if err != nil {
+								fatalExit(err)
+							}
+						}
+						callContract(ctx, client, privateKey, contractAddress, contractFile, function, amount, price, limit, waitForReceipt, c.Bool("to-string"), dataB, args...)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -508,7 +515,6 @@ func main() {
 							Name:  "gas-limit",
 							Value: 70000,
 						},
-
 						cli.StringFlag{
 							Name:  "gas-price",
 							Usage: "Gas price to use, if left blank, will use suggested gas price.",
@@ -516,6 +522,10 @@ func main() {
 						cli.StringFlag{
 							Name:  "gas-price-gwei",
 							Usage: "Gas price to use in GWEI, if left blank, will use suggested gas price.",
+						},
+						cli.StringFlag{
+							Name:  "data",
+							Usage: "Data for smart contract call in hex (can copy from etherscan and other explorers)",
 						},
 					},
 				},
