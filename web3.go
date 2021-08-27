@@ -125,19 +125,33 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 }
 
 // CallTransactFunction submits a transaction to execute a smart contract function call.
+// @Deprecated use CallFunctionWithArgs, better signature
 func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, address, privateKeyHex, functionName string,
 	amount *big.Int, gasPrice *big.Int, gasLimit uint64, params ...interface{}) (*Transaction, error) {
-	if address == "" {
-		return nil, errors.New("no contract address specified")
-	}
+	return CallFunctionWithArgs(ctx, client, privateKeyHex, address, amount, gasPrice, gasLimit, myabi, functionName, params...)
+}
+
+// CallFunctionWithArgs submits a transaction to execute a smart contract function call.
+func CallFunctionWithArgs(ctx context.Context, client Client, privateKeyHex, address string,
+	amount *big.Int, gasPrice *big.Int, gasLimit uint64, myabi abi.ABI, functionName string, params ...interface{}) (*Transaction, error) {
+
 	fn := myabi.Methods[functionName]
 	goParams, err := ConvertArguments(fn.Inputs, params)
 	if err != nil {
 		return nil, err
 	}
-	input, err := myabi.Pack(functionName, goParams...)
+	data, err := myabi.Pack(functionName, goParams...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to pack values: %v", err)
+	}
+	return CallFunctionWithData(ctx, client, privateKeyHex, address, amount, gasPrice, gasLimit, data)
+}
+
+// CallFunctionWithData if you already have the encoded function data, then use this
+func CallFunctionWithData(ctx context.Context, client Client, privateKeyHex, address string,
+	amount *big.Int, gasPrice *big.Int, gasLimit uint64, data []byte) (*Transaction, error) {
+	if address == "" {
+		return nil, errors.New("no contract address specified")
 	}
 	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
 		privateKeyHex = privateKeyHex[2:]
@@ -156,7 +170,6 @@ func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, add
 	if err != nil {
 		return nil, fmt.Errorf("couldn't get chain ID: %v", err)
 	}
-
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
@@ -169,7 +182,7 @@ func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, add
 	}
 	toAddress := common.HexToAddress(address)
 	// fmt.Println("Price: ", gasPrice)
-	tx := types.NewTransaction(nonce, toAddress, amount, gasLimit, gasPrice, input)
+	tx := types.NewTransaction(nonce, toAddress, amount, gasLimit, gasPrice, data)
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign transaction: %v", err)
@@ -184,6 +197,7 @@ func CallTransactFunction(ctx context.Context, client Client, myabi abi.ABI, add
 	}
 	return convertTx(signedTx, fromAddress), nil
 }
+
 func isValidUrl(toTest string) bool {
 	u, err := url.Parse(toTest)
 	if err != nil || u.Scheme == "" || u.Host == "" {

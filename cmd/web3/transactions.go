@@ -108,7 +108,7 @@ func Transfer(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, 
 		// fmt.Println("DECIMALS:", decimals, reflect.TypeOf(decimals))
 		// todo: could get symbol here to display
 		amount := web3.DecToInt(amountD, int32(decimals[0].(uint8)))
-		callContract(ctx, client, privateKey, contractAddress, "erc20", "transfer", &big.Int{}, nil, 70000, wait, toString, toAddress, amount)
+		callContract(ctx, client, privateKey, contractAddress, "erc20", "transfer", &big.Int{}, nil, 70000, wait, toString, nil, toAddress, amount)
 		return
 	}
 

@@ -52,7 +52,7 @@ func GetContractConst(ctx context.Context, rpcURL, contractAddress, contractFile
 }
 
 func callContract(ctx context.Context, client web3.Client, privateKey, contractAddress, contractFile, functionName string,
-	amount *big.Int, gasPrice *big.Int, gasLimit uint64, waitForReceipt, toString bool, parameters ...interface{}) {
+	amount *big.Int, gasPrice *big.Int, gasLimit uint64, waitForReceipt, toString bool, data []byte, parameters ...interface{}) {
 	myabi, err := web3.GetABI(contractFile)
 	if err != nil {
 		fatalExit(err)
@@ -93,7 +93,12 @@ func callContract(ctx context.Context, client web3.Client, privateKey, contractA
 		}
 		return
 	}
-	tx, err := web3.CallTransactFunction(ctx, client, *myabi, contractAddress, privateKey, functionName, amount, gasPrice, gasLimit, parameters...)
+	var tx *web3.Transaction
+	if len(data) > 0 {
+		tx, err = web3.CallTransactFunction(ctx, client, *myabi, contractAddress, privateKey, functionName, amount, gasPrice, gasLimit, parameters...)
+	} else {
+		tx, err = web3.CallFunctionWithData(ctx, client, contractAddress, privateKey, amount, gasPrice, gasLimit, data)
+	}
 	if err != nil {
 		fatalExit(fmt.Errorf("Error calling contract: %v", err))
 	}
