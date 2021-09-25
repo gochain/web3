@@ -95,9 +95,9 @@ func callContract(ctx context.Context, client web3.Client, privateKey, contractA
 	}
 	var tx *web3.Transaction
 	if len(data) > 0 {
-		tx, err = web3.CallTransactFunction(ctx, client, *myabi, contractAddress, privateKey, functionName, amount, gasPrice, gasLimit, parameters...)
+		tx, err = web3.CallFunctionWithData(ctx, client, privateKey, contractAddress, amount, gasPrice, gasLimit, data)
 	} else {
-		tx, err = web3.CallFunctionWithData(ctx, client, contractAddress, privateKey, amount, gasPrice, gasLimit, data)
+		tx, err = web3.CallTransactFunction(ctx, client, *myabi, contractAddress, privateKey, functionName, amount, gasPrice, gasLimit, parameters...)
 	}
 	if err != nil {
 		fatalExit(fmt.Errorf("Error calling contract: %v", err))
