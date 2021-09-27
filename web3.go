@@ -404,7 +404,7 @@ func ConvertArguments(args abi.Arguments, params []interface{}) ([]interface{}, 
 	}
 	var convertedParams []interface{}
 	for i, input := range args {
-		param, err := ConvertArgument(input.Type.T, input.Type.Size, params[i])
+		param, err := ConvertArgument(input.Type, params[i])
 		if err != nil {
 			return nil, err
 		}
@@ -415,9 +415,10 @@ func ConvertArguments(args abi.Arguments, params []interface{}) ([]interface{}, 
 
 // ConvertArgument attempts to convert argument to the provided ABI type and size.
 // Unrecognized types are passed through unmodified.
-func ConvertArgument(abiType byte, size int, param interface{}) (interface{}, error) {
-	// fmt.Println("INPUT TYPE:", t.T, "SIZE:", t.Size)
-	switch abiType {
+func ConvertArgument(abiType abi.Type, param interface{}) (interface{}, error) {
+	size := abiType.Size
+	// fmt.Println("INPUT TYPE:", abiType, "SIZE:", size, "Param", param)
+	switch abiType.T {
 	case abi.StringTy:
 	case abi.BoolTy:
 		if s, ok := param.(string); ok {
@@ -436,18 +437,18 @@ func ConvertArgument(abiType byte, size int, param interface{}) (interface{}, er
 			if !ok {
 				return nil, fmt.Errorf("failed to parse big.Int: %s", s)
 			}
-			return ConvertInt(abiType == abi.IntTy, size, val)
+			return ConvertInt(abiType.T == abi.IntTy, size, val)
 		} else if i, ok := param.(*big.Int); ok {
-			return ConvertInt(abiType == abi.IntTy, size, i)
+			return ConvertInt(abiType.T == abi.IntTy, size, i)
 		}
 		v := reflect.ValueOf(param)
 		switch v.Kind() {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			i := new(big.Int).SetInt64(v.Int())
-			return ConvertInt(abiType == abi.IntTy, size, i)
+			return ConvertInt(abiType.T == abi.IntTy, size, i)
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 			i := new(big.Int).SetUint64(v.Uint())
-			return ConvertInt(abiType == abi.IntTy, size, i)
+			return ConvertInt(abiType.T == abi.IntTy, size, i)
 		case reflect.Float64, reflect.Float32:
 			return nil, fmt.Errorf("floating point numbers are not valid in web3 - please use an integer or string instead (including big.Int and json.Number)")
 		}
@@ -458,6 +459,61 @@ func ConvertArgument(abiType byte, size int, param interface{}) (interface{}, er
 			}
 			return common.HexToAddress(s), nil
 		}
+	case abi.SliceTy, abi.ArrayTy:
+		s, ok := param.(string)
+		if !ok {
+			return nil, fmt.Errorf("invalid array: %s", s)
+		}
+		s = strings.TrimPrefix(s, "[")
+		s = strings.TrimSuffix(s, "]")
+		inputArray := strings.Split(s, ",")
+		switch abiType.Elem.T {
+
+		case abi.AddressTy:
+			arrayParams := make([]common.Address, len(inputArray))
+			for i, elem := range inputArray {
+				converted, err := ConvertArgument(*abiType.Elem, elem)
+				if err != nil {
+					return nil, err
+				}
+				arrayParams[i] = converted.(common.Address)
+			}
+			return arrayParams, nil
+
+		case abi.StringTy:
+			arrayParams := make([]string, len(inputArray))
+			for i, elem := range inputArray {
+				converted, err := ConvertArgument(*abiType.Elem, elem)
+				if err != nil {
+					return nil, err
+				}
+				arrayParams[i] = converted.(string)
+			}
+			return arrayParams, nil
+
+		case abi.BoolTy:
+			arrayParams := make([]bool, len(inputArray))
+			for i, elem := range inputArray {
+				converted, err := ConvertArgument(*abiType.Elem, elem)
+				if err != nil {
+					return nil, err
+				}
+				arrayParams[i] = converted.(bool)
+			}
+			return arrayParams, nil
+
+		default:
+			arrayParams := make([]int, len(inputArray))
+			for i, elem := range inputArray {
+				converted, err := ConvertArgument(*abiType.Elem, elem)
+				if err != nil {
+					return nil, err
+				}
+				arrayParams[i] = converted.(int)
+			}
+			return arrayParams, nil
+		}
+
 	case abi.BytesTy:
 		if s, ok := param.(string); ok {
 			val, err := hexutil.Decode(s)
