@@ -65,7 +65,7 @@ func main() {
 	}()
 
 	// Flags
-	var netName, rpcUrl, function, contractAddress, toContractAddress, contractFile, privateKey, txFormat, txInputFormat string
+	var netName, rpcUrl, function, contractAddress, toContractAddress, abiFile, privateKey, txFormat, txInputFormat string
 	var testnet, waitForReceipt, upgradeable bool
 
 	app := cli.NewApp()
@@ -473,7 +473,7 @@ func main() {
 								fatalExit(err)
 							}
 						}
-						callContract(ctx, client, privateKey, contractAddress, contractFile, function, amount, price, limit, waitForReceipt, c.Bool("to-string"), dataB, args...)
+						callContract(ctx, client, privateKey, contractAddress, abiFile, function, amount, price, limit, waitForReceipt, c.Bool("to-string"), dataB, args...)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -489,7 +489,7 @@ func main() {
 							Hidden:      false},
 						cli.StringFlag{
 							Name:        "abi",
-							Destination: &contractFile,
+							Destination: &abiFile,
 							Usage:       "ABI file matching deployed contract",
 							Hidden:      false},
 						cli.StringFlag{
