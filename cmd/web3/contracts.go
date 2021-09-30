@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/gochain/gochain/v3/accounts/abi"
 	"github.com/gochain/web3"
 )
 
@@ -51,52 +52,58 @@ func GetContractConst(ctx context.Context, rpcURL, contractAddress, contractFile
 	return res, nil
 }
 
-func callContract(ctx context.Context, client web3.Client, privateKey, contractAddress, contractFile, functionName string,
+func callContract(ctx context.Context, client web3.Client, privateKey, contractAddress, abiFile, functionName string,
 	amount *big.Int, gasPrice *big.Int, gasLimit uint64, waitForReceipt, toString bool, data []byte, parameters ...interface{}) {
-	myabi, err := web3.GetABI(contractFile)
-	if err != nil {
-		fatalExit(err)
-	}
-	m, ok := myabi.Methods[functionName]
-	if !ok {
-		fmt.Println("There is no such function:", functionName)
-		return
-	}
-	if m.IsConstant() {
-		res, err := web3.CallConstantFunction(ctx, client, *myabi, contractAddress, functionName, parameters...)
-		if err != nil {
-			fatalExit(fmt.Errorf("Error calling constant function: %v", err))
-		}
-		switch format {
-		case "json":
-			m := make(map[string]interface{})
-			if len(res) == 1 {
-				m["response"] = res[0]
-			} else {
-				m["response"] = res
-			}
-			fmt.Println(marshalJSON(m))
-			return
-		}
-		if toString {
-			for i := range res {
-				fmt.Printf("%s\n", res[i])
-			}
-			return
-		}
-		for _, r := range res {
-			// These explicit checks ensure we get hex encoded output.
-			if s, ok := r.(fmt.Stringer); ok {
-				r = s.String()
-			}
-			fmt.Println(r)
-		}
-		return
-	}
+
+	var err error
 	var tx *web3.Transaction
+	var myabi *abi.ABI
 	if len(data) > 0 {
 		tx, err = web3.CallFunctionWithData(ctx, client, privateKey, contractAddress, amount, gasPrice, gasLimit, data)
 	} else {
+		// var m abi.Method
+		myabi, err = web3.GetABI(abiFile)
+		if err != nil {
+			fatalExit(err)
+		}
+		ok := true
+		m, ok := myabi.Methods[functionName]
+		if !ok {
+			fmt.Println("There is no such function:", functionName)
+			return
+		}
+
+		if m.IsConstant() {
+			res, err := web3.CallConstantFunction(ctx, client, *myabi, contractAddress, functionName, parameters...)
+			if err != nil {
+				fatalExit(fmt.Errorf("Error calling constant function: %v", err))
+			}
+			switch format {
+			case "json":
+				m := make(map[string]interface{})
+				if len(res) == 1 {
+					m["response"] = res[0]
+				} else {
+					m["response"] = res
+				}
+				fmt.Println(marshalJSON(m))
+				return
+			}
+			if toString {
+				for i := range res {
+					fmt.Printf("%s\n", res[i])
+				}
+				return
+			}
+			for _, r := range res {
+				// These explicit checks ensure we get hex encoded output.
+				if s, ok := r.(fmt.Stringer); ok {
+					r = s.String()
+				}
+				fmt.Println(r)
+			}
+			return
+		}
 		tx, err = web3.CallTransactFunction(ctx, client, *myabi, contractAddress, privateKey, functionName, amount, gasPrice, gasLimit, parameters...)
 	}
 	if err != nil {

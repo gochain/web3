@@ -84,7 +84,6 @@ func Transfer(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, 
 		fatalExit(errors.New("Invalid arguments. Format is: `transfer X to ADDRESS`"))
 	}
 
-	// TODO: change this to shopspring/decimal
 	amountS := tail[0]
 	amountD, err := decimal.NewFromString(amountS)
 	if err != nil {
@@ -104,9 +103,6 @@ func Transfer(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, 
 		if err != nil {
 			fatalExit(err)
 		}
-		// decimals are uint8
-		// fmt.Println("DECIMALS:", decimals, reflect.TypeOf(decimals))
-		// todo: could get symbol here to display
 		amount := web3.DecToInt(amountD, int32(decimals[0].(uint8)))
 		callContract(ctx, client, privateKey, contractAddress, "erc20", "transfer", &big.Int{}, nil, 70000, wait, toString, nil, toAddress, amount)
 		return

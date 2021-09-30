@@ -65,7 +65,7 @@ func main() {
 	}()
 
 	// Flags
-	var netName, rpcUrl, function, contractAddress, toContractAddress, contractFile, privateKey, txFormat, txInputFormat string
+	var netName, rpcUrl, function, contractAddress, toContractAddress, abiFile, privateKey, txFormat, txInputFormat string
 	var testnet, waitForReceipt, upgradeable bool
 
 	app := cli.NewApp()
@@ -150,12 +150,12 @@ func main() {
 			Aliases: []string{"rc"},
 			Usage:   "Transaction receipt for a tx hash",
 			Action: func(c *cli.Context) {
-				GetTransactionReceipt(ctx, network.URL, c.Args().First(), contractFile)
+				GetTransactionReceipt(ctx, network.URL, c.Args().First(), abiFile)
 			},
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:        "abi",
-					Destination: &contractFile,
+					Destination: &abiFile,
 					Usage:       "ABI file matching deployed contract",
 					Hidden:      false},
 			},
@@ -440,12 +440,12 @@ func main() {
 					Name:  "list",
 					Usage: "List contract functions",
 					Action: func(c *cli.Context) {
-						ListContract(contractFile)
+						ListContract(abiFile)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:        "abi",
-							Destination: &contractFile,
+							Destination: &abiFile,
 							Usage:       "The abi file of the deployed contract",
 							Hidden:      false},
 					},
@@ -473,7 +473,7 @@ func main() {
 								fatalExit(err)
 							}
 						}
-						callContract(ctx, client, privateKey, contractAddress, contractFile, function, amount, price, limit, waitForReceipt, c.Bool("to-string"), dataB, args...)
+						callContract(ctx, client, privateKey, contractAddress, abiFile, function, amount, price, limit, waitForReceipt, c.Bool("to-string"), dataB, args...)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -489,7 +489,7 @@ func main() {
 							Hidden:      false},
 						cli.StringFlag{
 							Name:        "abi",
-							Destination: &contractFile,
+							Destination: &abiFile,
 							Usage:       "ABI file matching deployed contract",
 							Hidden:      false},
 						cli.StringFlag{
