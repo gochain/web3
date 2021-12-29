@@ -46,8 +46,10 @@ jobs:
       run: |
         echo "Version: $VERSION"
 
-        # Linux build
+        # Linux x86 build
         GOOS=linux go build -ldflags "-X main.Version=$VERSION" -o web3_linux ./cmd/web3
+        # Linux arm64build
+        GOOS=linux GOARCH="arm64" go build -ldflags "-X main.Version=$VERSION" -o web3_linux_arm64 ./cmd/web3
 
         # Alpine build
         docker create -v /data --name web3_sources alpine /bin/true
@@ -60,7 +62,7 @@ jobs:
     - name: GitHub release
       uses: ncipollo/release-action@v1
       with:
-        artifacts: "web3_linux, web3_alpine"
+        artifacts: "web3_linux, web3_alpine, web3_alpine, web3_linux_arm64"
         token: ${{ secrets.GITHUB_TOKEN }}
         tag: v${{ env.VERSION }}
         name: ${{ env.VERSION }}
@@ -95,12 +97,14 @@ jobs:
       uses: actions/checkout@v2
       
     - name: build
-      run: go build -ldflags "-X main.Version=$VERSION" -o web3_mac ./cmd/web3
+      run: |
+       go build -ldflags "-X main.Version=$VERSION" -o web3_mac ./cmd/web3
+       go build -ldflags "-X main.Version=$VERSION" -o web3_mac_arm64 ./cmd/web3
 
     - name: release
       uses: ncipollo/release-action@v1
       with:
-        artifacts: "web3_mac"
+        artifacts: "web3_mac, web3_mac_arm64"
         token: ${{ secrets.GITHUB_TOKEN }}
         tag: v${{ env.VERSION }}
         name: ${{ env.VERSION }}
