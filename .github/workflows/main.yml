@@ -47,9 +47,10 @@ jobs:
         echo "Version: $VERSION"
 
         # Linux x86 build
-        GOOS=linux go build -ldflags "-X main.Version=$VERSION" -o web3_linux ./cmd/web3
+        CGO_ENABLED=1 GOOS=linux go build -ldflags "-X main.Version=$VERSION" -o web3_linux ./cmd/web3
         # Linux arm64build
-        GOOS=linux GOARCH="arm64" go build -ldflags "-X main.Version=$VERSION" -o web3_linux_arm64 ./cmd/web3
+        sudo apt-get install -y gcc-aarch64-linux-gnu
+        CGO_ENABLED=1 GOOS=linux GOARCH="arm64" CC=aarch64-linux-gnu-gcc go build -ldflags "-X main.Version=$VERSION" -o web3_linux_arm64 ./cmd/web3
 
         # Alpine build
         docker create -v /data --name web3_sources alpine /bin/true
@@ -99,7 +100,7 @@ jobs:
     - name: build
       run: |
        go build -ldflags "-X main.Version=$VERSION" -o web3_mac ./cmd/web3
-       go build -ldflags "-X main.Version=$VERSION" -o web3_mac_arm64 ./cmd/web3
+       CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 SDKROOT=$(xcrun --sdk macosx --show-sdk-path) go build -ldflags "-X main.Version=$VERSION" -o web3_mac_arm64 ./cmd/web3
 
     - name: release
       uses: ncipollo/release-action@v1
