@@ -49,7 +49,7 @@ jobs:
         # Linux x86 build
         CGO_ENABLED=1 GOOS=linux go build -ldflags "-X main.Version=$VERSION" -o web3_linux ./cmd/web3
         # Linux arm64build
-        sudo apt-get install -y gcc-aarch64-linux-gnu
+        sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
         CGO_ENABLED=1 GOOS=linux GOARCH="arm64" CC=aarch64-linux-gnu-gcc go build -ldflags "-X main.Version=$VERSION" -o web3_linux_arm64 ./cmd/web3
 
         # Alpine build
