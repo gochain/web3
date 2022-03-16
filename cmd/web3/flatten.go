@@ -93,11 +93,6 @@ func FlattenSourceFile(ctx context.Context, source, output string) (string, stri
 	if _, err := os.Stat(source); err != nil {
 		return "", "", fmt.Errorf("failed to find source file: %v", err)
 	}
-	if _, err := os.Stat(output); err == nil {
-		return "", "", fmt.Errorf("the output file already exist: %s", output)
-	} else if err != nil && !os.IsNotExist(err) {
-		return "", "", fmt.Errorf("failed to check for output file: %v", err)
-	}
 	imports := make(map[string]importRec)
 	name, newFiles, openZeppelinVersion, pragma, err := loadAndSplitFile(imports, source)
 	if err != nil {
