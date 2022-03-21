@@ -126,7 +126,7 @@ func Transfer(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, 
 func printReceiptDetails(r *web3.Receipt, myabi *abi.ABI) {
 	var logs []web3.Event
 	var err error
-	if myabi != nil {
+	if myabi != nil && r != nil && r.Logs != nil {
 		logs, err = web3.ParseLogs(*myabi, r.Logs)
 		r.ParsedLogs = logs
 		if err != nil {
