@@ -57,7 +57,7 @@ url='https://github.com/gochain/web3/releases/download'
 # perform some very rudimentary platform/architecture detection
 case "$(uname)" in
     Linux)
-        case "`uname -i`" in
+        case "`uname -m`" in
             x86_64|amd64)
                 echo "Installing web3 for linux x86_64"
                 $sh_c "$curl /tmp/web3_linux $url/$version/web3_linux"
@@ -74,7 +74,7 @@ case "$(uname)" in
         web3
     ;;
     Darwin)
-        case "`uname -i`" in
+        case "`uname -m`" in
             x86_64|amd64)
                 $sh_c "$curl /tmp/web3_mac $url/$version/web3_mac"
                 echo "Installing web3 for mac x86_64"
