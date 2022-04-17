@@ -401,6 +401,14 @@ func main() {
 							Name:  "gas-limit",
 							Value: 4000000,
 						},
+						cli.StringFlag{
+							Name:  "gas-price",
+							Usage: "Gas price to use, if left blank, will use suggested gas price.",
+						},
+						cli.StringFlag{
+							Name:  "gas-price-gwei",
+							Usage: "Gas price to use in GWEI, if left blank, will use suggested gas price.",
+						},
 					},
 				},
 				{
