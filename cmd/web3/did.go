@@ -104,7 +104,7 @@ func CreateDID(ctx context.Context, rpcURL string, chainID *big.Int, privateKey,
 	ctx, _ = context.WithTimeout(ctx, 10*time.Second)
 	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
-		log.Fatalf("Cannot get the receipt: %v", err)
+		log.Fatalf("Cannot get the receipt for transaction with hash '%v': %v", tx.Hash.Hex(), err)
 	}
 
 	if receipt.Status != types.ReceiptStatusSuccessful {

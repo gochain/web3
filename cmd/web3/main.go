@@ -1639,7 +1639,7 @@ func DeploySol(ctx context.Context, network web3.Network,
 	waitCtx, _ := context.WithTimeout(ctx, 60*time.Second)
 	receipt, err := web3.WaitForReceipt(waitCtx, client, tx.Hash)
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot get the receipt: %v", err))
+		fatalExit(fmt.Errorf("Cannot get the receipt for transaction with hash '%v': %v", tx.Hash.Hex(), err))
 	}
 
 	switch format {
@@ -1782,7 +1782,7 @@ func UpgradeContract(ctx context.Context, rpcURL string, chainID *big.Int, priva
 	ctx, _ = context.WithTimeout(ctx, 60*time.Second)
 	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
-		log.Fatalf("Cannot get the receipt: %v", err)
+		log.Fatalf("Cannot get the receipt for transaction with hash '%v': %v", tx.Hash.Hex(), err)
 	}
 	fmt.Println("Transaction address:", receipt.TxHash.Hex())
 }
@@ -1830,7 +1830,7 @@ func PauseContract(ctx context.Context, rpcURL string, chainID *big.Int, private
 	ctx, _ = context.WithTimeout(ctx, 60*time.Second)
 	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
-		log.Fatalf("Cannot get the receipt: %v", err)
+		log.Fatalf("Cannot get the receipt for transaction with hash '%v': %v", tx.Hash.Hex(), err)
 	}
 	fmt.Println("Transaction address:", receipt.TxHash.Hex())
 }
@@ -1853,7 +1853,7 @@ func ResumeContract(ctx context.Context, rpcURL string, chainID *big.Int, privat
 	ctx, _ = context.WithTimeout(ctx, 60*time.Second)
 	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
-		log.Fatalf("Cannot get the receipt: %v", err)
+		log.Fatalf("Cannot get the receipt for transaction with hash '%v': %v", tx.Hash.Hex(), err)
 	}
 	fmt.Println("Transaction address:", receipt.TxHash.Hex())
 }
