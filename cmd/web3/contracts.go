@@ -53,7 +53,7 @@ func GetContractConst(ctx context.Context, rpcURL, contractAddress, contractFile
 }
 
 func callContract(ctx context.Context, client web3.Client, privateKey, contractAddress, abiFile, functionName string,
-	amount *big.Int, gasPrice *big.Int, gasLimit uint64, waitForReceipt, toString bool, data []byte, parameters ...interface{}) {
+	amount *big.Int, gasPrice *big.Int, gasLimit uint64, waitForReceipt, toString bool, data []byte, timeoutInSeconds uint64, parameters ...interface{}) {
 
 	var err error
 	var tx *web3.Transaction
@@ -114,7 +114,7 @@ func callContract(ctx context.Context, client web3.Client, privateKey, contractA
 		return
 	}
 	fmt.Println("Waiting for receipt...")
-	ctx, _ = context.WithTimeout(ctx, 60*time.Second)
+	ctx, _ = context.WithTimeout(ctx, timeoutInSeconds*time.Second)
 	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
 		fatalExit(fmt.Errorf("getting receipt: %v", err))
