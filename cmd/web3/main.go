@@ -363,7 +363,7 @@ func main() {
 						price, limit := parseGasPriceAndLimit(c)
 						DeploySol(ctx, network, privateKey, binFile, c.String("verify"),
 							c.String("solc-version"), c.String("evm-version"), c.BoolT("optimize"),
-							c.String("explorer-api"), price, limit, upgradeable, args...)
+							c.String("explorer-api"), price, limit, upgradeable, c.Uint64("timeout"), args...)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -408,6 +408,11 @@ func main() {
 						cli.StringFlag{
 							Name:  "gas-price-gwei",
 							Usage: "Gas price to use in GWEI, if left blank, will use suggested gas price.",
+						},
+						cli.StringFlag{
+							Name:  "timeout",
+							Usage: "Timeout in seconds (default: 60)."
+							Value: 60,
 						},
 					},
 				},
@@ -481,7 +486,7 @@ func main() {
 								fatalExit(err)
 							}
 						}
-						callContract(ctx, client, privateKey, contractAddress, abiFile, function, amount, price, limit, waitForReceipt, c.Bool("to-string"), dataB, args...)
+						callContract(ctx, client, privateKey, contractAddress, abiFile, function, amount, price, limit, waitForReceipt, c.Bool("to-string"), dataB, c.Uint64("timeout"), args...)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -535,6 +540,11 @@ func main() {
 							Name:  "data",
 							Usage: "Data for smart contract call in hex (can copy from etherscan and other explorers)",
 						},
+						cli.StringFlag{
+							Name:  "timeout",
+							Usage: "Timeout in seconds (default: 60)."
+							Value: 60,
+						},
 					},
 				},
 				{
@@ -542,7 +552,7 @@ func main() {
 					Usage: "Upgrade contract to new address",
 					Action: func(c *cli.Context) {
 						amount := toAmountBig(c.String("amount"))
-						UpgradeContract(ctx, network.URL, network.ChainID, privateKey, contractAddress, toContractAddress, amount)
+						UpgradeContract(ctx, network.URL, network.ChainID, privateKey, contractAddress, toContractAddress, amount, c.Uint64("timeout"))
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -566,6 +576,11 @@ func main() {
 							EnvVar:      "WEB3_PRIVATE_KEY",
 							Destination: &privateKey,
 							Hidden:      false},
+						cli.StringFlag{
+							Name:  "timeout",
+							Usage: "Timeout in seconds (default: 60)."
+							Value: 60,
+						},
 					},
 				},
 				{
@@ -592,7 +607,7 @@ func main() {
 							address = contractAddress
 						}
 						amount := toAmountBig(c.String("amount"))
-						PauseContract(ctx, network.URL, network.ChainID, privateKey, address, amount)
+						PauseContract(ctx, network.URL, network.ChainID, privateKey, address, amount, c.Uint64("timeout"))
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -611,6 +626,11 @@ func main() {
 							EnvVar:      "WEB3_PRIVATE_KEY",
 							Destination: &privateKey,
 							Hidden:      false},
+						cli.StringFlag{
+							Name:  "timeout",
+							Usage: "Timeout in seconds (default: 60)."
+							Value: 60,
+						},
 					},
 				},
 				{
@@ -622,7 +642,7 @@ func main() {
 							address = contractAddress
 						}
 						amount := toAmountBig(c.String("amount"))
-						ResumeContract(ctx, network.URL, network.ChainID, privateKey, address, amount)
+						ResumeContract(ctx, network.URL, network.ChainID, privateKey, address, amount, c.Uint64("timeout"))
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -641,6 +661,11 @@ func main() {
 							EnvVar:      "WEB3_PRIVATE_KEY",
 							Destination: &privateKey,
 							Hidden:      false},
+						cli.StringFlag{
+							Name:  "timeout",
+							Usage: "Timeout in seconds (default: 60)."
+							Value: 60,
+						},
 					},
 				},
 			},
@@ -957,9 +982,14 @@ func main() {
 							Usage:  "Registry contract address",
 							EnvVar: didRegistryVarName,
 						},
+						cli.StringFlag{
+							Name:  "timeout",
+							Usage: "Timeout in seconds (default: 10)."
+							Value: 10,
+						},
 					},
 					Action: func(c *cli.Context) {
-						CreateDID(ctx, network.URL, network.ChainID, privateKey, c.Args().First(), c.String("registry"))
+						CreateDID(ctx, network.URL, network.ChainID, privateKey, c.Args().First(), c.String("registry"), c.Uint64("timeout"))
 					},
 				},
 				{
@@ -1597,7 +1627,7 @@ func FlattenSol(ctx context.Context, iFile, oFile string) {
 
 func DeploySol(ctx context.Context, network web3.Network,
 	privateKey, binFile, contractSource, solcVersion, evmVersion string, optimize bool, explorerURL string,
-	gasPrice *big.Int, gasLimit uint64, upgradeable bool, params ...interface{}) {
+	gasPrice *big.Int, gasLimit uint64, upgradeable bool, timeoutInSeconds uint64, params ...interface{}) {
 
 	if binFile == "" {
 		fatalExit(errors.New("Missing contract name arg."))
@@ -1636,10 +1666,10 @@ func DeploySol(ctx context.Context, network web3.Network,
 	if err != nil {
 		fatalExit(fmt.Errorf("Error deploying contract: %v", err))
 	}
-	waitCtx, _ := context.WithTimeout(ctx, 60*time.Second)
+	waitCtx, _ := context.WithTimeout(ctx, timeoutInSeconds*time.Second)
 	receipt, err := web3.WaitForReceipt(waitCtx, client, tx.Hash)
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot get the receipt: %v", err))
+		fatalExit(fmt.Errorf("Cannot get the receipt for transaction with hash '%v': %v", tx.Hash.Hex(), err))
 	}
 
 	switch format {
@@ -1668,7 +1698,7 @@ func DeploySol(ctx context.Context, network web3.Network,
 	if err != nil {
 		log.Fatalf("Cannot deploy the upgradeable proxy contract: %v", err)
 	}
-	waitCtx, _ = context.WithTimeout(ctx, 60*time.Second)
+	waitCtx, _ = context.WithTimeout(ctx, timeoutInSeconds*time.Second)
 	proxyReceipt, err := web3.WaitForReceipt(waitCtx, client, proxyTx.Hash)
 	if err != nil {
 		log.Fatalf("Cannot get the upgradeable proxy receipt: %v", err)
@@ -1764,7 +1794,7 @@ func VerifyContract(ctx context.Context, network web3.Network, explorerURL, cont
 	fatalExit(fmt.Errorf("Cannot verify the contract: %s, error code: %v", errResp.Error.Message, resp.StatusCode))
 }
 
-func UpgradeContract(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, contractAddress, newTargetAddress string, amount *big.Int) {
+func UpgradeContract(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, contractAddress, newTargetAddress string, amount *big.Int, timeoutInSeconds uint64) {
 	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
@@ -1779,10 +1809,10 @@ func UpgradeContract(ctx context.Context, rpcURL string, chainID *big.Int, priva
 	if err != nil {
 		log.Fatalf("Cannot upgrade the contract: %v", err)
 	}
-	ctx, _ = context.WithTimeout(ctx, 60*time.Second)
+	ctx, _ = context.WithTimeout(ctx, timeoutInSeconds*time.Second)
 	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
-		log.Fatalf("Cannot get the receipt: %v", err)
+		log.Fatalf("Cannot get the receipt for transaction with hash '%v': %v", tx.Hash.Hex(), err)
 	}
 	fmt.Println("Transaction address:", receipt.TxHash.Hex())
 }
@@ -1812,7 +1842,7 @@ func GetTargetContract(ctx context.Context, rpcURL, contractAddress string) {
 	}
 }
 
-func PauseContract(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, contractAddress string, amount *big.Int) {
+func PauseContract(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, contractAddress string, amount *big.Int, timeoutInSeconds uint64) {
 	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
@@ -1827,15 +1857,15 @@ func PauseContract(ctx context.Context, rpcURL string, chainID *big.Int, private
 	if err != nil {
 		log.Fatalf("Cannot pause the contract: %v", err)
 	}
-	ctx, _ = context.WithTimeout(ctx, 60*time.Second)
+	ctx, _ = context.WithTimeout(ctx, timeoutInSeconds*time.Second)
 	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
-		log.Fatalf("Cannot get the receipt: %v", err)
+		log.Fatalf("Cannot get the receipt for transaction with hash '%v': %v", tx.Hash.Hex(), err)
 	}
 	fmt.Println("Transaction address:", receipt.TxHash.Hex())
 }
 
-func ResumeContract(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, contractAddress string, amount *big.Int) {
+func ResumeContract(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, contractAddress string, amount *big.Int, timeoutInSeconds uint64) {
 	client, err := web3.Dial(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
@@ -1850,10 +1880,10 @@ func ResumeContract(ctx context.Context, rpcURL string, chainID *big.Int, privat
 	if err != nil {
 		log.Fatalf("Cannot resume the contract: %v", err)
 	}
-	ctx, _ = context.WithTimeout(ctx, 60*time.Second)
+	ctx, _ = context.WithTimeout(ctx, timeoutInSeconds*time.Second)
 	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
-		log.Fatalf("Cannot get the receipt: %v", err)
+		log.Fatalf("Cannot get the receipt for transaction with hash '%v': %v", tx.Hash.Hex(), err)
 	}
 	fmt.Println("Transaction address:", receipt.TxHash.Hex())
 }

@@ -28,7 +28,7 @@ import (
 // MaxDIDLength is the maximum size of the idstring of the GoChain DID.
 const MaxDIDLength = 32
 
-func CreateDID(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, id, registryAddress string) {
+func CreateDID(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, id, registryAddress string, timeoutInSeconds uint64) {
 	if registryAddress == "" {
 		log.Fatalf("Registry contract address required")
 	} else if id == "" {
@@ -101,10 +101,10 @@ func CreateDID(ctx context.Context, rpcURL string, chainID *big.Int, privateKey,
 		log.Fatalf("Cannot register DID identifier: %v", err)
 	}
 
-	ctx, _ = context.WithTimeout(ctx, 10*time.Second)
+	ctx, _ = context.WithTimeout(ctx, timeoutInSeconds*time.Second)
 	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
-		log.Fatalf("Cannot get the receipt: %v", err)
+		log.Fatalf("Cannot get the receipt for transaction with hash '%v': %v", tx.Hash.Hex(), err)
 	}
 
 	if receipt.Status != types.ReceiptStatusSuccessful {
