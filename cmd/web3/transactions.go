@@ -79,7 +79,7 @@ func ReplaceTx(ctx context.Context, privateKey string, network web3.Network, non
 	return tx
 }
 
-func Transfer(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, contractAddress string, gasPrice *big.Int, gasLimit uint64, wait, toString bool, tail []string) {
+func Transfer(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, contractAddress string, gasPrice *big.Int, gasLimit uint64, wait, toString bool, timeoutInSeconds uint64, tail []string) {
 	if len(tail) < 3 {
 		fatalExit(errors.New("Invalid arguments. Format is: `transfer X to ADDRESS`"))
 	}
@@ -104,7 +104,7 @@ func Transfer(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, 
 			fatalExit(err)
 		}
 		amount := web3.DecToInt(amountD, int32(decimals[0].(uint8)))
-		callContract(ctx, client, privateKey, contractAddress, "erc20", "transfer", &big.Int{}, nil, 70000, wait, toString, nil, toAddress, amount)
+		callContract(ctx, client, privateKey, contractAddress, "erc20", "transfer", &big.Int{}, nil, 70000, wait, toString, nil, timeoutInSeconds, toAddress, amount)
 		return
 	}
 

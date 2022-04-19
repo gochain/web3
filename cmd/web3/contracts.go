@@ -114,7 +114,7 @@ func callContract(ctx context.Context, client web3.Client, privateKey, contractA
 		return
 	}
 	fmt.Println("Waiting for receipt...")
-	ctx, _ = context.WithTimeout(ctx, timeoutInSeconds*time.Second)
+	ctx, _ = context.WithTimeout(ctx, time.Duration(timeoutInSeconds)*time.Second)
 	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
 		fatalExit(fmt.Errorf("getting receipt: %v", err))
