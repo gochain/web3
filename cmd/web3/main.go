@@ -982,10 +982,10 @@ func main() {
 							Usage:  "Registry contract address",
 							EnvVar: didRegistryVarName,
 						},
-						cli.IntFlag{
+						cli.UintFlag{
 							Name:  "timeout",
-							Usage: "Timeout in seconds (default: 10).",
-							Value: 10,
+							Usage: "Timeout in seconds (default: 60).",
+							Value: 60,
 						},
 					},
 					Action: func(c *cli.Context) {
