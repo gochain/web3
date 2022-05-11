@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	OpenZeppelinVersion = "4.0.0"
+	OpenZeppelinVersion = "4.6.0"
 )
 
 func GenerateCode(ctx context.Context, c *cli.Context) {
