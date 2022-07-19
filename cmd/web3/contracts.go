@@ -6,7 +6,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/gochain/gochain/v3/accounts/abi"
+	"github.com/gochain/gochain/v4/accounts/abi"
 	"github.com/gochain/web3"
 )
 

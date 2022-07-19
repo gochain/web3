@@ -11,7 +11,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/gochain/gochain/v3/accounts/abi/bind"
+	"github.com/gochain/gochain/v4/accounts/abi/bind"
 	"github.com/gochain/web3/assets"
 	"github.com/urfave/cli"
 )

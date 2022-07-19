@@ -20,16 +20,16 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gochain/gochain/v3/accounts/abi"
-	"github.com/gochain/gochain/v3/accounts/keystore"
-	"github.com/gochain/gochain/v3/common"
-	"github.com/gochain/gochain/v3/common/hexutil"
-	"github.com/gochain/gochain/v3/core/types"
-	"github.com/gochain/gochain/v3/crypto"
+	"github.com/gochain/gochain/v4/accounts/abi"
+	"github.com/gochain/gochain/v4/accounts/keystore"
+	"github.com/gochain/gochain/v4/common"
+	"github.com/gochain/gochain/v4/common/hexutil"
+	"github.com/gochain/gochain/v4/core/types"
+	"github.com/gochain/gochain/v4/crypto"
 	"github.com/gochain/web3"
 	"github.com/gochain/web3/assets"
 	"github.com/shopspring/decimal"
-	"github.com/treeder/gotils"
+	"github.com/treeder/gotils/v2"
 	"github.com/urfave/cli"
 )
 

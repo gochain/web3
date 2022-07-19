@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/gochain/gochain/v3/accounts/abi"
-	"github.com/gochain/gochain/v3/common"
-	"github.com/gochain/gochain/v3/core/types"
+	"github.com/gochain/gochain/v4/accounts/abi"
+	"github.com/gochain/gochain/v4/common"
+	"github.com/gochain/gochain/v4/core/types"
 	"github.com/gochain/web3"
 	"github.com/shopspring/decimal"
 )
