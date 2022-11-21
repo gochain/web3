@@ -1,6 +1,6 @@
 module github.com/gochain/web3
 
-go 1.18
+go 1.19
 
 require (
 	github.com/gochain/gochain/v4 v4.1.0
@@ -51,5 +51,3 @@ require (
 	google.golang.org/protobuf v1.25.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 )
-
-// replace github.com/gochain/gochain/v4 => ../gochain

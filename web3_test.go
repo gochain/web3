@@ -64,7 +64,11 @@ func Test_parseParam(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ConvertArgument(tt.t, tt.s, tt.param)
+			a := abi.Type{
+				Size: tt.s,
+				T:    tt.t,
+			}
+			got, err := ConvertArgument(a, tt.param)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("wantErr %v; error = %v", tt.wantErr, err)
 				return
