@@ -6,6 +6,7 @@ import (
 
 	"github.com/gochain/gochain/v4/accounts/abi"
 	"github.com/gochain/gochain/v4/common"
+	"github.com/rs/zerolog/log"
 )
 
 // WaitForReceipt polls for a transaction receipt until it is available, or ctx is cancelled.
@@ -16,6 +17,7 @@ func WaitForReceipt(ctx context.Context, client Client, hash common.Hash) (*Rece
 			return receipt, nil
 		}
 		if err != NotFoundErr {
+			log.Ctx(ctx).Err(err).Msg("WaitForReceipt")
 			return nil, err
 		}
 		select {

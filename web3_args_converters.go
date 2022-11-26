@@ -23,7 +23,9 @@ import (
 // original string) and supported here.
 func ConvertArguments(args abi.Arguments, params []interface{}) ([]interface{}, error) {
 	if len(args) != len(params) {
-		return nil, fmt.Errorf("mismatched argument (%d) and parameter (%d) counts", len(args), len(params))
+		err := fmt.Errorf("mismatched argument (%d) and parameter (%d) counts", len(args), len(params))
+		log.Err(err).Msg("ConvertArguments")
+		return nil, err
 	}
 	var convertedParams []interface{}
 	for i, input := range args {
