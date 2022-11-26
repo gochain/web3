@@ -10,12 +10,14 @@ import (
 
 	"github.com/gochain/gochain/v4/accounts/abi"
 	"github.com/gochain/web3/assets"
+	"github.com/rs/zerolog/log"
 )
 
 // GetABI accepts either built in contracts (erc20, erc721), a file location or a URL
 func GetABI(abiFile string) (*abi.ABI, error) {
 	abi, err := ABIBuiltIn(abiFile)
 	if err != nil {
+		log.Err(err).Msg("GetABI: ABIBuiltIn")
 		return nil, fmt.Errorf("Cannot get ABI from the bundled storage: %v", err)
 	}
 	if abi != nil {
@@ -23,12 +25,13 @@ func GetABI(abiFile string) (*abi.ABI, error) {
 	}
 	abi, err = ABIOpenFile(abiFile)
 	if err == nil {
+		log.Err(err).Msg("GetABI: ABIOpenFile")
 		return abi, nil
 	}
 	// else most likely just not found, log it?
-
 	abi, err = ABIOpenURL(abiFile)
 	if err == nil {
+		log.Err(err).Msg("GetABI: ABIOpenURL")
 		return abi, nil
 	}
 	return nil, err
@@ -44,6 +47,7 @@ func ABIBuiltIn(abiFile string) (*abi.ABI, error) {
 func ABIOpenFile(abiFile string) (*abi.ABI, error) {
 	jsonReader, err := os.Open(abiFile)
 	if err != nil {
+		log.Err(err).Msg("GetABI: ABIOpenFile")
 		return nil, err
 	}
 	return readAbi(jsonReader)
@@ -52,13 +56,15 @@ func ABIOpenFile(abiFile string) (*abi.ABI, error) {
 func ABIOpenURL(abiFile string) (*abi.ABI, error) {
 	resp, err := http.Get(abiFile)
 	if err != nil {
+		log.Err(err).Msg("ABIOpenURL: http.Get")
 		return nil, fmt.Errorf("error getting ABI: %v", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
+		bodyBytes, berr := ioutil.ReadAll(resp.Body)
+		if berr != nil {
+			log.Err(berr).Msg("ABIOpenURL: ReadAll")
+			return nil, berr
 		}
 		return nil, fmt.Errorf("error getting ABI %v: %v", resp.StatusCode, string(bodyBytes))
 	}
@@ -68,6 +74,7 @@ func ABIOpenURL(abiFile string) (*abi.ABI, error) {
 func readAbi(reader io.Reader) (*abi.ABI, error) {
 	abi, err := abi.JSON(reader)
 	if err != nil {
+		log.Err(err).Msg("readAbi:  abi.JSON")
 		return nil, err
 	}
 	return &abi, nil
