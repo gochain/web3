@@ -8,6 +8,8 @@ import (
 	"math/big"
 	"sync/atomic"
 
+	zlog "github.com/rs/zerolog/log"
+
 	"github.com/gochain/gochain/v4/common"
 	"github.com/gochain/gochain/v4/common/hexutil"
 	"github.com/gochain/gochain/v4/core/types"
@@ -53,6 +55,7 @@ type Client interface {
 func Dial(url string) (Client, error) {
 	r, err := rpc.Dial(url)
 	if err != nil {
+		zlog.Err(err).Msg("Dial")
 		return nil, err
 	}
 	return NewClient(r), nil
@@ -76,6 +79,7 @@ func (c *client) Call(ctx context.Context, msg CallMsg) ([]byte, error) {
 	var result hexutil.Bytes
 	err := c.r.CallContext(ctx, &result, "eth_call", toCallArg(msg), "latest")
 	if err != nil {
+		zlog.Err(err).Msg("client: Call: CallContext")
 		return nil, err
 	}
 	return result, err
@@ -90,6 +94,10 @@ func (c *client) GetBalance(ctx context.Context, address string, blockNumber *bi
 func (c *client) GetCode(ctx context.Context, address string, blockNumber *big.Int) ([]byte, error) {
 	var result hexutil.Bytes
 	err := c.r.CallContext(ctx, &result, "eth_getCode", common.HexToAddress(address), toBlockNumArg(blockNumber))
+	if err != nil {
+		zlog.Err(err).Msg("GetCode: CallContext")
+		return result, err
+	}
 	return result, err
 }
 
@@ -105,10 +113,13 @@ func (c *client) GetTransactionByHash(ctx context.Context, hash common.Hash) (*T
 	var tx *Transaction
 	err := c.r.CallContext(ctx, &tx, "eth_getTransactionByHash", hash.String())
 	if err != nil {
+		zlog.Err(err).Msg("GetTransactionByHash: CallContext")
 		return nil, err
 	} else if tx == nil {
+		zlog.Err(NotFoundErr).Msg("GetTransactionByHash: NotFoundErr")
 		return nil, NotFoundErr
 	} else if tx.R == nil {
+		zlog.Err(err).Msg("GetTransactionByHash: tx.R == nil")
 		return nil, fmt.Errorf("server returned transaction without signature")
 	}
 	return tx, nil
@@ -118,6 +129,7 @@ func (c *client) GetSnapshot(ctx context.Context) (*Snapshot, error) {
 	var s Snapshot
 	err := c.r.CallContext(ctx, &s, "clique_getSnapshot", "latest")
 	if err != nil {
+		zlog.Err(err).Msg("GetSnapshot: CallContext")
 		return nil, err
 	}
 	return &s, nil
@@ -137,12 +149,15 @@ func (c *client) GetID(ctx context.Context) (*ID, error) {
 	}
 	for _, e := range batch {
 		if e.Error != nil {
+			zlog.Err(e.Error).Msg("GetID: BatchCallContext")
 			log.Printf("Method %q failed: %v\n", e.Method, e.Error)
 		}
 	}
 	netID := new(big.Int)
 	if _, ok := netID.SetString(netIDStr, 10); !ok {
-		return nil, fmt.Errorf("invalid net_version result %q", netIDStr)
+		err := fmt.Errorf("invalid net_version result %q", netIDStr)
+		zlog.Err(err).Msg("GetID: netID.SetString(netIDStr, 10)")
+		return nil, err
 	}
 	return &ID{NetworkID: netID, ChainID: (*big.Int)(chainID), GenesisHash: block.Hash}, nil
 }
@@ -151,10 +166,13 @@ func (c *client) GetNetworkID(ctx context.Context) (*big.Int, error) {
 	version := new(big.Int)
 	var ver string
 	if err := c.r.CallContext(ctx, &ver, "net_version"); err != nil {
+		zlog.Err(err).Msg("GetNetworkID: CallContext")
 		return nil, err
 	}
 	if _, ok := version.SetString(ver, 10); !ok {
-		return nil, fmt.Errorf("invalid net_version result %q", ver)
+		err := fmt.Errorf("invalid net_version result %q", ver)
+		zlog.Err(err).Msg("GetNetworkID: CallContext")
+		return nil, err
 	}
 	return version, nil
 }
@@ -181,6 +199,7 @@ func (c *client) GetTransactionReceipt(ctx context.Context, hash common.Hash) (*
 	err := c.r.CallContext(ctx, &r, "eth_getTransactionReceipt", hash)
 	if err == nil {
 		if r == nil {
+			zlog.Err(NotFoundErr).Msg("GetTransactionReceipt: NotFoundErr")
 			return nil, NotFoundErr
 		}
 	}
@@ -190,6 +209,7 @@ func (c *client) GetTransactionReceipt(ctx context.Context, hash common.Hash) (*
 func (c *client) GetGasPrice(ctx context.Context) (*big.Int, error) {
 	var hex hexutil.Big
 	if err := c.r.CallContext(ctx, &hex, "eth_gasPrice"); err != nil {
+		zlog.Err(err).Msg("GetGasPrice: CallContext")
 		return nil, err
 	}
 	return (*big.Int)(&hex), nil
@@ -202,6 +222,9 @@ func (c *client) GetPendingTransactionCount(ctx context.Context, account common.
 func (c *client) getTransactionCount(ctx context.Context, account common.Address, blockNumArg string) (uint64, error) {
 	var result hexutil.Uint64
 	err := c.r.CallContext(ctx, &result, "eth_getTransactionCount", account, blockNumArg)
+	if err != nil {
+		zlog.Err(err).Msg("client: getTransactionCount")
+	}
 	return uint64(result), err
 }
 
@@ -213,23 +236,33 @@ func (c *client) getBlock(ctx context.Context, method string, hashOrNum string, 
 	var raw json.RawMessage
 	err := c.r.CallContext(ctx, &raw, method, hashOrNum, includeTxs)
 	if err != nil {
+		zlog.Err(err).Msg("client: getBlock")
 		return nil, err
 	} else if len(raw) == 0 {
+		zlog.Err(NotFoundErr).Msg("client: NotFoundErr")
 		return nil, NotFoundErr
 	}
 	var block Block
-	if err := json.Unmarshal(raw, &block); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal json response: %v", err)
+	if err = json.Unmarshal(raw, &block); err != nil {
+		err = fmt.Errorf("failed to unmarshal json response: %v", err)
+		zlog.Err(err).Msg("client: getBlock")
+		return nil, err
 	}
 	// Quick-verify transaction and uncle lists. This mostly helps with debugging the server.
 	if block.Sha3Uncles == types.EmptyUncleHash && len(block.Uncles) > 0 {
-		return nil, fmt.Errorf("server returned non-empty uncle list but block header indicates no uncles")
+		err = fmt.Errorf("server returned non-empty uncle list but block header indicates no uncles")
+		zlog.Err(err).Msg("client: getBlock")
+		return nil, err
 	}
 	if block.Sha3Uncles != types.EmptyUncleHash && len(block.Uncles) == 0 {
-		return nil, fmt.Errorf("server returned empty uncle list but block header indicates uncles")
+		err = fmt.Errorf("server returned empty uncle list but block header indicates uncles")
+		zlog.Err(err).Msg("client: getBlock")
+		return nil, err
 	}
 	if block.TxsRoot == types.EmptyRootHash && block.TxCount() > 0 {
-		return nil, fmt.Errorf("server returned non-empty transaction list but block header indicates no transactions")
+		err = fmt.Errorf("server returned non-empty transaction list but block header indicates no transactions")
+		zlog.Err(err).Msg("client: getBlock")
+		return nil, err
 	}
 	if block.TxsRoot != types.EmptyRootHash && len(block.TxsRoot) == 0 {
 		return nil, fmt.Errorf("server returned empty transaction list but block header indicates transactions")
@@ -246,15 +279,19 @@ func (c *client) getBlock(ctx context.Context, method string, hashOrNum string, 
 				Result: &uncles[i],
 			}
 		}
-		if err := c.r.BatchCallContext(ctx, reqs); err != nil {
+		if err = c.r.BatchCallContext(ctx, reqs); err != nil {
+			zlog.Err(err).Msg("client: getBlock, BatchCallContext")
 			return nil, err
 		}
 		for i := range reqs {
 			if reqs[i].Error != nil {
+				zlog.Err(reqs[i].Error).Msg("client: getBlock")
 				return nil, reqs[i].Error
 			}
 			if uncles[i] == nil {
-				return nil, fmt.Errorf("got null header for uncle %d of block %x", i, block.Hash[:])
+				err = fmt.Errorf("got null header for uncle %d of block %x", i, block.Hash[:])
+				zlog.Err(err).Msg("client: getBlock")
+				return nil, err
 			}
 		}
 	}

@@ -7,11 +7,13 @@ import (
 
 	"github.com/gochain/gochain/v4/common"
 	"github.com/gochain/gochain/v4/crypto"
+	"github.com/rs/zerolog/log"
 )
 
 func CreateAccount() (*Account, error) {
 	key, err := crypto.GenerateKey()
 	if err != nil {
+		log.Err(err).Msg("CreateAccount: crypto.GenerateKey()")
 		return nil, err
 	}
 	return &Account{
@@ -23,6 +25,7 @@ func ParsePrivateKey(pkHex string) (*Account, error) {
 	fromPK := strings.TrimPrefix(pkHex, "0x")
 	key, err := crypto.HexToECDSA(fromPK)
 	if err != nil {
+		log.Err(err).Msg("ParsePrivateKey: HexToECDSA")
 		return nil, err
 	}
 	return &Account{

@@ -7,6 +7,7 @@ import (
 
 	"github.com/gochain/gochain/v4/common"
 	"github.com/gochain/gochain/v4/core/types"
+	"github.com/rs/zerolog/log"
 )
 
 type CallMsg struct {
@@ -66,6 +67,7 @@ func (r *Receipt) UnmarshalJSON(data []byte) error {
 	var rr rpcReceipt
 	err := json.Unmarshal(data, &rr)
 	if err != nil {
+		log.Err(err).Msg("Receipt: UnmarshalJSON")
 		return err
 	}
 	return rr.copyTo(r)
@@ -110,6 +112,7 @@ func (b *Block) UnmarshalJSON(data []byte) error {
 	var r rpcBlock
 	err := json.Unmarshal(data, &r)
 	if err != nil {
+		log.Err(err).Msg("Block: UnmarshalJSON")
 		return err
 	}
 	return r.copyTo(b)
@@ -118,6 +121,7 @@ func (b *Block) UnmarshalJSON(data []byte) error {
 func (b *Block) MarshalJSON() ([]byte, error) {
 	var r rpcBlock
 	if err := r.copyFrom(b); err != nil {
+		log.Err(err).Msg("Block: MarshalJSON")
 		return nil, err
 	}
 	return json.Marshal(&r)
@@ -164,6 +168,7 @@ func (t *Transaction) UnmarshalJSON(data []byte) error {
 	var r rpcTransaction
 	err := json.Unmarshal(data, &r)
 	if err != nil {
+		log.Err(err).Msg("Transaction: UnmarshalJSON")
 		return err
 	}
 	return r.copyTo(t)
