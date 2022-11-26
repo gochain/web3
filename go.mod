@@ -1,4 +1,4 @@
-module github.com/gochain/web3
+module github.com/zeus-fyi/gochain/web3
 
 go 1.19
 

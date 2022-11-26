@@ -6,8 +6,8 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/gochain/web3"
 	"github.com/urfave/cli"
+	"github.com/zeus-fyi/gochain/web3"
 )
 
 func start(ctx context.Context, c *cli.Context) error {

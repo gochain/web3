@@ -7,11 +7,10 @@ import (
 	"time"
 
 	"github.com/gochain/gochain/v4/accounts/abi"
-	"github.com/gochain/web3"
+	"github.com/zeus-fyi/gochain/web3"
 )
 
 func ListContract(contractFile string) {
-
 	myabi, err := web3.GetABI(contractFile)
 	if err != nil {
 		fatalExit(err)

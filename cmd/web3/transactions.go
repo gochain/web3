@@ -9,8 +9,8 @@ import (
 	"github.com/gochain/gochain/v4/accounts/abi"
 	"github.com/gochain/gochain/v4/common"
 	"github.com/gochain/gochain/v4/core/types"
-	"github.com/gochain/web3"
 	"github.com/shopspring/decimal"
+	"github.com/zeus-fyi/gochain/web3"
 )
 
 func IncreaseGas(ctx context.Context, privateKey string, network web3.Network, txHash string, amountGwei string) {

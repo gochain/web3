@@ -18,10 +18,10 @@ import (
 	"github.com/gochain/gochain/v4/accounts/abi"
 	"github.com/gochain/gochain/v4/common"
 	"github.com/gochain/gochain/v4/crypto"
-	"github.com/gochain/web3"
-	"github.com/gochain/web3/assets"
-	"github.com/gochain/web3/did"
-	"github.com/gochain/web3/vc"
+	"github.com/zeus-fyi/gochain/web3"
+	"github.com/zeus-fyi/gochain/web3/assets"
+	"github.com/zeus-fyi/gochain/web3/did"
+	"github.com/zeus-fyi/gochain/web3/vc"
 	"golang.org/x/crypto/sha3"
 )
 

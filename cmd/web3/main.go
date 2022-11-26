@@ -26,11 +26,11 @@ import (
 	"github.com/gochain/gochain/v4/common/hexutil"
 	"github.com/gochain/gochain/v4/core/types"
 	"github.com/gochain/gochain/v4/crypto"
-	"github.com/gochain/web3"
-	"github.com/gochain/web3/assets"
 	"github.com/shopspring/decimal"
 	"github.com/treeder/gotils/v2"
 	"github.com/urfave/cli"
+	"github.com/zeus-fyi/gochain/web3"
+	"github.com/zeus-fyi/gochain/web3/assets"
 )
 
 // Flags
