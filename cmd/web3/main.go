@@ -31,6 +31,7 @@ import (
 	"github.com/urfave/cli"
 	"github.com/zeus-fyi/gochain/web3"
 	"github.com/zeus-fyi/gochain/web3/assets"
+	"github.com/zeus-fyi/gochain/web3/web3_actions"
 )
 
 // Flags
@@ -150,7 +151,10 @@ func main() {
 			Aliases: []string{"rc"},
 			Usage:   "Transaction receipt for a tx hash",
 			Action: func(c *cli.Context) {
-				GetTransactionReceipt(ctx, network.URL, c.Args().First(), abiFile)
+				err := web3_actions.GetTransactionReceipt(ctx, network.URL, c.Args().First(), abiFile)
+				if err != nil {
+					fatalExit(err)
+				}
 			},
 			Flags: []cli.Flag{
 				cli.StringFlag{
@@ -236,7 +240,10 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				IncreaseGas(ctx, privateKey, network, c.String("tx"), c.String("amount"))
+				err := web3_actions.IncreaseGas(ctx, privateKey, network, c.String("tx"), c.String("amount"))
+				if err != nil {
+					fatalExit(err)
+				}
 			},
 		},
 		{
@@ -302,7 +309,10 @@ func main() {
 				if err != nil {
 					fatalExit(err)
 				}
-				ReplaceTx(ctx, privateKey, network, c.Uint64("nonce"), to, amount, price, limit, dataB)
+				_, err = web3_actions.ReplaceTx(ctx, privateKey, network, c.Uint64("nonce"), to, amount, price, limit, dataB)
+				if err != nil {
+					fatalExit(err)
+				}
 			},
 		},
 		{
@@ -453,7 +463,10 @@ func main() {
 					Name:  "list",
 					Usage: "List contract functions",
 					Action: func(c *cli.Context) {
-						ListContract(abiFile)
+						err := web3_actions.ListContract(ctx, abiFile)
+						if err != nil {
+							fatalExit(err)
+						}
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -486,7 +499,10 @@ func main() {
 								fatalExit(err)
 							}
 						}
-						callContract(ctx, client, privateKey, contractAddress, abiFile, function, amount, price, limit, waitForReceipt, c.Bool("to-string"), dataB, c.Uint64("timeout"), args...)
+						err = web3_actions.CallContract(ctx, client, privateKey, contractAddress, abiFile, function, amount, price, limit, waitForReceipt, c.Bool("to-string"), dataB, c.Uint64("timeout"), args...)
+						if err != nil {
+							fatalExit(err)
+						}
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -832,7 +848,10 @@ func main() {
 					}
 				}
 				price, limit := parseGasPriceAndLimit(c)
-				Transfer(ctx, network.URL, network.ChainID, privateKey, contractAddress, price, limit, c.Bool("wait"), c.Bool("to-string"), c.Uint64("timeout"), c.Args())
+				err := web3_actions.Transfer(ctx, network.URL, network.ChainID, privateKey, contractAddress, price, limit, c.Bool("wait"), c.Bool("to-string"), c.Uint64("timeout"), c.Args())
+				if err != nil {
+					fatalExit(err)
+				}
 			},
 		},
 		{
@@ -1376,13 +1395,13 @@ func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, priv
 	}
 
 	if contractAddress != "" {
-		decimals, err := GetContractConst(ctx, network.URL, contractAddress, "erc20", "decimals")
+		decimals, err := web3_actions.GetContractConst(ctx, network.URL, contractAddress, "erc20", "decimals")
 		if err != nil {
 			fatalExit(err)
 		}
 		// fmt.Println("DECIMALS:", decimals, reflect.TypeOf(decimals))
 		// todo: could get symbol here to display
-		balance, err := GetContractConst(ctx, network.URL, contractAddress, "erc20", "balanceOf", addrHash)
+		balance, err := web3_actions.GetContractConst(ctx, network.URL, contractAddress, "erc20", "balanceOf", addrHash)
 		if err != nil {
 			fatalExit(err)
 		}
