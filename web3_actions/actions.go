@@ -7,8 +7,9 @@ import (
 
 type Web3Actions struct {
 	web3_client.Client
+	*accounts.Account
 	NodeURL string
-	accounts.Account
+	Network string
 }
 
 func (w *Web3Actions) Dial() {
@@ -22,5 +23,12 @@ func (w *Web3Actions) Dial() {
 func NewWeb3ActionsClient(nodeUrl string) Web3Actions {
 	return Web3Actions{
 		NodeURL: nodeUrl,
+	}
+}
+
+func NewWeb3ActionsClientWithAccount(nodeUrl string, account *accounts.Account) Web3Actions {
+	return Web3Actions{
+		NodeURL: nodeUrl,
+		Account: account,
 	}
 }

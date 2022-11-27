@@ -10,6 +10,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+type Account struct {
+	key *ecdsa.PrivateKey
+}
+
 func CreateAccount() (*Account, error) {
 	key, err := crypto.GenerateKey()
 	if err != nil {
@@ -31,10 +35,6 @@ func ParsePrivateKey(pkHex string) (*Account, error) {
 	return &Account{
 		key: key,
 	}, nil
-}
-
-type Account struct {
-	key *ecdsa.PrivateKey
 }
 
 func (a *Account) Key() *ecdsa.PrivateKey {
