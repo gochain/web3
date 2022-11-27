@@ -74,7 +74,7 @@ func (w *Web3Actions) ReplaceTx(ctx context.Context, network web3_client.Network
 		log.Ctx(ctx).Err(err).Msg("ReplaceTx: SignTx")
 		return nil, err
 	}
-	err = w.SendTransaction(ctx, signedTx)
+	err = w.SendSignedTransaction(ctx, signedTx)
 	if err != nil {
 		err = fmt.Errorf("error sending transaction: %v", err)
 		log.Ctx(ctx).Err(err).Msg("ReplaceTx: SendTransaction")
