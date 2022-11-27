@@ -46,12 +46,8 @@ func (a *Account) Address() common.Address {
 	return crypto.PubkeyToAddress(a.key.PublicKey)
 }
 
-func (a *Account) HexAddress() string {
-	return crypto.PubkeyToAddress(a.key.PublicKey).Hex()
-}
-
 func (a *Account) PublicKey() string {
-	return a.Address().Hex()
+	return crypto.PubkeyToAddress(a.key.PublicKey).Hex()
 }
 
 func (a *Account) PrivateKey() string {
