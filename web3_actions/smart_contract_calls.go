@@ -15,12 +15,11 @@ import (
 	"github.com/gochain/gochain/v4/crypto"
 	"github.com/gochain/gochain/v4/rlp"
 	"github.com/rs/zerolog/log"
-	"github.com/zeus-fyi/gochain/web3/client"
 	web3_types "github.com/zeus-fyi/gochain/web3/types"
 )
 
 // CallConstantFunction executes a contract function call without submitting a transaction.
-func CallConstantFunction(ctx context.Context, client client.Client, myabi abi.ABI, address string, functionName string, params ...interface{}) ([]interface{}, error) {
+func (w *Web3Actions) CallConstantFunction(ctx context.Context, myabi abi.ABI, address string, functionName string, params ...interface{}) ([]interface{}, error) {
 	if address == "" {
 		err := errors.New("no contract address specified")
 		log.Ctx(ctx).Err(err).Msg("CallConstantFunction")
@@ -38,7 +37,9 @@ func CallConstantFunction(ctx context.Context, client client.Client, myabi abi.A
 		return nil, fmt.Errorf("failed to pack values: %v", err)
 	}
 	toAddress := common.HexToAddress(address)
-	res, err := client.Call(ctx, web3_types.CallMsg{Data: input, To: &toAddress})
+	w.Dial()
+	defer w.Close()
+	res, err := w.Call(ctx, web3_types.CallMsg{Data: input, To: &toAddress})
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("CallConstantFunction: client.Call")
 		return nil, err
@@ -54,7 +55,7 @@ func CallConstantFunction(ctx context.Context, client client.Client, myabi abi.A
 }
 
 // CallFunctionWithArgs submits a transaction to execute a smart contract function call.
-func CallFunctionWithArgs(ctx context.Context, client client.Client, privateKeyHex, address string,
+func (w *Web3Actions) CallFunctionWithArgs(ctx context.Context, privateKeyHex, address string,
 	amount *big.Int, gasPrice *big.Int, gasLimit uint64, myabi abi.ABI, functionName string, params ...interface{}) (*web3_types.Transaction, error) {
 
 	fn := myabi.Methods[functionName]
@@ -68,11 +69,11 @@ func CallFunctionWithArgs(ctx context.Context, client client.Client, privateKeyH
 		log.Ctx(ctx).Err(err).Msg("CallFunctionWithArgs")
 		return nil, fmt.Errorf("failed to pack values: %v", err)
 	}
-	return CallFunctionWithData(ctx, client, privateKeyHex, address, amount, gasPrice, gasLimit, data)
+	return w.CallFunctionWithData(ctx, privateKeyHex, address, amount, gasPrice, gasLimit, data)
 }
 
 // CallFunctionWithData if you already have the encoded function data, then use this
-func CallFunctionWithData(ctx context.Context, client client.Client, privateKeyHex, address string,
+func (w *Web3Actions) CallFunctionWithData(ctx context.Context, privateKeyHex, address string,
 	amount *big.Int, gasPrice *big.Int, gasLimit uint64, data []byte) (*web3_types.Transaction, error) {
 	if address == "" {
 		return nil, errors.New("no contract address specified")
@@ -85,14 +86,16 @@ func CallFunctionWithData(ctx context.Context, client client.Client, privateKeyH
 		log.Ctx(ctx).Err(err).Msg("CallFunctionWithData: HexToECDSA")
 		return nil, fmt.Errorf("invalid private key: %v", err)
 	}
+	w.Dial()
+	defer w.Close()
 	if gasPrice == nil || gasPrice.Int64() == 0 {
-		gasPrice, err = client.GetGasPrice(ctx)
+		gasPrice, err = w.GetGasPrice(ctx)
 		if err != nil {
 			log.Ctx(ctx).Err(err).Msg("CallFunctionWithData: GetGasPrice")
 			return nil, fmt.Errorf("cannot get gas price: %v", err)
 		}
 	}
-	chainID, err := client.GetChainID(ctx)
+	chainID, err := w.GetChainID(ctx)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("CallFunctionWithData: GetChainID")
 		return nil, fmt.Errorf("couldn't get chain ID: %v", err)
@@ -105,7 +108,7 @@ func CallFunctionWithData(ctx context.Context, client client.Client, privateKeyH
 		return nil, err
 	}
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
-	nonce, err := client.GetPendingTransactionCount(ctx, fromAddress)
+	nonce, err := w.GetPendingTransactionCount(ctx, fromAddress)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("CallFunctionWithData: GetPendingTransactionCount")
 		return nil, fmt.Errorf("cannot get nonce: %v", err)
@@ -124,7 +127,7 @@ func CallFunctionWithData(ctx context.Context, client client.Client, privateKeyH
 		log.Ctx(ctx).Err(err).Msg("CallFunctionWithData: EncodeToBytes")
 		return nil, err
 	}
-	err = client.SendRawTransaction(ctx, raw)
+	err = w.SendRawTransaction(ctx, raw)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("CallFunctionWithData: SendRawTransaction")
 		return nil, fmt.Errorf("cannot send transaction: %v", err)

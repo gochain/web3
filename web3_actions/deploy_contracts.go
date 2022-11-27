@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/big"
 	"net/http"
 	"net/url"
@@ -20,35 +19,33 @@ import (
 	"github.com/gochain/gochain/v4/crypto"
 	"github.com/gochain/gochain/v4/rlp"
 	"github.com/rs/zerolog/log"
-	"github.com/zeus-fyi/gochain/web3/client"
 	web3_types "github.com/zeus-fyi/gochain/web3/types"
 )
 
 // DeployContract submits a contract creation transaction.
 // abiJSON is only required when including params for the constructor.
-func DeployContract(ctx context.Context, client client.Client, privateKeyHex string, binHex, abiJSON string, gasPrice *big.Int, gasLimit uint64, constructorArgs ...interface{}) (*web3_types.Transaction, error) {
-	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
-		privateKeyHex = privateKeyHex[2:]
-	}
-	privateKey, err := crypto.HexToECDSA(privateKeyHex)
-	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("DeployContract: HexToECDSA")
-		return nil, fmt.Errorf("invalid private key: %v", err)
-	}
-
+func (w *Web3Actions) DeployContract(ctx context.Context, binHex, abiJSON string, gasPrice *big.Int, gasLimit uint64, constructorArgs ...interface{}) (*web3_types.Transaction, error) {
+	w.Dial()
+	defer w.Close()
+	var err error
 	if gasPrice == nil || gasPrice.Int64() == 0 {
-		gasPrice, err = client.GetGasPrice(ctx)
+		gasPrice, err = w.GetGasPrice(ctx)
 		if err != nil {
 			log.Ctx(ctx).Err(err).Msg("DeployContract: GetGasPrice")
 			return nil, fmt.Errorf("cannot get gas price: %v", err)
 		}
 	}
-	chainID, err := client.GetChainID(ctx)
+	chainID, err := w.GetChainID(ctx)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("DeployContract: GetChainID")
 		return nil, fmt.Errorf("couldn't get chain ID: %v", err)
 	}
 
+	privateKey, err := crypto.HexToECDSA(w.PrivateKey())
+	if err != nil {
+		log.Ctx(ctx).Err(err).Msg("DeployContract: HexToECDSA")
+		return nil, fmt.Errorf("invalid private key: %v", err)
+	}
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
@@ -58,7 +55,7 @@ func DeployContract(ctx context.Context, client client.Client, privateKeyHex str
 	}
 
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
-	nonce, err := client.GetPendingTransactionCount(ctx, fromAddress)
+	nonce, err := w.GetPendingTransactionCount(ctx, fromAddress)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("DeployContract: GetPendingTransactionCount")
 		return nil, fmt.Errorf("cannot get nonce: %v", err)
@@ -99,7 +96,7 @@ func DeployContract(ctx context.Context, client client.Client, privateKeyHex str
 		log.Ctx(ctx).Err(err).Msg("DeployContract: rlp.EncodeToBytes")
 		return nil, err
 	}
-	err = client.SendRawTransaction(ctx, raw)
+	err = w.SendRawTransaction(ctx, raw)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("DeployContract: SendRawTransaction")
 		return nil, fmt.Errorf("cannot send transaction: %v", err)
@@ -109,41 +106,43 @@ func DeployContract(ctx context.Context, client client.Client, privateKeyHex str
 }
 
 // DeployBin will deploy a bin file to the network
-func DeployBin(ctx context.Context, client client.Client, privateKeyHex, binFilename, abiFilename string,
+func (w *Web3Actions) DeployBin(ctx context.Context, privateKeyHex, binFilename, abiFilename string,
 	gasPrice *big.Int, gasLimit uint64, constructorArgs ...interface{}) (*web3_types.Transaction, error) {
+	w.Dial()
+	defer w.Close()
 	var bin []byte
 	var err error
 	if isValidUrl(binFilename) {
-		bin, err = downloadFile(binFilename)
+		bin, err = downloadFile(ctx, binFilename)
 		if err != nil {
 			log.Ctx(ctx).Err(err).Msg("DeployBin: downloadFile")
-			return nil, fmt.Errorf("Cannot download the bin file %q: %v", binFilename, err)
+			return nil, fmt.Errorf("cannot download the bin file %q: %v", binFilename, err)
 		}
 	} else {
-		bin, err = ioutil.ReadFile(binFilename)
+		bin, err = os.ReadFile(binFilename)
 		if err != nil {
 			log.Ctx(ctx).Err(err).Msg("DeployBin: ReadFile")
-			return nil, fmt.Errorf("Cannot read the bin file %q: %v", binFilename, err)
+			return nil, fmt.Errorf("cannot read the bin file %q: %v", binFilename, err)
 		}
 	}
 	var abi []byte
 	if len(constructorArgs) > 0 {
 		if isValidUrl(abiFilename) {
-			abi, err = downloadFile(abiFilename)
+			abi, err = downloadFile(ctx, abiFilename)
 			if err != nil {
 				log.Ctx(ctx).Err(err).Msg("DeployBin: downloadFile")
-				return nil, fmt.Errorf("Cannot download the abi file %q: %v", abiFilename, err)
+				return nil, fmt.Errorf("cannot download the abi file %q: %v", abiFilename, err)
 			}
 		} else {
 			abi, err = os.ReadFile(abiFilename)
 			if err != nil {
 				log.Ctx(ctx).Err(err).Msg("DeployBin: ReadFile")
-				return nil, fmt.Errorf("Cannot read the abi file %q: %v", abiFilename, err)
+				return nil, fmt.Errorf("cannot read the abi file %q: %v", abiFilename, err)
 			}
 		}
 	}
 
-	return DeployContract(ctx, client, privateKeyHex, string(bin), string(abi), gasPrice, gasLimit, constructorArgs...)
+	return w.DeployContract(ctx, string(bin), string(abi), gasPrice, gasLimit, constructorArgs...)
 }
 
 func isValidUrl(toTest string) bool {
@@ -153,15 +152,17 @@ func isValidUrl(toTest string) bool {
 	}
 	return true
 }
-func downloadFile(url string) ([]byte, error) {
+func downloadFile(ctx context.Context, url string) ([]byte, error) {
 	var dst bytes.Buffer
 	response, err := http.Get(url)
 	if err != nil {
+		log.Ctx(ctx).Err(err).Msg("downloadFile: Get")
 		return nil, err
 	}
 	defer response.Body.Close()
 	_, err = io.Copy(&dst, response.Body)
 	if err != nil {
+		log.Ctx(ctx).Err(err).Msg("downloadFile: Copy")
 		return nil, err
 	}
 	return dst.Bytes(), nil

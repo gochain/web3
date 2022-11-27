@@ -9,7 +9,6 @@ import (
 
 	"github.com/gochain/gochain/v4/accounts/abi"
 	"github.com/rs/zerolog/log"
-	"github.com/zeus-fyi/gochain/web3/client"
 	web3_types "github.com/zeus-fyi/gochain/web3/types"
 )
 
@@ -47,14 +46,9 @@ func ListContract(ctx context.Context, contractFile string) error {
 	return err
 }
 
-func GetContractConst(ctx context.Context, rpcURL, contractAddress, contractFile, functionName string, parameters ...interface{}) ([]interface{}, error) {
-	client, err := client.Dial(rpcURL)
-	if err != nil {
-		err = fmt.Errorf("failed to connect to %q: %v", rpcURL, err)
-		log.Ctx(ctx).Err(err).Msg("GetContractConst: Dial")
-		return nil, err
-	}
-	defer client.Close()
+func (w *Web3Actions) GetContractConst(ctx context.Context, contractAddress, contractFile, functionName string, parameters ...interface{}) ([]interface{}, error) {
+	w.Dial()
+	defer w.Close()
 	myabi, err := web3_types.GetABI(contractFile)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("GetContractConst: GetABI")
@@ -70,7 +64,7 @@ func GetContractConst(ctx context.Context, rpcURL, contractAddress, contractFile
 		log.Ctx(ctx).Err(err).Msg("GetContractConst: !IsConstant")
 		return nil, err
 	}
-	res, err := CallConstantFunction(ctx, client, *myabi, contractAddress, functionName, parameters...)
+	res, err := w.CallConstantFunction(ctx, *myabi, contractAddress, functionName, parameters...)
 	if err != nil {
 		err = fmt.Errorf("error calling constant function: %v", err)
 		log.Ctx(ctx).Err(err).Msg("GetContractConst: CallConstantFunction")
@@ -79,14 +73,15 @@ func GetContractConst(ctx context.Context, rpcURL, contractAddress, contractFile
 	return res, nil
 }
 
-func CallContract(ctx context.Context, client client.Client, privateKey, contractAddress, abiFile, functionName string,
+func (w *Web3Actions) CallContract(ctx context.Context, privateKey, contractAddress, abiFile, functionName string,
 	amount *big.Int, gasPrice *big.Int, gasLimit uint64, waitForReceipt, toString bool, data []byte, timeoutInSeconds uint64, parameters ...interface{}) error {
-
+	w.Dial()
+	defer w.Close()
 	var err error
 	var tx *web3_types.Transaction
 	var myabi *abi.ABI
 	if len(data) > 0 {
-		tx, err = CallFunctionWithData(ctx, client, privateKey, contractAddress, amount, gasPrice, gasLimit, data)
+		tx, err = w.CallFunctionWithData(ctx, privateKey, contractAddress, amount, gasPrice, gasLimit, data)
 	} else {
 		// var m abi.Method
 		myabi, err = web3_types.GetABI(abiFile)
@@ -102,7 +97,7 @@ func CallContract(ctx context.Context, client client.Client, privateKey, contrac
 		}
 
 		if m.IsConstant() {
-			res, cerr := CallConstantFunction(ctx, client, *myabi, contractAddress, functionName, parameters...)
+			res, cerr := w.CallConstantFunction(ctx, *myabi, contractAddress, functionName, parameters...)
 			if cerr != nil {
 				cerr = fmt.Errorf("error calling constant function: %v", cerr)
 				log.Ctx(ctx).Err(cerr).Msg("CallContract: CallConstantFunction")
@@ -134,7 +129,7 @@ func CallContract(ctx context.Context, client client.Client, privateKey, contrac
 			}
 			return err
 		}
-		tx, err = CallTransactFunction(ctx, client, *myabi, contractAddress, privateKey, functionName, amount, gasPrice, gasLimit, parameters...)
+		tx, err = w.CallTransactFunction(ctx, *myabi, contractAddress, privateKey, functionName, amount, gasPrice, gasLimit, parameters...)
 		if err != nil {
 			log.Ctx(ctx).Err(err).Msg("CallContract: CallTransactFunction")
 			return err
@@ -148,7 +143,7 @@ func CallContract(ctx context.Context, client client.Client, privateKey, contrac
 	fmt.Println("Waiting for receipt...")
 	ctx, cancelFunc := context.WithTimeout(ctx, time.Duration(timeoutInSeconds)*time.Second)
 	defer cancelFunc()
-	receipt, err := WaitForReceipt(ctx, client, tx.Hash)
+	receipt, err := w.WaitForReceipt(ctx, tx.Hash)
 	if err != nil {
 		err = fmt.Errorf("getting receipt: %v", err)
 		log.Ctx(ctx).Err(err).Msg("CallContract: CallTransactFunction")
@@ -162,7 +157,7 @@ func CallContract(ctx context.Context, client client.Client, privateKey, contrac
 	return err
 }
 
-func CallTransactFunction(ctx context.Context, client client.Client, myabi abi.ABI, address, privateKeyHex, functionName string,
+func (w *Web3Actions) CallTransactFunction(ctx context.Context, myabi abi.ABI, address, privateKeyHex, functionName string,
 	amount *big.Int, gasPrice *big.Int, gasLimit uint64, params ...interface{}) (*web3_types.Transaction, error) {
-	return CallFunctionWithArgs(ctx, client, privateKeyHex, address, amount, gasPrice, gasLimit, myabi, functionName, params...)
+	return w.CallFunctionWithArgs(ctx, privateKeyHex, address, amount, gasPrice, gasLimit, myabi, functionName, params...)
 }

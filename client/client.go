@@ -1,4 +1,4 @@
-package client
+package web3_client
 
 import (
 	"context"
