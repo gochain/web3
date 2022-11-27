@@ -12,28 +12,20 @@ import (
 	"github.com/gochain/gochain/v4/crypto"
 	"github.com/gochain/gochain/v4/rlp"
 	"github.com/rs/zerolog/log"
-	"github.com/zeus-fyi/gochain/web3/client"
 	web3_types "github.com/zeus-fyi/gochain/web3/types"
 )
 
 // Send performs a regular native coin transaction (not a contract)
-func Send(ctx context.Context, client client.Client, privateKeyHex string, address common.Address, amount *big.Int, gasPrice *big.Int, gasLimit uint64) (*web3_types.Transaction, error) {
-	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
-		privateKeyHex = privateKeyHex[2:]
-	}
-	privateKey, err := crypto.HexToECDSA(privateKeyHex)
-	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("Send: HexToECDSA")
-		return nil, fmt.Errorf("invalid private key: %v", err)
-	}
+func (w *Web3Actions) Send(ctx context.Context, address common.Address, amount *big.Int, gasPrice *big.Int, gasLimit uint64) (*web3_types.Transaction, error) {
+	var err error
 	if gasPrice == nil || gasPrice.Int64() == 0 {
-		gasPrice, err = client.GetGasPrice(ctx)
+		gasPrice, err = w.GetGasPrice(ctx)
 		if err != nil {
 			log.Ctx(ctx).Err(err).Msg("Send: GetGasPrice")
 			return nil, fmt.Errorf("cannot get gas price: %v", err)
 		}
 	}
-	chainID, err := client.GetChainID(ctx)
+	chainID, err := w.GetChainID(ctx)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("Send: GetChainID")
 		return nil, fmt.Errorf("couldn't get chain ID: %v", err)
@@ -41,6 +33,11 @@ func Send(ctx context.Context, client client.Client, privateKeyHex string, addre
 
 	if gasLimit == 0 {
 		gasLimit = 21000
+	}
+	privateKey, err := crypto.HexToECDSA(w.PrivateKey())
+	if err != nil {
+		log.Ctx(ctx).Err(err).Msg("Send: HexToECDSA")
+		return nil, fmt.Errorf("invalid private key: %v", err)
 	}
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
@@ -50,7 +47,7 @@ func Send(ctx context.Context, client client.Client, privateKeyHex string, addre
 		return nil, err
 	}
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
-	nonce, err := client.GetPendingTransactionCount(ctx, fromAddress)
+	nonce, err := w.GetPendingTransactionCount(ctx, fromAddress)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("Send: GetPendingTransactionCount")
 		return nil, fmt.Errorf("cannot get nonce: %v", err)
@@ -61,7 +58,7 @@ func Send(ctx context.Context, client client.Client, privateKeyHex string, addre
 		log.Ctx(ctx).Err(err).Msg("Send: SignTx")
 		return nil, fmt.Errorf("cannot sign transaction: %v", err)
 	}
-	err = SendTransaction(ctx, client, signedTx)
+	err = w.SendTransaction(ctx, signedTx)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("Send: SendTransaction")
 		return nil, fmt.Errorf("failed to send transaction: %v", err)
@@ -70,13 +67,15 @@ func Send(ctx context.Context, client client.Client, privateKeyHex string, addre
 }
 
 // SendTransaction sends the Transaction
-func SendTransaction(ctx context.Context, client client.Client, signedTx *types.Transaction) error {
+func (w *Web3Actions) SendTransaction(ctx context.Context, signedTx *types.Transaction) error {
+	w.Dial()
+	defer w.Close()
 	raw, err := rlp.EncodeToBytes(signedTx)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("SendTransaction: rlp.EncodeToBytes")
 		return err
 	}
-	return client.SendRawTransaction(ctx, raw)
+	return w.SendRawTransaction(ctx, raw)
 }
 
 func ConvertTx(tx *types.Transaction, from common.Address) *web3_types.Transaction {

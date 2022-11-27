@@ -8,22 +8,16 @@ import (
 	"github.com/gochain/gochain/v4/common"
 	"github.com/gochain/gochain/v4/core/types"
 	"github.com/rs/zerolog/log"
-	"github.com/zeus-fyi/gochain/web3"
 	"github.com/zeus-fyi/gochain/web3/accounts"
-	"github.com/zeus-fyi/gochain/web3/client"
+	web3_client "github.com/zeus-fyi/gochain/web3/client"
 	"github.com/zeus-fyi/gochain/web3/types"
 )
 
-func IncreaseGas(ctx context.Context, privateKey string, network client.Network, txHash string, amountGwei string) error {
-	client, err := client.Dial(network.URL)
-	if err != nil {
-		err = fmt.Errorf("failed to connect to %q: %v", network.URL, err)
-		log.Ctx(ctx).Err(err).Msg("IncreaseGas: Dial")
-		return err
-	}
-	defer client.Close()
+func (w *Web3Actions) IncreaseGas(ctx context.Context, network web3_client.Network, txHash string, amountGwei string) error {
+	w.Dial()
+	defer w.Close()
 	// then we'll clone the original and increase gas
-	txOrig, err := client.GetTransactionByHash(ctx, common.HexToHash(txHash))
+	txOrig, err := w.GetTransactionByHash(ctx, common.HexToHash(txHash))
 	if err != nil {
 		err = fmt.Errorf("error on GetTransactionByHash: %v", err)
 		log.Ctx(ctx).Err(err).Msg("IncreaseGas: Dial")
@@ -40,7 +34,7 @@ func IncreaseGas(ctx context.Context, privateKey string, network client.Network,
 		return err
 	}
 	newPrice := new(big.Int).Add(txOrig.GasPrice, amount)
-	_, err = ReplaceTx(ctx, privateKey, network, txOrig.Nonce, *txOrig.To, txOrig.Value, newPrice, txOrig.GasLimit, txOrig.Input)
+	_, err = w.ReplaceTx(ctx, network, txOrig.Nonce, *txOrig.To, txOrig.Value, newPrice, txOrig.GasLimit, txOrig.Input)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("IncreaseGas: ReplaceTx")
 		return err
@@ -49,35 +43,32 @@ func IncreaseGas(ctx context.Context, privateKey string, network client.Network,
 	return err
 }
 
-func ReplaceTx(ctx context.Context, privateKey string, network client.Network, nonce uint64, to common.Address, amount *big.Int,
+func (w *Web3Actions) ReplaceTx(ctx context.Context, network web3_client.Network, nonce uint64, to common.Address, amount *big.Int,
 	gasPrice *big.Int, gasLimit uint64, data []byte) (*types.Transaction, error) {
-	client, err := client.Dial(network.URL)
-	if err != nil {
-		err = fmt.Errorf("failed to connect to %q: %v", network.URL, err)
-		log.Ctx(ctx).Err(err).Msg("ReplaceTx: Dial")
-		return nil, err
-	}
-	defer client.Close()
+	w.Dial()
+	defer w.Close()
 	if gasPrice == nil {
-		gasPrice, err = client.GetGasPrice(ctx)
+		gasPriceFetched, err := w.GetGasPrice(ctx)
 		if err != nil {
 			err = fmt.Errorf("couldn't get suggested gas price: %v", err)
 			log.Ctx(ctx).Err(err).Msg("ReplaceTx: Dial")
 			return nil, err
 		}
+		gasPrice = gasPriceFetched
 		fmt.Printf("Using suggested gas price: %v\n", gasPrice)
 	}
 	chainID := network.ChainID
 	if chainID == nil {
-		chainID, err = client.GetChainID(ctx)
+		fetchedChainID, err := w.GetChainID(ctx)
 		if err != nil {
 			err = fmt.Errorf("couldn't get chain ID: %v", err)
 			log.Ctx(ctx).Err(err).Msg("ReplaceTx: Dial")
 			return nil, err
 		}
+		chainID = fetchedChainID
 	}
 	tx := types.NewTransaction(nonce, to, amount, gasLimit, gasPrice, data)
-	acct, err := accounts.ParsePrivateKey(privateKey)
+	acct, err := accounts.ParsePrivateKey(w.PrivateKey())
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("ReplaceTx: ParsePrivateKey")
 		return nil, err
@@ -89,7 +80,7 @@ func ReplaceTx(ctx context.Context, privateKey string, network client.Network, n
 		log.Ctx(ctx).Err(err).Msg("ReplaceTx: SignTx")
 		return nil, err
 	}
-	err = web3.SendTransaction(ctx, client, signedTx)
+	err = w.SendTransaction(ctx, signedTx)
 	if err != nil {
 		err = fmt.Errorf("error sending transaction: %v", err)
 		log.Ctx(ctx).Err(err).Msg("ReplaceTx: SendTransaction")
