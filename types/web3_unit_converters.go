@@ -1,4 +1,4 @@
-package web3
+package web3_types
 
 import (
 	"fmt"

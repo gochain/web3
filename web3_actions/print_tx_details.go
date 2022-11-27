@@ -8,14 +8,14 @@ import (
 	"github.com/gochain/gochain/v4/common"
 	"github.com/gochain/gochain/v4/core/types"
 	"github.com/rs/zerolog/log"
-	"github.com/zeus-fyi/gochain/web3"
+	web3_types "github.com/zeus-fyi/gochain/web3/types"
 )
 
-func PrintReceiptDetails(ctx context.Context, r *web3.Receipt, myabi *abi.ABI) error {
-	var logs []web3.Event
+func PrintReceiptDetails(ctx context.Context, r *web3_types.Receipt, myabi *abi.ABI) error {
+	var logs []web3_types.Event
 	var err error
 	if myabi != nil && r != nil && r.Logs != nil {
-		logs, err = web3.ParseLogs(*myabi, r.Logs)
+		logs, err = ParseLogs(*myabi, r.Logs)
 		r.ParsedLogs = logs
 		if err != nil {
 			log.Ctx(ctx).Err(err).Msg("PrintReceiptDetails: ParseLogs")

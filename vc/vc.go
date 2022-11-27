@@ -1,5 +1,4 @@
 // package vc contains an implementation of the W3 Verifiable Credentials data model.
-//
 // https://www.w3.org/TR/verifiable-claims-data-model
 package vc
 

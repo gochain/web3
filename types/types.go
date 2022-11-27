@@ -1,4 +1,4 @@
-package web3
+package web3_types
 
 import (
 	"encoding/json"
@@ -64,18 +64,18 @@ type Receipt struct {
 }
 
 func (r *Receipt) UnmarshalJSON(data []byte) error {
-	var rr rpcReceipt
+	var rr RpcReceipt
 	err := json.Unmarshal(data, &rr)
 	if err != nil {
 		log.Err(err).Msg("Receipt: UnmarshalJSON")
 		return err
 	}
-	return rr.copyTo(r)
+	return rr.CopyTo(r)
 }
 
 func (r *Receipt) MarshalJSON() ([]byte, error) {
-	var rr rpcReceipt
-	rr.copyFrom(r)
+	var rr RpcReceipt
+	rr.CopyFrom(r)
 	return json.Marshal(&rr)
 }
 
@@ -109,18 +109,18 @@ type Block struct {
 }
 
 func (b *Block) UnmarshalJSON(data []byte) error {
-	var r rpcBlock
+	var r RpcBlock
 	err := json.Unmarshal(data, &r)
 	if err != nil {
 		log.Err(err).Msg("Block: UnmarshalJSON")
 		return err
 	}
-	return r.copyTo(b)
+	return r.CopyTo(b)
 }
 
 func (b *Block) MarshalJSON() ([]byte, error) {
-	var r rpcBlock
-	if err := r.copyFrom(b); err != nil {
+	var r RpcBlock
+	if err := r.CopyFrom(b); err != nil {
 		log.Err(err).Msg("Block: MarshalJSON")
 		return nil, err
 	}
@@ -165,17 +165,17 @@ type Event struct {
 }
 
 func (t *Transaction) UnmarshalJSON(data []byte) error {
-	var r rpcTransaction
+	var r RpcTransaction
 	err := json.Unmarshal(data, &r)
 	if err != nil {
 		log.Err(err).Msg("Transaction: UnmarshalJSON")
 		return err
 	}
-	return r.copyTo(t)
+	return r.CopyTo(t)
 }
 
 func (t *Transaction) MarshalJSON() ([]byte, error) {
-	var r rpcTransaction
-	r.copyFrom(t)
+	var r RpcTransaction
+	r.CopyFrom(t)
 	return json.Marshal(&r)
 }

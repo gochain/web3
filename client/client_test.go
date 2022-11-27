@@ -1,4 +1,4 @@
-package web3
+package client
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 )
 
 func ExampleRPCClient_GetBlockByNumber() {
-	for _, network := range []string{mainnetURL, testnetURL} {
+	for _, network := range []string{MainnetURL, TestnetURL} {
 		exampleRPCClient_GetBlockByNumber(network)
 	}
 	// Output:
@@ -91,9 +91,9 @@ func exampleRPCClient_GetBlockByNumber(url string) {
 
 func testAddr(network string) string {
 	switch network {
-	case mainnetURL:
+	case MainnetURL:
 		return "0xf75b6e2d2d69da07f2940e239e25229350f8103f"
-	case testnetURL:
+	case TestnetURL:
 		return "0x2fe70f1df222c85ad6dd24a3376eb5ac32136978"
 	default:
 		panic("unsupported network: " + network)

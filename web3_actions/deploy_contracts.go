@@ -1,12 +1,17 @@
-package web3
+package web3_actions
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/big"
+	"net/http"
+	"net/url"
+	"os"
 	"strings"
 
 	"github.com/gochain/gochain/v4/accounts/abi"
@@ -15,11 +20,13 @@ import (
 	"github.com/gochain/gochain/v4/crypto"
 	"github.com/gochain/gochain/v4/rlp"
 	"github.com/rs/zerolog/log"
+	"github.com/zeus-fyi/gochain/web3/client"
+	web3_types "github.com/zeus-fyi/gochain/web3/types"
 )
 
 // DeployContract submits a contract creation transaction.
 // abiJSON is only required when including params for the constructor.
-func DeployContract(ctx context.Context, client Client, privateKeyHex string, binHex, abiJSON string, gasPrice *big.Int, gasLimit uint64, constructorArgs ...interface{}) (*Transaction, error) {
+func DeployContract(ctx context.Context, client client.Client, privateKeyHex string, binHex, abiJSON string, gasPrice *big.Int, gasLimit uint64, constructorArgs ...interface{}) (*web3_types.Transaction, error) {
 	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
 		privateKeyHex = privateKeyHex[2:]
 	}
@@ -67,7 +74,7 @@ func DeployContract(ctx context.Context, client Client, privateKeyHex string, bi
 			log.Ctx(ctx).Err(abiErr).Msg("DeployContract: abi.JSON")
 			return nil, fmt.Errorf("failed to parse ABI: %v", abiErr)
 		}
-		goParams, cerr := ConvertArguments(abiData.Constructor.Inputs, constructorArgs)
+		goParams, cerr := web3_types.ConvertArguments(abiData.Constructor.Inputs, constructorArgs)
 		if cerr != nil {
 			log.Ctx(ctx).Err(cerr).Msg("DeployContract: ConvertArguments")
 			return nil, cerr
@@ -98,12 +105,12 @@ func DeployContract(ctx context.Context, client Client, privateKeyHex string, bi
 		return nil, fmt.Errorf("cannot send transaction: %v", err)
 	}
 
-	return convertTx(signedTx, fromAddress), nil
+	return ConvertTx(signedTx, fromAddress), nil
 }
 
 // DeployBin will deploy a bin file to the network
-func DeployBin(ctx context.Context, client Client, privateKeyHex, binFilename, abiFilename string,
-	gasPrice *big.Int, gasLimit uint64, constructorArgs ...interface{}) (*Transaction, error) {
+func DeployBin(ctx context.Context, client client.Client, privateKeyHex, binFilename, abiFilename string,
+	gasPrice *big.Int, gasLimit uint64, constructorArgs ...interface{}) (*web3_types.Transaction, error) {
 	var bin []byte
 	var err error
 	if isValidUrl(binFilename) {
@@ -128,7 +135,7 @@ func DeployBin(ctx context.Context, client Client, privateKeyHex, binFilename, a
 				return nil, fmt.Errorf("Cannot download the abi file %q: %v", abiFilename, err)
 			}
 		} else {
-			abi, err = ioutil.ReadFile(abiFilename)
+			abi, err = os.ReadFile(abiFilename)
 			if err != nil {
 				log.Ctx(ctx).Err(err).Msg("DeployBin: ReadFile")
 				return nil, fmt.Errorf("Cannot read the abi file %q: %v", abiFilename, err)
@@ -137,4 +144,25 @@ func DeployBin(ctx context.Context, client Client, privateKeyHex, binFilename, a
 	}
 
 	return DeployContract(ctx, client, privateKeyHex, string(bin), string(abi), gasPrice, gasLimit, constructorArgs...)
+}
+
+func isValidUrl(toTest string) bool {
+	u, err := url.Parse(toTest)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return false
+	}
+	return true
+}
+func downloadFile(url string) ([]byte, error) {
+	var dst bytes.Buffer
+	response, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+	_, err = io.Copy(&dst, response.Body)
+	if err != nil {
+		return nil, err
+	}
+	return dst.Bytes(), nil
 }

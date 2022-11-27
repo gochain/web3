@@ -1,4 +1,4 @@
-package web3
+package web3_types
 
 import (
 	"encoding/json"
@@ -11,7 +11,7 @@ import (
 	"github.com/gochain/gochain/v4/core/types"
 )
 
-type rpcBlock struct {
+type RpcBlock struct {
 	ParentHash      *common.Hash      `json:"parentHash"`
 	Sha3Uncles      *common.Hash      `json:"sha3Uncles"`
 	Miner           *common.Address   `json:"miner"`
@@ -36,8 +36,8 @@ type rpcBlock struct {
 	Uncles          []common.Hash     `json:"uncles"`
 }
 
-// copyTo copies the fields from r to b.
-func (r *rpcBlock) copyTo(b *Block) error {
+// CopyTo copies the fields from r to b.
+func (r *RpcBlock) CopyTo(b *Block) error {
 	if r.ParentHash == nil {
 		return errors.New("missing 'parentHash'")
 	}
@@ -128,8 +128,8 @@ func (r *rpcBlock) copyTo(b *Block) error {
 	return nil
 }
 
-// copyFrom copies the fields from b to r.
-func (r *rpcBlock) copyFrom(b *Block) error {
+// CopyFrom copies the fields from b to r.
+func (r *RpcBlock) CopyFrom(b *Block) error {
 	r.ParentHash = &b.ParentHash
 	r.Sha3Uncles = &b.Sha3Uncles
 	r.Miner = &b.Miner
@@ -168,7 +168,7 @@ func (r *rpcBlock) copyFrom(b *Block) error {
 	return nil
 }
 
-type rpcTransaction struct {
+type RpcTransaction struct {
 	Nonce    *hexutil.Uint64 `json:"nonce"`
 	GasPrice *hexutil.Big    `json:"gasPrice"`
 	GasLimit *hexutil.Uint64 `json:"gas"`
@@ -186,8 +186,8 @@ type rpcTransaction struct {
 	TransactionIndex *hexutil.Uint64 `json:"transactionIndex,omitempty"`
 }
 
-// copyTo copies the fields from r to t.
-func (r *rpcTransaction) copyTo(t *Transaction) error {
+// CopyTo copies the fields from r to t.
+func (r *RpcTransaction) CopyTo(t *Transaction) error {
 	if r.Nonce == nil {
 		return errors.New("missing 'nonce'")
 	}
@@ -241,8 +241,8 @@ func (r *rpcTransaction) copyTo(t *Transaction) error {
 	return nil
 }
 
-// copyFrom copies the fields from t to r.
-func (r *rpcTransaction) copyFrom(t *Transaction) {
+// CopyFrom copies the fields from t to r.
+func (r *RpcTransaction) CopyFrom(t *Transaction) {
 	r.Nonce = (*hexutil.Uint64)(&t.Nonce)
 	r.GasPrice = (*hexutil.Big)(t.GasPrice)
 	r.GasLimit = (*hexutil.Uint64)(&t.GasLimit)
@@ -259,7 +259,7 @@ func (r *rpcTransaction) copyFrom(t *Transaction) {
 	r.S = (*hexutil.Big)(t.S)
 }
 
-type rpcReceipt struct {
+type RpcReceipt struct {
 	PostState         *hexutil.Bytes  `json:"root"`
 	Status            *hexutil.Uint64 `json:"status"`
 	CumulativeGasUsed *hexutil.Uint64 `json:"cumulativeGasUsed"`
@@ -276,7 +276,7 @@ type rpcReceipt struct {
 	To                *common.Address `json:"to"`
 }
 
-func (rr *rpcReceipt) copyTo(r *Receipt) error {
+func (rr *RpcReceipt) CopyTo(r *Receipt) error {
 	if rr.PostState != nil {
 		r.PostState = *rr.PostState
 	}
@@ -325,7 +325,7 @@ func (rr *rpcReceipt) copyTo(r *Receipt) error {
 	return nil
 }
 
-func (rr *rpcReceipt) copyFrom(r *Receipt) {
+func (rr *RpcReceipt) CopyFrom(r *Receipt) {
 	rr.PostState = (*hexutil.Bytes)(&r.PostState)
 	rr.Status = (*hexutil.Uint64)(&r.Status)
 	rr.CumulativeGasUsed = (*hexutil.Uint64)(&r.CumulativeGasUsed)

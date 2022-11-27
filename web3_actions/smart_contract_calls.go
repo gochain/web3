@@ -1,4 +1,4 @@
-package web3
+package web3_actions
 
 import (
 	"context"
@@ -6,8 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-
-	"github.com/rs/zerolog/log"
+	"reflect"
 
 	"github.com/gochain/gochain/v4/accounts/abi"
 	"github.com/gochain/gochain/v4/common"
@@ -15,19 +14,20 @@ import (
 	"github.com/gochain/gochain/v4/core/types"
 	"github.com/gochain/gochain/v4/crypto"
 	"github.com/gochain/gochain/v4/rlp"
+	"github.com/rs/zerolog/log"
+	"github.com/zeus-fyi/gochain/web3/client"
+	web3_types "github.com/zeus-fyi/gochain/web3/types"
 )
 
-var NotFoundErr = errors.New("not found")
-
 // CallConstantFunction executes a contract function call without submitting a transaction.
-func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, address string, functionName string, params ...interface{}) ([]interface{}, error) {
+func CallConstantFunction(ctx context.Context, client client.Client, myabi abi.ABI, address string, functionName string, params ...interface{}) ([]interface{}, error) {
 	if address == "" {
 		err := errors.New("no contract address specified")
 		log.Ctx(ctx).Err(err).Msg("CallConstantFunction")
 		return nil, err
 	}
 	fn := myabi.Methods[functionName]
-	goParams, err := ConvertArguments(fn.Inputs, params)
+	goParams, err := web3_types.ConvertArguments(fn.Inputs, params)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("CallConstantFunction: ConvertArguments")
 		return nil, err
@@ -38,7 +38,7 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 		return nil, fmt.Errorf("failed to pack values: %v", err)
 	}
 	toAddress := common.HexToAddress(address)
-	res, err := client.Call(ctx, CallMsg{Data: input, To: &toAddress})
+	res, err := client.Call(ctx, web3_types.CallMsg{Data: input, To: &toAddress})
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("CallConstantFunction: client.Call")
 		return nil, err
@@ -54,11 +54,11 @@ func CallConstantFunction(ctx context.Context, client Client, myabi abi.ABI, add
 }
 
 // CallFunctionWithArgs submits a transaction to execute a smart contract function call.
-func CallFunctionWithArgs(ctx context.Context, client Client, privateKeyHex, address string,
-	amount *big.Int, gasPrice *big.Int, gasLimit uint64, myabi abi.ABI, functionName string, params ...interface{}) (*Transaction, error) {
+func CallFunctionWithArgs(ctx context.Context, client client.Client, privateKeyHex, address string,
+	amount *big.Int, gasPrice *big.Int, gasLimit uint64, myabi abi.ABI, functionName string, params ...interface{}) (*web3_types.Transaction, error) {
 
 	fn := myabi.Methods[functionName]
-	goParams, err := ConvertArguments(fn.Inputs, params)
+	goParams, err := web3_types.ConvertArguments(fn.Inputs, params)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("CallFunctionWithArgs")
 		return nil, err
@@ -72,8 +72,8 @@ func CallFunctionWithArgs(ctx context.Context, client Client, privateKeyHex, add
 }
 
 // CallFunctionWithData if you already have the encoded function data, then use this
-func CallFunctionWithData(ctx context.Context, client Client, privateKeyHex, address string,
-	amount *big.Int, gasPrice *big.Int, gasLimit uint64, data []byte) (*Transaction, error) {
+func CallFunctionWithData(ctx context.Context, client client.Client, privateKeyHex, address string,
+	amount *big.Int, gasPrice *big.Int, gasLimit uint64, data []byte) (*web3_types.Transaction, error) {
 	if address == "" {
 		return nil, errors.New("no contract address specified")
 	}
@@ -129,5 +129,29 @@ func CallFunctionWithData(ctx context.Context, client Client, privateKeyHex, add
 		log.Ctx(ctx).Err(err).Msg("CallFunctionWithData: SendRawTransaction")
 		return nil, fmt.Errorf("cannot send transaction: %v", err)
 	}
-	return convertTx(signedTx, fromAddress), nil
+	return ConvertTx(signedTx, fromAddress), nil
+}
+
+func convertOutputParams(params []interface{}) []interface{} {
+	for i := range params {
+		p := params[i]
+		if h, ok := p.(common.Hash); ok {
+			params[i] = h
+		} else if a, okAddr := p.(common.Address); okAddr {
+			params[i] = a
+		} else if b, okBytes := p.(hexutil.Bytes); okBytes {
+			params[i] = b
+		} else if v := reflect.ValueOf(p); v.Kind() == reflect.Array {
+			if t := v.Type(); t.Elem().Kind() == reflect.Uint8 {
+				b := make([]byte, t.Len())
+				bv := reflect.ValueOf(b)
+				// Copy since we can't t.Slice() unaddressable arrays.
+				for i := 0; i < t.Len(); i++ {
+					bv.Index(i).Set(v.Index(i))
+				}
+				params[i] = hexutil.Bytes(b)
+			}
+		}
+	}
+	return params
 }

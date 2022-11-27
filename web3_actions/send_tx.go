@@ -1,4 +1,4 @@
-package web3
+package web3_actions
 
 import (
 	"context"
@@ -12,34 +12,12 @@ import (
 	"github.com/gochain/gochain/v4/crypto"
 	"github.com/gochain/gochain/v4/rlp"
 	"github.com/rs/zerolog/log"
+	"github.com/zeus-fyi/gochain/web3/client"
+	web3_types "github.com/zeus-fyi/gochain/web3/types"
 )
 
-// SendTransaction sends the Transaction
-func SendTransaction(ctx context.Context, client Client, signedTx *types.Transaction) error {
-	raw, err := rlp.EncodeToBytes(signedTx)
-	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("SendTransaction: rlp.EncodeToBytes")
-		return err
-	}
-	return client.SendRawTransaction(ctx, raw)
-}
-
-func convertTx(tx *types.Transaction, from common.Address) *Transaction {
-	rtx := &Transaction{}
-	rtx.Nonce = tx.Nonce()
-	rtx.GasPrice = tx.GasPrice()
-	rtx.GasLimit = tx.Gas()
-	rtx.To = tx.To()
-	rtx.Value = tx.Value()
-	rtx.Input = tx.Data()
-	rtx.Hash = tx.Hash()
-	rtx.From = from
-	rtx.V, rtx.R, rtx.S = tx.RawSignatureValues()
-	return rtx
-}
-
 // Send performs a regular native coin transaction (not a contract)
-func Send(ctx context.Context, client Client, privateKeyHex string, address common.Address, amount *big.Int, gasPrice *big.Int, gasLimit uint64) (*Transaction, error) {
+func Send(ctx context.Context, client client.Client, privateKeyHex string, address common.Address, amount *big.Int, gasPrice *big.Int, gasLimit uint64) (*web3_types.Transaction, error) {
 	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
 		privateKeyHex = privateKeyHex[2:]
 	}
@@ -88,5 +66,29 @@ func Send(ctx context.Context, client Client, privateKeyHex string, address comm
 		log.Ctx(ctx).Err(err).Msg("Send: SendTransaction")
 		return nil, fmt.Errorf("failed to send transaction: %v", err)
 	}
-	return convertTx(signedTx, fromAddress), nil
+	return ConvertTx(signedTx, fromAddress), nil
+}
+
+// SendTransaction sends the Transaction
+func SendTransaction(ctx context.Context, client client.Client, signedTx *types.Transaction) error {
+	raw, err := rlp.EncodeToBytes(signedTx)
+	if err != nil {
+		log.Ctx(ctx).Err(err).Msg("SendTransaction: rlp.EncodeToBytes")
+		return err
+	}
+	return client.SendRawTransaction(ctx, raw)
+}
+
+func ConvertTx(tx *types.Transaction, from common.Address) *web3_types.Transaction {
+	rtx := &web3_types.Transaction{}
+	rtx.Nonce = tx.Nonce()
+	rtx.GasPrice = tx.GasPrice()
+	rtx.GasLimit = tx.Gas()
+	rtx.To = tx.To()
+	rtx.Value = tx.Value()
+	rtx.Input = tx.Data()
+	rtx.Hash = tx.Hash()
+	rtx.From = from
+	rtx.V, rtx.R, rtx.S = tx.RawSignatureValues()
+	return rtx
 }
