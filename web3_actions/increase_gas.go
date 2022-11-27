@@ -9,10 +9,13 @@ import (
 	"github.com/gochain/gochain/v4/core/types"
 	"github.com/rs/zerolog/log"
 	"github.com/zeus-fyi/gochain/web3"
+	"github.com/zeus-fyi/gochain/web3/accounts"
+	"github.com/zeus-fyi/gochain/web3/client"
+	"github.com/zeus-fyi/gochain/web3/types"
 )
 
-func IncreaseGas(ctx context.Context, privateKey string, network web3.Network, txHash string, amountGwei string) error {
-	client, err := web3.Dial(network.URL)
+func IncreaseGas(ctx context.Context, privateKey string, network client.Network, txHash string, amountGwei string) error {
+	client, err := client.Dial(network.URL)
 	if err != nil {
 		err = fmt.Errorf("failed to connect to %q: %v", network.URL, err)
 		log.Ctx(ctx).Err(err).Msg("IncreaseGas: Dial")
@@ -30,7 +33,7 @@ func IncreaseGas(ctx context.Context, privateKey string, network web3.Network, t
 		fmt.Printf("tx isn't pending, so can't increase gas")
 		return err
 	}
-	amount, err := web3.ParseGwei(amountGwei)
+	amount, err := web3_types.ParseGwei(amountGwei)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("IncreaseGas: ParseGwei")
 		fmt.Printf("failed to parse amount %q: %v", amountGwei, err)
@@ -46,9 +49,9 @@ func IncreaseGas(ctx context.Context, privateKey string, network web3.Network, t
 	return err
 }
 
-func ReplaceTx(ctx context.Context, privateKey string, network web3.Network, nonce uint64, to common.Address, amount *big.Int,
+func ReplaceTx(ctx context.Context, privateKey string, network client.Network, nonce uint64, to common.Address, amount *big.Int,
 	gasPrice *big.Int, gasLimit uint64, data []byte) (*types.Transaction, error) {
-	client, err := web3.Dial(network.URL)
+	client, err := client.Dial(network.URL)
 	if err != nil {
 		err = fmt.Errorf("failed to connect to %q: %v", network.URL, err)
 		log.Ctx(ctx).Err(err).Msg("ReplaceTx: Dial")
@@ -74,7 +77,7 @@ func ReplaceTx(ctx context.Context, privateKey string, network web3.Network, non
 		}
 	}
 	tx := types.NewTransaction(nonce, to, amount, gasLimit, gasPrice, data)
-	acct, err := web3.ParsePrivateKey(privateKey)
+	acct, err := accounts.ParsePrivateKey(privateKey)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("ReplaceTx: ParsePrivateKey")
 		return nil, err

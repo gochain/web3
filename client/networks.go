@@ -1,25 +1,25 @@
-package web3
+package client
 
 import "math/big"
 
 const (
 	testnetExplorerURL = "https://testnet-explorer.gochain.io/api"
 	mainnetExplorerURL = "https://explorer.gochain.io/api"
-	testnetURL         = "https://testnet-rpc.gochain.io"
-	mainnetURL         = "https://rpc.gochain.io"
+	TestnetURL         = "https://testnet-rpc.gochain.io"
+	MainnetURL         = "https://rpc.gochain.io"
 )
 
 var Networks = map[string]Network{
 	"testnet": {
 		Name:        "testnet",
-		URL:         testnetURL,
+		URL:         TestnetURL,
 		ChainID:     big.NewInt(31337),
 		Unit:        "GO",
 		ExplorerURL: testnetExplorerURL,
 	},
 	"gochain": {
 		Name:        "gochain",
-		URL:         mainnetURL,
+		URL:         MainnetURL,
 		ChainID:     big.NewInt(60),
 		Unit:        "GO",
 		ExplorerURL: mainnetExplorerURL,

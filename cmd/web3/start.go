@@ -7,20 +7,20 @@ import (
 	"os/exec"
 
 	"github.com/urfave/cli"
-	"github.com/zeus-fyi/gochain/web3"
+	"github.com/zeus-fyi/gochain/web3/accounts"
 )
 
 func start(ctx context.Context, c *cli.Context) error {
 	privateKey := c.String("private-key")
-	var acc *web3.Account
+	var acc *accounts.Account
 	var err error
 	if privateKey == "" {
-		acc, err = web3.CreateAccount()
+		acc, err = accounts.CreateAccount()
 		if err != nil {
 			return err
 		}
 	} else {
-		acc, err = web3.ParsePrivateKey(privateKey)
+		acc, err = accounts.ParsePrivateKey(privateKey)
 		if err != nil {
 			return err
 		}

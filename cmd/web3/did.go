@@ -14,11 +14,13 @@ import (
 	"time"
 
 	"github.com/gochain/gochain/v4/core/types"
+	"github.com/zeus-fyi/gochain/web3/accounts"
+	"github.com/zeus-fyi/gochain/web3/client"
+	"github.com/zeus-fyi/gochain/web3/web3_actions"
 
 	"github.com/gochain/gochain/v4/accounts/abi"
 	"github.com/gochain/gochain/v4/common"
 	"github.com/gochain/gochain/v4/crypto"
-	"github.com/zeus-fyi/gochain/web3"
 	"github.com/zeus-fyi/gochain/web3/assets"
 	"github.com/zeus-fyi/gochain/web3/did"
 	"github.com/zeus-fyi/gochain/web3/vc"
@@ -45,7 +47,7 @@ func CreateDID(ctx context.Context, rpcURL string, chainID *big.Int, privateKey,
 	}
 
 	// Parse key.
-	acc, err := web3.ParsePrivateKey(privateKey)
+	acc, err := accounts.ParsePrivateKey(privateKey)
 	if err != nil {
 		log.Fatalf("Cannot parse private key: %s", err)
 	}
@@ -81,7 +83,7 @@ func CreateDID(ctx context.Context, rpcURL string, chainID *big.Int, privateKey,
 		log.Fatal(err)
 	}
 
-	client, err := web3.Dial(rpcURL)
+	client, err := client.Dial(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
 	}
@@ -96,13 +98,13 @@ func CreateDID(ctx context.Context, rpcURL string, chainID *big.Int, privateKey,
 	var idBytes32 [32]byte
 	copy(idBytes32[:], d.ID)
 
-	tx, err := web3.CallTransactFunction(ctx, client, myabi, registryAddress, privateKey, "register", &big.Int{}, nil, 70000, idBytes32, hash)
+	tx, err := web3_actions.CallTransactFunction(ctx, client, myabi, registryAddress, privateKey, "register", &big.Int{}, nil, 70000, idBytes32, hash)
 	if err != nil {
 		log.Fatalf("Cannot register DID identifier: %v", err)
 	}
 
 	ctx, _ = context.WithTimeout(ctx, time.Duration(timeoutInSeconds)*time.Second)
-	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
+	receipt, err := web3_actions.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
 		log.Fatalf("Cannot get the receipt for transaction with hash '%v': %v", tx.Hash.Hex(), err)
 	}
@@ -126,7 +128,7 @@ func DIDOwner(ctx context.Context, rpcURL, privateKey, id, registryAddress strin
 		log.Fatalf("Invalid DID: %s", err)
 	}
 
-	client, err := web3.Dial(rpcURL)
+	client, err := client.Dial(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
 	}
@@ -140,7 +142,7 @@ func DIDOwner(ctx context.Context, rpcURL, privateKey, id, registryAddress strin
 	var idBytes32 [32]byte
 	copy(idBytes32[:], d.ID)
 
-	result, err := web3.CallConstantFunction(ctx, client, myabi, registryAddress, "owner", idBytes32)
+	result, err := web3_actions.CallConstantFunction(ctx, client, myabi, registryAddress, "owner", idBytes32)
 	if err != nil {
 		log.Fatalf("Cannot call the contract: %v", err)
 	}
@@ -161,7 +163,7 @@ func DIDHash(ctx context.Context, rpcURL, privateKey, id, registryAddress string
 		log.Fatalf("Invalid DID: %s", id)
 	}
 
-	client, err := web3.Dial(rpcURL)
+	client, err := client.Dial(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
 	}
@@ -175,7 +177,7 @@ func DIDHash(ctx context.Context, rpcURL, privateKey, id, registryAddress string
 	var idBytes32 [32]byte
 	copy(idBytes32[:], d.ID)
 
-	result, err := web3.CallConstantFunction(ctx, client, myabi, registryAddress, "hash", idBytes32)
+	result, err := web3_actions.CallConstantFunction(ctx, client, myabi, registryAddress, "hash", idBytes32)
 	if err != nil {
 		log.Fatalf("Cannot call the contract: %v", err)
 	}
@@ -219,7 +221,7 @@ func SignClaim(ctx context.Context, rpcURL, privateKey, id, typ, issuerID, subje
 	}
 
 	// Parse key.
-	acc, err := web3.ParsePrivateKey(privateKey)
+	acc, err := accounts.ParsePrivateKey(privateKey)
 	if err != nil {
 		log.Fatalf("Cannot parse private key: %s", err)
 	}
@@ -368,7 +370,7 @@ func readDIDDocument(ctx context.Context, rpcURL, registryAddress, id string) (*
 		return nil, fmt.Errorf("Invalid DID: %s", id)
 	}
 
-	client, err := web3.Dial(rpcURL)
+	client, err := client.Dial(rpcURL)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to connect to %q: %v", rpcURL, err)
 	}
@@ -382,7 +384,7 @@ func readDIDDocument(ctx context.Context, rpcURL, registryAddress, id string) (*
 	var idBytes32 [32]byte
 	copy(idBytes32[:], d.ID)
 
-	result, err := web3.CallConstantFunction(ctx, client, myabi, registryAddress, "hash", idBytes32)
+	result, err := web3_actions.CallConstantFunction(ctx, client, myabi, registryAddress, "hash", idBytes32)
 	if err != nil {
 		return nil, fmt.Errorf("Cannot call the contract: %v", err)
 	}

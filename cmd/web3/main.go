@@ -29,8 +29,10 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/treeder/gotils/v2"
 	"github.com/urfave/cli"
-	"github.com/zeus-fyi/gochain/web3"
+	"github.com/zeus-fyi/gochain/web3/accounts"
 	"github.com/zeus-fyi/gochain/web3/assets"
+	"github.com/zeus-fyi/gochain/web3/client"
+	"github.com/zeus-fyi/gochain/web3/types"
 	"github.com/zeus-fyi/gochain/web3/web3_actions"
 )
 
@@ -102,7 +104,7 @@ func main() {
 			Destination: &format,
 			Hidden:      false},
 	}
-	var network web3.Network
+	var network client.Network
 	app.Before = func(*cli.Context) error {
 		network = getNetwork(netName, rpcUrl, testnet)
 		return nil
@@ -299,7 +301,7 @@ func main() {
 					if err != nil {
 						fatalExit(err)
 					}
-					amount = web3.DecToInt(amountd, 18)
+					amount = web3_types.DecToInt(amountd, 18)
 				} else {
 					amount = nil
 				}
@@ -486,7 +488,7 @@ func main() {
 						}
 						amount := toAmountBig(c.String("amount"))
 						price, limit := parseGasPriceAndLimit(c)
-						client, err := web3.Dial(network.URL)
+						client, err := client.Dial(network.URL)
 						if err != nil {
 							fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
 						}
@@ -740,7 +742,7 @@ func main() {
 					fmt.Printf("%v not set", pkVarName)
 					return
 				}
-				acc, err := web3.ParsePrivateKey(pk)
+				acc, err := accounts.ParsePrivateKey(pk)
 				if err != nil {
 					fatalExit(err)
 				}
@@ -756,7 +758,7 @@ func main() {
 					Name:  "create",
 					Usage: "Create a new account",
 					Action: func(c *cli.Context) {
-						acc, err := web3.CreateAccount()
+						acc, err := accounts.CreateAccount()
 						if err != nil {
 							fatalExit(err)
 						}
@@ -1157,8 +1159,8 @@ func toAmountBig(a string) *big.Int {
 }
 
 // getNetwork resolves the rpcUrl from the user specified options, or quits if an illegal combination or value is found.
-func getNetwork(name, rpcURL string, testnet bool) web3.Network {
-	var network web3.Network
+func getNetwork(name, rpcURL string, testnet bool) client.Network {
+	var network client.Network
 	if rpcURL != "" {
 		if name != "" {
 			fatalExit(fmt.Errorf("Cannot set both rpcURL %q and network %q", rpcURL, network))
@@ -1178,7 +1180,7 @@ func getNetwork(name, rpcURL string, testnet bool) web3.Network {
 			name = "gochain"
 		}
 		var ok bool
-		network, ok = web3.Networks[name]
+		network, ok = client.Networks[name]
 		if !ok {
 			fatalExit(fmt.Errorf("Unrecognized network %q", name))
 		}
@@ -1209,18 +1211,18 @@ func parseGasPriceAndLimit(c *cli.Context) (*big.Int, uint64) {
 		if !ok {
 			fatalExit(fmt.Errorf("invalid price %v", gp))
 		}
-		price = web3.Gwei(price.Int64())
+		price = web3_types.Gwei(price.Int64())
 	}
 	return price, gasLimit
 }
 
-func GetBlockDetails(ctx context.Context, network web3.Network, numberOrHash string, txFormat, txInputFormat string) {
-	client, err := web3.Dial(network.URL)
+func GetBlockDetails(ctx context.Context, network client.Network, numberOrHash string, txFormat, txInputFormat string) {
+	client, err := client.Dial(network.URL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
 	}
 	defer client.Close()
-	var block *web3.Block
+	var block *web3_types.Block
 	var includeTxs bool
 	switch txFormat {
 	case "detail":
@@ -1239,7 +1241,7 @@ func GetBlockDetails(ctx context.Context, network web3.Network, numberOrHash str
 		var blockN *big.Int
 		// Don't try to parse empty string, which means 'latest'.
 		if numberOrHash != "" {
-			blockN, err = web3.ParseBigInt(numberOrHash)
+			blockN, err = web3_types.ParseBigInt(numberOrHash)
 			if err != nil {
 				fatalExit(fmt.Errorf("Block argument must be a number (decimal integer) %q: %v", numberOrHash, err))
 			}
@@ -1300,10 +1302,10 @@ func GetBlockDetails(ctx context.Context, network web3.Network, numberOrHash str
 				fmt.Print("Hash: ", tx.Hash.Hex())
 				fmt.Print(" From: ", tx.From.Hex())
 				fmt.Print(" To: ", tx.To.Hex())
-				fmt.Print(" Value: ", web3.WeiAsBase(tx.Value), " ", network.Unit)
+				fmt.Print(" Value: ", web3_types.WeiAsBase(tx.Value), " ", network.Unit)
 				fmt.Print(" Nonce: ", tx.Nonce)
 				fmt.Print(" Gas Limit: ", tx.GasLimit)
-				fmt.Print(" Gas Price: ", web3.WeiAsGwei(tx.GasPrice), " gwei")
+				fmt.Print(" Gas Price: ", web3_types.WeiAsGwei(tx.GasPrice), " gwei")
 				fmt.Print(" ")
 				printInputData(tx.Input, txInputFormat)
 				fmt.Println()
@@ -1327,8 +1329,8 @@ func (fa fmtAddresses) String() string {
 	return b.String()
 }
 
-func GetTransactionDetails(ctx context.Context, network web3.Network, txhash, inputFormat string) {
-	client, err := web3.Dial(network.URL)
+func GetTransactionDetails(ctx context.Context, network client.Network, txhash, inputFormat string) {
+	client, err := client.Dial(network.URL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
 	}
@@ -1353,10 +1355,10 @@ func GetTransactionDetails(ctx context.Context, network web3.Network, txhash, in
 	if tx.To != nil {
 		fmt.Println("To:", tx.To.String())
 	}
-	fmt.Println("Value:", web3.WeiAsBase(tx.Value), network.Unit)
+	fmt.Println("Value:", web3_types.WeiAsBase(tx.Value), network.Unit)
 	fmt.Println("Nonce:", uint64(tx.Nonce))
 	fmt.Println("Gas Limit:", tx.GasLimit)
-	fmt.Println("Gas Price:", web3.WeiAsGwei(tx.GasPrice), "gwei")
+	fmt.Println("Gas Price:", web3_types.WeiAsGwei(tx.GasPrice), "gwei")
 	if tx.BlockHash == (common.Hash{}) {
 		fmt.Println("Pending: true")
 	} else {
@@ -1381,13 +1383,13 @@ func printInputData(data []byte, format string) {
 	}
 }
 
-func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, privateKey string, onlyBalance bool,
+func GetAddressDetails(ctx context.Context, network client.Network, addrHash, privateKey string, onlyBalance bool,
 	contractAddress string, blockNumber string) {
 	if addrHash == "" {
 		if privateKey == "" {
 			fatalExit(errors.New("Missing address. Must be specified as only argument, or implied from a private key."))
 		}
-		acct, err := web3.ParsePrivateKey(privateKey)
+		acct, err := accounts.ParsePrivateKey(privateKey)
 		if err != nil {
 			fatalExit(err)
 		}
@@ -1406,7 +1408,7 @@ func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, priv
 			fatalExit(err)
 		}
 		// fmt.Println("BALANCE:", balance, reflect.TypeOf(balance))
-		fmt.Println(web3.IntToDec(balance[0].(*big.Int), int32(decimals[0].(uint8))))
+		fmt.Println(web3_types.IntToDec(balance[0].(*big.Int), int32(decimals[0].(uint8))))
 		return
 	}
 
@@ -1414,13 +1416,13 @@ func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, priv
 	var err error
 	// Don't try to parse empty string, which means 'latest'.
 	if blockNumber != "" {
-		blockN, err = web3.ParseBigInt(blockNumber)
+		blockN, err = web3_types.ParseBigInt(blockNumber)
 		if err != nil {
 			fatalExit(fmt.Errorf("Block argument must be a number (decimal integer) %q: %v", blockNumber, err))
 		}
 	}
 
-	client, err := web3.Dial(network.URL)
+	client, err := client.Dial(network.URL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
 	}
@@ -1452,9 +1454,9 @@ func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, priv
 	}
 
 	if onlyBalance {
-		fmt.Println(web3.IntToDec(bal, 18))
+		fmt.Println(web3_types.IntToDec(bal, 18))
 	} else {
-		fmt.Println("Balance:", web3.IntToDec(bal, 18))
+		fmt.Println("Balance:", web3_types.IntToDec(bal, 18))
 		if len(code) > 0 {
 			fmt.Println("Code:", string(code))
 		}
@@ -1462,7 +1464,7 @@ func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, priv
 }
 
 func GetSnapshot(ctx context.Context, rpcURL string) {
-	client, err := web3.Dial(rpcURL)
+	client, err := client.Dial(rpcURL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
 	}
@@ -1526,7 +1528,7 @@ func GetSnapshot(ctx context.Context, rpcURL string) {
 }
 
 func GetID(ctx context.Context, rpcURL string) {
-	client, err := web3.Dial(rpcURL)
+	client, err := client.Dial(rpcURL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
 	}
@@ -1574,7 +1576,7 @@ func BuildSol(ctx context.Context, filename, solcVersion, evmVersion string, opt
 	if verbose {
 		log.Println("Building Sol:", str)
 	}
-	compileData, err := web3.CompileSolidityString(ctx, str, solcVersion, evmVersion, optimize)
+	compileData, err := web3_types.CompileSolidityString(ctx, str, solcVersion, evmVersion, optimize)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to compile %q: %v", sourceFile, err))
 	}
@@ -1644,14 +1646,14 @@ func FlattenSol(ctx context.Context, iFile, oFile string) {
 	fmt.Println("Flattened contract:", oFile)
 }
 
-func DeploySol(ctx context.Context, network web3.Network,
+func DeploySol(ctx context.Context, network client.Network,
 	privateKey, binFile, contractSource, solcVersion, evmVersion string, optimize bool, explorerURL string,
 	gasPrice *big.Int, gasLimit uint64, upgradeable bool, timeoutInSeconds uint64, params ...interface{}) {
 
 	if binFile == "" {
 		fatalExit(errors.New("Missing contract name arg."))
 	}
-	client, err := web3.Dial(network.URL)
+	client, err := client.Dial(network.URL)
 	if err != nil {
 		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
 	}
@@ -1681,12 +1683,12 @@ func DeploySol(ctx context.Context, network web3.Network,
 		}
 		abi = string(b)
 	}
-	tx, err := web3.DeployContract(ctx, client, privateKey, string(bin), abi, gasPrice, gasLimit, params...)
+	tx, err := web3_actions.DeployContract(ctx, client, privateKey, string(bin), abi, gasPrice, gasLimit, params...)
 	if err != nil {
 		fatalExit(fmt.Errorf("Error deploying contract: %v", err))
 	}
 	waitCtx, _ := context.WithTimeout(ctx, time.Duration(timeoutInSeconds)*time.Second)
-	receipt, err := web3.WaitForReceipt(waitCtx, client, tx.Hash)
+	receipt, err := web3_actions.WaitForReceipt(waitCtx, client, tx.Hash)
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot get the receipt for transaction with hash '%v': %v", tx.Hash.Hex(), err))
 	}
@@ -1713,12 +1715,12 @@ func DeploySol(ctx context.Context, network web3.Network,
 	}
 
 	// Deploy proxy contract.
-	proxyTx, err := web3.DeployContract(ctx, client, privateKey, assets.OwnerUpgradeableProxyCode(receipt.ContractAddress), "", gasPrice, gasLimit)
+	proxyTx, err := web3_actions.DeployContract(ctx, client, privateKey, assets.OwnerUpgradeableProxyCode(receipt.ContractAddress), "", gasPrice, gasLimit)
 	if err != nil {
 		log.Fatalf("Cannot deploy the upgradeable proxy contract: %v", err)
 	}
 	waitCtx, _ = context.WithTimeout(ctx, time.Duration(timeoutInSeconds)*time.Second)
-	proxyReceipt, err := web3.WaitForReceipt(waitCtx, client, proxyTx.Hash)
+	proxyReceipt, err := web3_actions.WaitForReceipt(waitCtx, client, proxyTx.Hash)
 	if err != nil {
 		log.Fatalf("Cannot get the upgradeable proxy receipt: %v", err)
 	}
@@ -1732,7 +1734,7 @@ func DeploySol(ctx context.Context, network web3.Network,
 	fmt.Println("Contract address is:", proxyReceipt.ContractAddress.Hex())
 }
 
-func VerifyContract(ctx context.Context, network web3.Network, explorerURL, contractAddress, contractName,
+func VerifyContract(ctx context.Context, network client.Network, explorerURL, contractAddress, contractName,
 	sourceCodeFile, compilerVersion, evmVersion string, optimize bool) {
 	if explorerURL == "" {
 		if network.ExplorerURL == "" {
@@ -1758,7 +1760,7 @@ func VerifyContract(ctx context.Context, network web3.Network, explorerURL, cont
 		fatalExit(fmt.Errorf("Cannot read the source code file %q: %v", sourceCodeFile, err))
 	}
 	if compilerVersion == "" {
-		sol, err := web3.SolidityVersion(string(source))
+		sol, err := web3_types.SolidityVersion(string(source))
 		if err != nil {
 			fatalExit(fmt.Errorf("Cannot parse the version from the source code file %q: %v", sourceCodeFile, err))
 		}
@@ -1814,7 +1816,7 @@ func VerifyContract(ctx context.Context, network web3.Network, explorerURL, cont
 }
 
 func UpgradeContract(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, contractAddress, newTargetAddress string, amount *big.Int, timeoutInSeconds uint64) {
-	client, err := web3.Dial(rpcURL)
+	client, err := client.Dial(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
 	}
@@ -1824,12 +1826,12 @@ func UpgradeContract(ctx context.Context, rpcURL string, chainID *big.Int, priva
 	if err != nil {
 		log.Fatalf("Cannot initialize ABI: %v", err)
 	}
-	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "upgrade", amount, nil, 100000, newTargetAddress)
+	tx, err := web3_actions.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "upgrade", amount, nil, 100000, newTargetAddress)
 	if err != nil {
 		log.Fatalf("Cannot upgrade the contract: %v", err)
 	}
 	ctx, _ = context.WithTimeout(ctx, time.Duration(timeoutInSeconds)*time.Second)
-	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
+	receipt, err := web3_actions.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
 		log.Fatalf("Cannot get the receipt for transaction with hash '%v': %v", tx.Hash.Hex(), err)
 	}
@@ -1837,7 +1839,7 @@ func UpgradeContract(ctx context.Context, rpcURL string, chainID *big.Int, priva
 }
 
 func GetTargetContract(ctx context.Context, rpcURL, contractAddress string) {
-	client, err := web3.Dial(rpcURL)
+	client, err := client.Dial(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
 	}
@@ -1846,7 +1848,7 @@ func GetTargetContract(ctx context.Context, rpcURL, contractAddress string) {
 	if err != nil {
 		log.Fatalf("Cannot initialize ABI: %v", err)
 	}
-	res, err := web3.CallConstantFunction(ctx, client, myabi, contractAddress, "target")
+	res, err := web3_actions.CallConstantFunction(ctx, client, myabi, contractAddress, "target")
 	if err != nil {
 		log.Fatalf("Cannot upgrade the contract: %v", err)
 	}
@@ -1862,7 +1864,7 @@ func GetTargetContract(ctx context.Context, rpcURL, contractAddress string) {
 }
 
 func PauseContract(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, contractAddress string, amount *big.Int, timeoutInSeconds uint64) {
-	client, err := web3.Dial(rpcURL)
+	client, err := client.Dial(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
 	}
@@ -1872,12 +1874,12 @@ func PauseContract(ctx context.Context, rpcURL string, chainID *big.Int, private
 	if err != nil {
 		log.Fatalf("Cannot initialize ABI: %v", err)
 	}
-	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "pause", amount, nil, 70000)
+	tx, err := web3_actions.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "pause", amount, nil, 70000)
 	if err != nil {
 		log.Fatalf("Cannot pause the contract: %v", err)
 	}
 	ctx, _ = context.WithTimeout(ctx, time.Duration(timeoutInSeconds)*time.Second)
-	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
+	receipt, err := web3_actions.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
 		log.Fatalf("Cannot get the receipt for transaction with hash '%v': %v", tx.Hash.Hex(), err)
 	}
@@ -1885,7 +1887,7 @@ func PauseContract(ctx context.Context, rpcURL string, chainID *big.Int, private
 }
 
 func ResumeContract(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, contractAddress string, amount *big.Int, timeoutInSeconds uint64) {
-	client, err := web3.Dial(rpcURL)
+	client, err := client.Dial(rpcURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to %q: %v", rpcURL, err)
 	}
@@ -1895,12 +1897,12 @@ func ResumeContract(ctx context.Context, rpcURL string, chainID *big.Int, privat
 	if err != nil {
 		log.Fatalf("Cannot initialize ABI: %v", err)
 	}
-	tx, err := web3.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "resume", amount, nil, 70000)
+	tx, err := web3_actions.CallTransactFunction(ctx, client, myabi, contractAddress, privateKey, "resume", amount, nil, 70000)
 	if err != nil {
 		log.Fatalf("Cannot resume the contract: %v", err)
 	}
 	ctx, _ = context.WithTimeout(ctx, time.Duration(timeoutInSeconds)*time.Second)
-	receipt, err := web3.WaitForReceipt(ctx, client, tx.Hash)
+	receipt, err := web3_actions.WaitForReceipt(ctx, client, tx.Hash)
 	if err != nil {
 		log.Fatalf("Cannot get the receipt for transaction with hash '%v': %v", tx.Hash.Hex(), err)
 	}
