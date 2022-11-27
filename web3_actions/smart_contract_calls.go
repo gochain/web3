@@ -2,7 +2,6 @@ package web3_actions
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"errors"
 	"fmt"
 	"math/big"
@@ -55,7 +54,7 @@ func (w *Web3Actions) CallConstantFunction(ctx context.Context, myabi abi.ABI, a
 }
 
 // CallFunctionWithArgs submits a transaction to execute a smart contract function call.
-func (w *Web3Actions) CallFunctionWithArgs(ctx context.Context, privateKeyHex, address string,
+func (w *Web3Actions) CallFunctionWithArgs(ctx context.Context, address string,
 	amount *big.Int, gasPrice *big.Int, gasLimit uint64, myabi abi.ABI, functionName string, params ...interface{}) (*web3_types.Transaction, error) {
 
 	fn := myabi.Methods[functionName]
@@ -69,23 +68,16 @@ func (w *Web3Actions) CallFunctionWithArgs(ctx context.Context, privateKeyHex, a
 		log.Ctx(ctx).Err(err).Msg("CallFunctionWithArgs")
 		return nil, fmt.Errorf("failed to pack values: %v", err)
 	}
-	return w.CallFunctionWithData(ctx, privateKeyHex, address, amount, gasPrice, gasLimit, data)
+	return w.CallFunctionWithData(ctx, address, amount, gasPrice, gasLimit, data)
 }
 
 // CallFunctionWithData if you already have the encoded function data, then use this
-func (w *Web3Actions) CallFunctionWithData(ctx context.Context, privateKeyHex, address string,
+func (w *Web3Actions) CallFunctionWithData(ctx context.Context, address string,
 	amount *big.Int, gasPrice *big.Int, gasLimit uint64, data []byte) (*web3_types.Transaction, error) {
 	if address == "" {
 		return nil, errors.New("no contract address specified")
 	}
-	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
-		privateKeyHex = privateKeyHex[2:]
-	}
-	privateKey, err := crypto.HexToECDSA(privateKeyHex)
-	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("CallFunctionWithData: HexToECDSA")
-		return nil, fmt.Errorf("invalid private key: %v", err)
-	}
+	var err error
 	w.Dial()
 	defer w.Close()
 	if gasPrice == nil || gasPrice.Int64() == 0 {
@@ -100,13 +92,7 @@ func (w *Web3Actions) CallFunctionWithData(ctx context.Context, privateKeyHex, a
 		log.Ctx(ctx).Err(err).Msg("CallFunctionWithData: GetChainID")
 		return nil, fmt.Errorf("couldn't get chain ID: %v", err)
 	}
-	publicKey := privateKey.Public()
-	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-	if !ok {
-		err = errors.New("error casting public key to ECDSA")
-		log.Ctx(ctx).Err(err).Msg("CallFunctionWithData")
-		return nil, err
-	}
+	publicKeyECDSA := w.EcdsaPublicKey()
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
 	nonce, err := w.GetPendingTransactionCount(ctx, fromAddress)
 	if err != nil {
@@ -116,7 +102,7 @@ func (w *Web3Actions) CallFunctionWithData(ctx context.Context, privateKeyHex, a
 	toAddress := common.HexToAddress(address)
 	// fmt.Println("Price: ", gasPrice)
 	tx := types.NewTransaction(nonce, toAddress, amount, gasLimit, gasPrice, data)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), w.EcdsaPrivateKey())
 	if err != nil {
 		err = fmt.Errorf("cannot sign transaction: %v", err)
 		log.Ctx(ctx).Err(err).Msg("CallFunctionWithData: SignTx")

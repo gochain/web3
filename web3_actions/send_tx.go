@@ -2,8 +2,6 @@ package web3_actions
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"errors"
 	"fmt"
 	"math/big"
 
@@ -17,6 +15,8 @@ import (
 
 // Send performs a regular native coin transaction (not a contract)
 func (w *Web3Actions) Send(ctx context.Context, address common.Address, amount *big.Int, gasPrice *big.Int, gasLimit uint64) (*web3_types.Transaction, error) {
+	w.Dial()
+	defer w.Close()
 	var err error
 	if gasPrice == nil || gasPrice.Int64() == 0 {
 		gasPrice, err = w.GetGasPrice(ctx)
@@ -34,18 +34,7 @@ func (w *Web3Actions) Send(ctx context.Context, address common.Address, amount *
 	if gasLimit == 0 {
 		gasLimit = 21000
 	}
-	privateKey, err := crypto.HexToECDSA(w.PrivateKey())
-	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("Send: HexToECDSA")
-		return nil, fmt.Errorf("invalid private key: %v", err)
-	}
-	publicKey := privateKey.Public()
-	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-	if !ok {
-		err = errors.New("error casting public key to ECDSA")
-		log.Ctx(ctx).Err(err).Msg("Send")
-		return nil, err
-	}
+	publicKeyECDSA := w.EcdsaPublicKey()
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
 	nonce, err := w.GetPendingTransactionCount(ctx, fromAddress)
 	if err != nil {
@@ -53,7 +42,7 @@ func (w *Web3Actions) Send(ctx context.Context, address common.Address, amount *
 		return nil, fmt.Errorf("cannot get nonce: %v", err)
 	}
 	tx := types.NewTransaction(nonce, address, amount, gasLimit, gasPrice, nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), w.EcdsaPrivateKey())
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("Send: SignTx")
 		return nil, fmt.Errorf("cannot sign transaction: %v", err)

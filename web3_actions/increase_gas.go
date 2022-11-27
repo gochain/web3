@@ -8,7 +8,6 @@ import (
 	"github.com/gochain/gochain/v4/common"
 	"github.com/gochain/gochain/v4/core/types"
 	"github.com/rs/zerolog/log"
-	"github.com/zeus-fyi/gochain/web3/accounts"
 	web3_client "github.com/zeus-fyi/gochain/web3/client"
 	"github.com/zeus-fyi/gochain/web3/types"
 )
@@ -68,13 +67,8 @@ func (w *Web3Actions) ReplaceTx(ctx context.Context, network web3_client.Network
 		chainID = fetchedChainID
 	}
 	tx := types.NewTransaction(nonce, to, amount, gasLimit, gasPrice, data)
-	acct, err := accounts.ParsePrivateKey(w.PrivateKey())
-	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("ReplaceTx: ParsePrivateKey")
-		return nil, err
-	}
 	fmt.Printf("Replacing transaction nonce: %v, gasPrice: %v, gasLimit: %v\n", nonce, gasPrice, gasLimit)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), acct.Key())
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), w.EcdsaPrivateKey())
 	if err != nil {
 		err = fmt.Errorf("couldn't sign tx: %v", err)
 		log.Ctx(ctx).Err(err).Msg("ReplaceTx: SignTx")
