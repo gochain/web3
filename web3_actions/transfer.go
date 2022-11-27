@@ -12,7 +12,7 @@ import (
 	"github.com/zeus-fyi/gochain/web3/types"
 )
 
-func (w *Web3Actions) Transfer(ctx context.Context, chainID *big.Int, privateKey, contractAddress string, gasPrice *big.Int, gasLimit uint64, wait, toString bool, timeoutInSeconds uint64, tail []string) error {
+func (w *Web3Actions) Transfer(ctx context.Context, chainID *big.Int, contractAddress string, gasPrice *big.Int, gasLimit uint64, wait, toString bool, timeoutInSeconds uint64, tail []string) error {
 	if len(tail) < 3 {
 		err := errors.New("invalid arguments. format is: `transfer X to ADDRESS`")
 		log.Ctx(ctx).Err(err).Msg("ReplaceTx: SendTransaction")
@@ -57,7 +57,15 @@ func (w *Web3Actions) Transfer(ctx context.Context, chainID *big.Int, privateKey
 		return err
 	}
 	address := common.HexToAddress(toAddress)
-	tx, err := w.Send(ctx, address, amount, gasPrice, gasLimit)
+	params := SendEtherPayload{
+		Amount:    amount,
+		ToAddress: address,
+		GasPriceLimits: GasPriceLimits{
+			GasPrice: gasPrice,
+			GasLimit: gasLimit,
+		},
+	}
+	tx, err := w.Send(ctx, params)
 	if err != nil {
 		err = fmt.Errorf("cannot create transaction: %v", err)
 		log.Ctx(ctx).Err(err).Msg("Transfer: Send")
