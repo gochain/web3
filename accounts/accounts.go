@@ -3,6 +3,7 @@ package accounts
 import (
 	"crypto/ecdsa"
 	"encoding/hex"
+	"errors"
 	"strings"
 
 	"github.com/gochain/gochain/v4/common"
@@ -37,7 +38,7 @@ func ParsePrivateKey(pkHex string) (*Account, error) {
 	}, nil
 }
 
-func (a *Account) Key() *ecdsa.PrivateKey {
+func (a *Account) EcdsaPrivateKey() *ecdsa.PrivateKey {
 	return a.key
 }
 
@@ -55,4 +56,16 @@ func (a *Account) PublicKey() string {
 
 func (a *Account) PrivateKey() string {
 	return "0x" + hex.EncodeToString(crypto.FromECDSA(a.key))
+}
+
+func (a *Account) EcdsaPublicKey() *ecdsa.PublicKey {
+	privateKey := a.EcdsaPrivateKey()
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		err := errors.New("error casting public key to ECDSA")
+		log.Panic().Err(err).Msg("EcdsaPublicKey")
+		panic(err)
+	}
+	return publicKeyECDSA
 }

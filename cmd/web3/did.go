@@ -49,7 +49,7 @@ func CreateDID(ctx context.Context, rpcURL string, chainID *big.Int, privateKey,
 	if err != nil {
 		log.Fatalf("Cannot parse private key: %s", err)
 	}
-	publicKey := acc.Key().PublicKey
+	publicKey := acc.EcdsaPrivateKey().PublicKey
 
 	// Build DID identifier.
 	publicKeyID := *d
@@ -94,7 +94,8 @@ func CreateDID(ctx context.Context, rpcURL string, chainID *big.Int, privateKey,
 	var idBytes32 [32]byte
 	copy(idBytes32[:], d.ID)
 
-	tx, err := ac.CallTransactFunction(ctx, myabi, registryAddress, privateKey, "register", &big.Int{}, nil, 70000, idBytes32, hash)
+	ac.Account = acc
+	tx, err := ac.CallTransactFunction(ctx, myabi, registryAddress, "register", &big.Int{}, nil, 70000, idBytes32, hash)
 	if err != nil {
 		log.Fatalf("Cannot register DID identifier: %v", err)
 	}
@@ -248,7 +249,7 @@ func SignClaim(ctx context.Context, rpcURL, privateKey, id, typ, issuerID, subje
 	// Sign hash of credential document.
 	var h common.Hash
 	hw.Sum(h[:0])
-	proofValue, err := crypto.Sign(h[:], acc.Key())
+	proofValue, err := crypto.Sign(h[:], acc.EcdsaPrivateKey())
 	if err != nil {
 		log.Fatalf("Cannot sign credential: %s", err)
 	}

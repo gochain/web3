@@ -73,7 +73,7 @@ func (w *Web3Actions) GetContractConst(ctx context.Context, contractAddress, con
 	return res, nil
 }
 
-func (w *Web3Actions) CallContract(ctx context.Context, privateKey, contractAddress, abiFile, functionName string,
+func (w *Web3Actions) CallContract(ctx context.Context, contractAddress, abiFile, functionName string,
 	amount *big.Int, gasPrice *big.Int, gasLimit uint64, waitForReceipt, toString bool, data []byte, timeoutInSeconds uint64, parameters ...interface{}) error {
 	w.Dial()
 	defer w.Close()
@@ -81,7 +81,7 @@ func (w *Web3Actions) CallContract(ctx context.Context, privateKey, contractAddr
 	var tx *web3_types.Transaction
 	var myabi *abi.ABI
 	if len(data) > 0 {
-		tx, err = w.CallFunctionWithData(ctx, privateKey, contractAddress, amount, gasPrice, gasLimit, data)
+		tx, err = w.CallFunctionWithData(ctx, contractAddress, amount, gasPrice, gasLimit, data)
 	} else {
 		// var m abi.Method
 		myabi, err = web3_types.GetABI(abiFile)
@@ -129,7 +129,7 @@ func (w *Web3Actions) CallContract(ctx context.Context, privateKey, contractAddr
 			}
 			return err
 		}
-		tx, err = w.CallTransactFunction(ctx, *myabi, contractAddress, privateKey, functionName, amount, gasPrice, gasLimit, parameters...)
+		tx, err = w.CallTransactFunction(ctx, *myabi, contractAddress, functionName, amount, gasPrice, gasLimit, parameters...)
 		if err != nil {
 			log.Ctx(ctx).Err(err).Msg("CallContract: CallTransactFunction")
 			return err
@@ -157,7 +157,7 @@ func (w *Web3Actions) CallContract(ctx context.Context, privateKey, contractAddr
 	return err
 }
 
-func (w *Web3Actions) CallTransactFunction(ctx context.Context, myabi abi.ABI, address, privateKeyHex, functionName string,
+func (w *Web3Actions) CallTransactFunction(ctx context.Context, myabi abi.ABI, address, functionName string,
 	amount *big.Int, gasPrice *big.Int, gasLimit uint64, params ...interface{}) (*web3_types.Transaction, error) {
-	return w.CallFunctionWithArgs(ctx, privateKeyHex, address, amount, gasPrice, gasLimit, myabi, functionName, params...)
+	return w.CallFunctionWithArgs(ctx, address, amount, gasPrice, gasLimit, myabi, functionName, params...)
 }
