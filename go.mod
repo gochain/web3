@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/gochain/gochain/v4 v4.1.0
+	github.com/rs/zerolog v1.28.0
 	github.com/shopspring/decimal v1.3.1
 	github.com/treeder/gotils/v2 v2.0.18
 	github.com/urfave/cli v1.22.5
@@ -36,6 +37,7 @@ require (
 	github.com/karalabe/usb v0.0.0-20191104083709-911d15fe12a9 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/onsi/gomega v1.20.1 // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
