@@ -54,7 +54,7 @@ func (w *Web3Actions) WaitForReceipt(ctx context.Context, hash common.Hash) (*we
 			return receipt, nil
 		}
 		if err != NotFoundErr {
-			log.Ctx(ctx).Err(err).Msg("WaitForReceipt")
+			log.Ctx(ctx).Err(err).Msg("WaitForTxReceipt")
 			return nil, err
 		}
 		select {
