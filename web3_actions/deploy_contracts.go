@@ -1,15 +1,9 @@
 package web3_actions
 
 import (
-	"bytes"
 	"context"
-	"crypto/ecdsa"
-	"errors"
 	"fmt"
-	"io"
 	"math/big"
-	"net/http"
-	"net/url"
 	"os"
 	"strings"
 
@@ -41,19 +35,7 @@ func (w *Web3Actions) DeployContract(ctx context.Context, binHex, abiJSON string
 		return nil, fmt.Errorf("couldn't get chain ID: %v", err)
 	}
 
-	privateKey, err := crypto.HexToECDSA(w.PrivateKey())
-	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("DeployContract: HexToECDSA")
-		return nil, fmt.Errorf("invalid private key: %v", err)
-	}
-	publicKey := privateKey.Public()
-	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-	if !ok {
-		err = errors.New("error casting public key to ECDSA")
-		log.Ctx(ctx).Err(err).Msg("DeployContract: GetChainID")
-		return nil, err
-	}
-
+	publicKeyECDSA := w.EcdsaPublicKey()
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
 	nonce, err := w.GetPendingTransactionCount(ctx, fromAddress)
 	if err != nil {
@@ -86,7 +68,7 @@ func (w *Web3Actions) DeployContract(ctx context.Context, binHex, abiJSON string
 	}
 	//TODO try to use web3.Transaction only; can't sign currently
 	tx := types.NewContractCreation(nonce, big.NewInt(0), gasLimit, gasPrice, binData)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), w.EcdsaPrivateKey())
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("DeployContract: types.SignTx")
 		return nil, fmt.Errorf("cannot sign transaction: %v", err)
@@ -106,7 +88,7 @@ func (w *Web3Actions) DeployContract(ctx context.Context, binHex, abiJSON string
 }
 
 // DeployBin will deploy a bin file to the network
-func (w *Web3Actions) DeployBin(ctx context.Context, privateKeyHex, binFilename, abiFilename string,
+func (w *Web3Actions) DeployBin(ctx context.Context, binFilename, abiFilename string,
 	gasPrice *big.Int, gasLimit uint64, constructorArgs ...interface{}) (*web3_types.Transaction, error) {
 	w.Dial()
 	defer w.Close()
@@ -143,27 +125,4 @@ func (w *Web3Actions) DeployBin(ctx context.Context, privateKeyHex, binFilename,
 	}
 
 	return w.DeployContract(ctx, string(bin), string(abi), gasPrice, gasLimit, constructorArgs...)
-}
-
-func isValidUrl(toTest string) bool {
-	u, err := url.Parse(toTest)
-	if err != nil || u.Scheme == "" || u.Host == "" {
-		return false
-	}
-	return true
-}
-func downloadFile(ctx context.Context, url string) ([]byte, error) {
-	var dst bytes.Buffer
-	response, err := http.Get(url)
-	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("downloadFile: Get")
-		return nil, err
-	}
-	defer response.Body.Close()
-	_, err = io.Copy(&dst, response.Body)
-	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("downloadFile: Copy")
-		return nil, err
-	}
-	return dst.Bytes(), nil
 }

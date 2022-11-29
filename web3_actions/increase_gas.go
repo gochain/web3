@@ -29,7 +29,7 @@ func (w *Web3Actions) IncreaseGas(ctx context.Context, network web3_client.Netwo
 	amount, err := web3_types.ParseGwei(amountGwei)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("IncreaseGas: ParseGwei")
-		fmt.Printf("failed to parse amount %q: %v", amountGwei, err)
+		log.Ctx(ctx).Warn().Msgf("IncreaseGas: failed to parse amount %q: %v\n", amountGwei, err)
 		return err
 	}
 	newPrice := new(big.Int).Add(txOrig.GasPrice, amount)
@@ -38,7 +38,7 @@ func (w *Web3Actions) IncreaseGas(ctx context.Context, network web3_client.Netwo
 		log.Ctx(ctx).Err(err).Msg("IncreaseGas: ReplaceTx")
 		return err
 	}
-	fmt.Printf("Increased gas price to %v\n", newPrice)
+	log.Ctx(ctx).Info().Msgf("IncreaseGas: Increased gas price to %v\n", newPrice)
 	return err
 }
 
@@ -56,6 +56,7 @@ func (w *Web3Actions) ReplaceTx(ctx context.Context, network web3_client.Network
 		gasPrice = gasPriceFetched
 		fmt.Printf("Using suggested gas price: %v\n", gasPrice)
 	}
+
 	chainID := network.ChainID
 	if chainID == nil {
 		fetchedChainID, err := w.GetChainID(ctx)
@@ -80,6 +81,6 @@ func (w *Web3Actions) ReplaceTx(ctx context.Context, network web3_client.Network
 		log.Ctx(ctx).Err(err).Msg("ReplaceTx: SendTransaction")
 		return nil, err
 	}
-	fmt.Printf("Replaced transaction. New transaction: %s\n", signedTx.Hash().Hex())
+	log.Ctx(ctx).Info().Msgf("ReplaceTx: Replaced transaction. New transaction:  %s\n", signedTx.Hash().Hex())
 	return tx, err
 }

@@ -23,12 +23,15 @@ func (w *Web3Actions) GetSignedTxToCallFunctionWithData(ctx context.Context, add
 	var err error
 	w.Dial()
 	defer w.Close()
-	if gasPrice == nil || gasPrice.Int64() == 0 {
-		gasPrice, err = w.GetGasPrice(ctx)
-		if err != nil {
-			log.Ctx(ctx).Err(err).Msg("CallFunctionWithData: GetGasPrice")
-			return nil, fmt.Errorf("cannot get gas price: %v", err)
-		}
+
+	gp := GasPriceLimits{
+		GasPrice: gasPrice,
+		GasLimit: gasLimit,
+	}
+	err = w.SetGasPriceAndLimit(ctx, &gp)
+	if err != nil {
+		log.Ctx(ctx).Err(err).Msg("GetSignedTxToCallFunctionWithData: SetGasPriceAndLimit")
+		return nil, err
 	}
 	chainID, err := w.GetChainID(ctx)
 	if err != nil {
@@ -43,7 +46,7 @@ func (w *Web3Actions) GetSignedTxToCallFunctionWithData(ctx context.Context, add
 		return nil, fmt.Errorf("cannot get nonce: %v", err)
 	}
 	toAddress := common.HexToAddress(address)
-	tx := types.NewTransaction(nonce, toAddress, amount, gasLimit, gasPrice, data)
+	tx := types.NewTransaction(nonce, toAddress, amount, gp.GasLimit, gp.GasPrice, data)
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), w.EcdsaPrivateKey())
 	if err != nil {
 		err = fmt.Errorf("cannot sign transaction: %v", err)

@@ -50,23 +50,23 @@ func (w *Web3Actions) CallFunctionWithData(ctx context.Context, address string,
 }
 
 func convertOutputParams(params []interface{}) []interface{} {
-	for i := range params {
-		p := params[i]
+	for ind := range params {
+		p := params[ind]
 		if h, ok := p.(common.Hash); ok {
-			params[i] = h
+			params[ind] = h
 		} else if a, okAddr := p.(common.Address); okAddr {
-			params[i] = a
+			params[ind] = a
 		} else if b, okBytes := p.(hexutil.Bytes); okBytes {
-			params[i] = b
+			params[ind] = b
 		} else if v := reflect.ValueOf(p); v.Kind() == reflect.Array {
 			if t := v.Type(); t.Elem().Kind() == reflect.Uint8 {
-				b := make([]byte, t.Len())
-				bv := reflect.ValueOf(b)
+				ba := make([]byte, t.Len())
+				bv := reflect.ValueOf(ba)
 				// Copy since we can't t.Slice() unaddressable arrays.
 				for i := 0; i < t.Len(); i++ {
 					bv.Index(i).Set(v.Index(i))
 				}
-				params[i] = hexutil.Bytes(b)
+				params[ind] = hexutil.Bytes(ba)
 			}
 		}
 	}

@@ -252,7 +252,7 @@ func main() {
 				if err != nil {
 					fatalExit(err)
 				}
-				ac.Account = *acc
+				ac.Account = acc
 				err = ac.IncreaseGas(ctx, network, c.String("tx"), c.String("amount"))
 				if err != nil {
 					fatalExit(err)
@@ -329,7 +329,7 @@ func main() {
 				if err != nil {
 					fatalExit(err)
 				}
-				ac.Account = *acc
+				ac.Account = acc
 				_, err = ac.ReplaceTx(ctx, network, c.Uint64("nonce"), to, amount, price, limit, dataB)
 				if err != nil {
 					fatalExit(err)
@@ -519,7 +519,7 @@ func main() {
 								fatalExit(err)
 							}
 						}
-						err = ac.CallContract(ctx, privateKey, contractAddress, abiFile, function, amount, price, limit, waitForReceipt, c.Bool("to-string"), dataB, c.Uint64("timeout"), args...)
+						err = ac.CallContract(ctx, contractAddress, abiFile, function, amount, price, limit, waitForReceipt, c.Bool("to-string"), dataB, c.Uint64("timeout"), args...)
 						if err != nil {
 							fatalExit(err)
 						}
@@ -588,7 +588,11 @@ func main() {
 					Usage: "Upgrade contract to new address",
 					Action: func(c *cli.Context) {
 						amount := toAmountBig(c.String("amount"))
-						UpgradeContract(ctx, network.URL, network.ChainID, privateKey, contractAddress, toContractAddress, amount, c.Uint64("timeout"))
+						ac := web3_actions.NewWeb3ActionsClient(network.URL)
+						err := ac.UpgradeContract(ctx, network.ChainID, contractAddress, toContractAddress, amount, c.Uint64("timeout"))
+						if err != nil {
+							fatalExit(fmt.Errorf("cannot upgrade contract to new address:%v", err))
+						}
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -643,7 +647,11 @@ func main() {
 							address = contractAddress
 						}
 						amount := toAmountBig(c.String("amount"))
-						PauseContract(ctx, network.URL, network.ChainID, privateKey, address, amount, c.Uint64("timeout"))
+						ac := web3_actions.NewWeb3ActionsClient(network.URL)
+						err := ac.PauseContract(ctx, network.ChainID, address, amount, c.Uint64("timeout"))
+						if err != nil {
+							fatalExit(fmt.Errorf("cannot pause upgradeable contract:%v", err))
+						}
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -678,7 +686,13 @@ func main() {
 							address = contractAddress
 						}
 						amount := toAmountBig(c.String("amount"))
-						ResumeContract(ctx, network.URL, network.ChainID, privateKey, address, amount, c.Uint64("timeout"))
+						ac := web3_actions.NewWeb3ActionsClient(network.URL)
+						ac.Dial()
+						defer ac.Close()
+						err := ac.ResumeContract(ctx, network.ChainID, address, amount, c.Uint64("timeout"))
+						if err != nil {
+							fatalExit(fmt.Errorf("cannot resume paused upgradeable contract"))
+						}
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -864,11 +878,12 @@ func main() {
 				if c.Bool("erc20") {
 					contractAddress = c.String("address")
 					if contractAddress == "" {
-						fatalExit(errors.New("You must set ERC20 contract address"))
+						fatalExit(errors.New("you must set ERC20 contract address"))
 					}
 				}
 				price, limit := parseGasPriceAndLimit(c)
-				err := web3_actions.Transfer(ctx, network.URL, network.ChainID, privateKey, contractAddress, price, limit, c.Bool("wait"), c.Bool("to-string"), c.Uint64("timeout"), c.Args())
+				ac := web3_actions.NewWeb3ActionsClient(network.URL)
+				err := ac.Transfer(ctx, network.ChainID, contractAddress, price, limit, c.Bool("wait"), c.Bool("to-string"), c.Uint64("timeout"), c.Args())
 				if err != nil {
 					fatalExit(err)
 				}
@@ -1402,7 +1417,7 @@ func GetAddressDetails(ctx context.Context, network web3_client.Network, addrHas
 	contractAddress string, blockNumber string) {
 	if addrHash == "" {
 		if privateKey == "" {
-			fatalExit(errors.New("Missing address. Must be specified as only argument, or implied from a private key."))
+			fatalExit(errors.New("missing address. Must be specified as only argument, or implied from a private key"))
 		}
 		acct, err := accounts.ParsePrivateKey(privateKey)
 		if err != nil {
@@ -1416,18 +1431,10 @@ func GetAddressDetails(ctx context.Context, network web3_client.Network, addrHas
 	defer ac.Close()
 
 	if contractAddress != "" {
-		decimals, err := ac.GetContractConst(ctx, network.URL, contractAddress, "erc20", "decimals")
+		_, err := ac.ReadERC20TokenBalance(ctx, contractAddress, addrHash)
 		if err != nil {
 			fatalExit(err)
 		}
-		// fmt.Println("DECIMALS:", decimals, reflect.TypeOf(decimals))
-		// todo: could get symbol here to display
-		balance, err := ac.GetContractConst(ctx, network.URL, contractAddress, "erc20", "balanceOf", addrHash)
-		if err != nil {
-			fatalExit(err)
-		}
-		// fmt.Println("BALANCE:", balance, reflect.TypeOf(balance))
-		fmt.Println(web3_types.IntToDec(balance[0].(*big.Int), int32(decimals[0].(uint8))))
 		return
 	}
 
@@ -1437,7 +1444,7 @@ func GetAddressDetails(ctx context.Context, network web3_client.Network, addrHas
 	if blockNumber != "" {
 		blockN, err = web3_types.ParseBigInt(blockNumber)
 		if err != nil {
-			fatalExit(fmt.Errorf("Block argument must be a number (decimal integer) %q: %v", blockNumber, err))
+			fatalExit(fmt.Errorf("block argument must be a number (decimal integer) %q: %v", blockNumber, err))
 		}
 	}
 
@@ -1606,11 +1613,11 @@ func BuildSol(ctx context.Context, filename, solcVersion, evmVersion string, opt
 			continue
 		}
 		path := filepath.Join(output, fileparts[1])
-		err := ioutil.WriteFile(path+".bin", []byte(v.Code), 0600)
+		err = os.WriteFile(path+".bin", []byte(v.Code), 0600)
 		if err != nil {
 			fatalExit(fmt.Errorf("Cannot write the bin file: %v", err))
 		}
-		err = ioutil.WriteFile(path+".abi", []byte(marshalJSON(v.Info.AbiDefinition)), 0600)
+		err = os.WriteFile(path+".abi", []byte(marshalJSON(v.Info.AbiDefinition)), 0600)
 		if err != nil {
 			fatalExit(fmt.Errorf("Cannot write the abi file: %v", err))
 		}
@@ -1664,7 +1671,7 @@ func DeploySol(ctx context.Context, network web3_client.Network,
 	ac.Dial()
 	defer ac.Close()
 	if binFile == "" {
-		fatalExit(errors.New("Missing contract name arg."))
+		fatalExit(errors.New("missing contract name arg."))
 	}
 	ac.SetChainID(network.ChainID)
 	// get file
@@ -1685,7 +1692,7 @@ func DeploySol(ctx context.Context, network web3_client.Network,
 		if strings.HasPrefix(binFile, "http") {
 			b, err = gotils.GetBytes(abiFile)
 		} else {
-			b, err = ioutil.ReadFile(abiFile)
+			b, err = os.ReadFile(abiFile)
 		}
 		if err != nil {
 			fatalExit(fmt.Errorf("Cannot read abi file %q: %v", abiFile, err))
@@ -1696,7 +1703,7 @@ func DeploySol(ctx context.Context, network web3_client.Network,
 	if err != nil {
 		fatalExit(err)
 	}
-	ac.Account = *acc
+	ac.Account = acc
 	tx, err := ac.DeployContract(ctx, string(bin), abi, gasPrice, gasLimit, params...)
 	if err != nil {
 		fatalExit(fmt.Errorf("Error deploying contract: %v", err))
@@ -1729,7 +1736,7 @@ func DeploySol(ctx context.Context, network web3_client.Network,
 		return
 	}
 
-	ac.Account = *acc
+	ac.Account = acc
 	proxyTx, err := ac.DeployContract(ctx, assets.OwnerUpgradeableProxyCode(receipt.ContractAddress), "", gasPrice, gasLimit)
 	if err != nil {
 		log.Fatalf("Cannot deploy the upgradeable proxy contract: %v", err)
@@ -1831,28 +1838,6 @@ func VerifyContract(ctx context.Context, network web3_client.Network, explorerUR
 	fatalExit(fmt.Errorf("Cannot verify the contract: %s, error code: %v", errResp.Error.Message, resp.StatusCode))
 }
 
-func UpgradeContract(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, contractAddress, newTargetAddress string, amount *big.Int, timeoutInSeconds uint64) {
-	ac := web3_actions.NewWeb3ActionsClient(rpcURL)
-	ac.Dial()
-	defer ac.Close()
-	ac.SetChainID(chainID)
-	myabi, err := abi.JSON(strings.NewReader(assets.UpgradeableProxyABI))
-	if err != nil {
-		log.Fatalf("Cannot initialize ABI: %v", err)
-	}
-	tx, err := ac.CallTransactFunction(ctx, myabi, contractAddress, privateKey, "upgrade", amount, nil, 100000, newTargetAddress)
-	if err != nil {
-		log.Fatalf("Cannot upgrade the contract: %v", err)
-	}
-	ctx, cancelFn := context.WithTimeout(ctx, time.Duration(timeoutInSeconds)*time.Second)
-	defer cancelFn()
-	receipt, err := ac.WaitForReceipt(ctx, tx.Hash)
-	if err != nil {
-		log.Fatalf("Cannot get the receipt for transaction with hash '%v': %v", tx.Hash.Hex(), err)
-	}
-	fmt.Println("Transaction address:", receipt.TxHash.Hex())
-}
-
 func GetTargetContract(ctx context.Context, rpcURL, contractAddress string) {
 	ac := web3_actions.NewWeb3ActionsClient(rpcURL)
 	ac.Dial()
@@ -1874,51 +1859,6 @@ func GetTargetContract(ctx context.Context, rpcURL, contractAddress string) {
 	default:
 		log.Fatalf("Unexpected return: %#v", res)
 	}
-}
-
-func PauseContract(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, contractAddress string, amount *big.Int, timeoutInSeconds uint64) {
-	ac := web3_actions.NewWeb3ActionsClient(rpcURL)
-	ac.Dial()
-	defer ac.Close()
-	ac.SetChainID(chainID)
-	myabi, err := abi.JSON(strings.NewReader(assets.UpgradeableProxyABI))
-	if err != nil {
-		log.Fatalf("Cannot initialize ABI: %v", err)
-	}
-	tx, err := ac.CallTransactFunction(ctx, myabi, contractAddress, privateKey, "pause", amount, nil, 70000)
-	if err != nil {
-		log.Fatalf("Cannot pause the contract: %v", err)
-	}
-	ctx, cancelFn := context.WithTimeout(ctx, time.Duration(timeoutInSeconds)*time.Second)
-	defer cancelFn()
-	receipt, err := ac.WaitForReceipt(ctx, tx.Hash)
-	if err != nil {
-		log.Fatalf("Cannot get the receipt for transaction with hash '%v': %v", tx.Hash.Hex(), err)
-	}
-	fmt.Println("Transaction address:", receipt.TxHash.Hex())
-}
-
-func ResumeContract(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, contractAddress string, amount *big.Int, timeoutInSeconds uint64) {
-	ac := web3_actions.NewWeb3ActionsClient(rpcURL)
-	ac.Dial()
-	defer ac.Close()
-	ac.SetChainID(chainID)
-	myabi, err := abi.JSON(strings.NewReader(assets.UpgradeableProxyABI))
-	if err != nil {
-		log.Fatalf("Cannot initialize ABI: %v", err)
-	}
-	tx, err := ac.CallTransactFunction(ctx, myabi, contractAddress, privateKey, "resume", amount, nil, 70000)
-	if err != nil {
-		log.Fatalf("Cannot resume the contract: %v", err)
-	}
-	ctx, cancelFn := context.WithTimeout(ctx, time.Duration(timeoutInSeconds)*time.Second)
-	defer cancelFn()
-
-	receipt, err := ac.WaitForReceipt(ctx, tx.Hash)
-	if err != nil {
-		log.Fatalf("Cannot get the receipt for transaction with hash '%v': %v", tx.Hash.Hex(), err)
-	}
-	fmt.Println("Transaction address:", receipt.TxHash.Hex())
 }
 
 func marshalJSON(data interface{}) string {
@@ -1960,7 +1900,7 @@ func IPFSUpload(ctx context.Context, name string, data []byte) (string, error) {
 		Hash string
 		Size string
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&jsonResp); err != nil {
+	if err = json.NewDecoder(resp.Body).Decode(&jsonResp); err != nil {
 		return "", err
 	}
 	return jsonResp.Hash, nil

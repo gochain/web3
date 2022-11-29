@@ -2,7 +2,6 @@ package web3_actions
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"time"
@@ -18,14 +17,11 @@ var (
 	format  string
 )
 
-func marshalJSON(ctx context.Context, data interface{}) (string, error) {
-	b, err := json.MarshalIndent(data, "", "  ")
-	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("marshalJSON")
-		return "", err
-	}
-	return string(b), err
-}
+const (
+	ERC20     = "erc20"
+	Decimals  = "decimals"
+	BalanceOf = "balanceOf"
+)
 
 func ListContract(ctx context.Context, contractFile string) error {
 	myabi, err := web3_types.GetABI(contractFile)

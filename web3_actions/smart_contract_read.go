@@ -47,3 +47,19 @@ func (w *Web3Actions) CallConstantFunction(ctx context.Context, myabi abi.ABI, a
 	}
 	return convertOutputParams(vals), nil
 }
+
+func (w *Web3Actions) getContractDecimals(ctx context.Context, contractAddress string) (int32, error) {
+	decimals, derr := w.GetContractConst(ctx, contractAddress, "erc20", "decimals")
+	if derr != nil {
+		log.Ctx(ctx).Err(derr).Msg("Web3Actions: getContractDecimals")
+		return 0, derr
+	}
+	dLen := len(decimals)
+	if dLen != 1 {
+		err := errors.New("contract call has unexpected return slice size")
+		log.Ctx(ctx).Err(err).Interface("decimals", decimals).Msgf("Web3Actions: getContractDecimals slice len: %d", dLen)
+		return 0, derr
+	}
+	contractDecimals := int32(decimals[0].(uint8))
+	return contractDecimals, derr
+}
