@@ -8,21 +8,41 @@ import (
 	"time"
 
 	"github.com/gochain/gochain/v4/accounts/abi"
+	"github.com/gochain/gochain/v4/common"
 	"github.com/rs/zerolog/log"
 	"github.com/zeus-fyi/gochain/web3/assets"
 )
 
-func (w *Web3Actions) ResumeContract(ctx context.Context, chainID *big.Int, contractAddress string, amount *big.Int, timeoutInSeconds uint64) error {
+func (w *Web3Actions) ResumeContract(ctx context.Context, contractAddress string, amount *big.Int, timeoutInSeconds uint64) error {
 	w.Dial()
 	defer w.Close()
-	w.SetChainID(chainID)
+	err := w.GetAndSetChainID(ctx)
+	if err != nil {
+		log.Ctx(ctx).Err(err).Msg("Web3Actions: GetAndSetChainID")
+		return err
+	}
 	myabi, err := abi.JSON(strings.NewReader(assets.UpgradeableProxyABI))
 	if err != nil {
 		err = errors.New("cannot initialize ABI")
 		log.Ctx(ctx).Err(err).Msg("Web3Actions: ResumeContract")
 		return err
 	}
-	tx, err := w.CallTransactFunction(ctx, myabi, contractAddress, "resume", amount, nil, 70000)
+	gp := GasPriceLimits{
+		GasPrice: nil,
+		GasLimit: 70000,
+	}
+	payload := SendContractTxPayload{
+		SmartContractAddr: contractAddress,
+		MethodName:        Resume,
+		SendTxPayload: SendTxPayload{
+			TransferArgs: TransferArgs{
+				Amount:    amount,
+				ToAddress: common.Address{},
+			},
+			GasPriceLimits: gp,
+		},
+	}
+	tx, err := w.CallTransactFunction(ctx, myabi, payload)
 	if err != nil {
 		err = errors.New("cannot resume the contract")
 		log.Ctx(ctx).Err(err).Msg("Web3Actions: ResumeContract")

@@ -519,7 +519,22 @@ func main() {
 								fatalExit(err)
 							}
 						}
-						err = ac.CallContract(ctx, contractAddress, abiFile, function, amount, price, limit, waitForReceipt, c.Bool("to-string"), dataB, c.Uint64("timeout"), args...)
+						gp := web3_actions.GasPriceLimits{
+							GasPrice: price,
+							GasLimit: limit,
+						}
+
+						payload := web3_actions.SendContractTxPayload{
+							SmartContractAddr: contractAddress,
+							SendTxPayload: web3_actions.SendTxPayload{
+								TransferArgs: web3_actions.TransferArgs{
+									Amount:    amount,
+									ToAddress: common.Address{},
+								},
+								GasPriceLimits: gp,
+							},
+						}
+						err = ac.CallContract(ctx, abiFile, function, payload, waitForReceipt, dataB, c.Uint64("timeout"), args...)
 						if err != nil {
 							fatalExit(err)
 						}
@@ -589,7 +604,7 @@ func main() {
 					Action: func(c *cli.Context) {
 						amount := toAmountBig(c.String("amount"))
 						ac := web3_actions.NewWeb3ActionsClient(network.URL)
-						err := ac.UpgradeContract(ctx, network.ChainID, contractAddress, toContractAddress, amount, c.Uint64("timeout"))
+						err := ac.UpgradeContract(ctx, contractAddress, toContractAddress, amount, c.Uint64("timeout"))
 						if err != nil {
 							fatalExit(fmt.Errorf("cannot upgrade contract to new address:%v", err))
 						}
@@ -648,7 +663,7 @@ func main() {
 						}
 						amount := toAmountBig(c.String("amount"))
 						ac := web3_actions.NewWeb3ActionsClient(network.URL)
-						err := ac.PauseContract(ctx, network.ChainID, address, amount, c.Uint64("timeout"))
+						err := ac.PauseContract(ctx, address, amount, c.Uint64("timeout"))
 						if err != nil {
 							fatalExit(fmt.Errorf("cannot pause upgradeable contract:%v", err))
 						}
@@ -689,7 +704,7 @@ func main() {
 						ac := web3_actions.NewWeb3ActionsClient(network.URL)
 						ac.Dial()
 						defer ac.Close()
-						err := ac.ResumeContract(ctx, network.ChainID, address, amount, c.Uint64("timeout"))
+						err := ac.ResumeContract(ctx, address, amount, c.Uint64("timeout"))
 						if err != nil {
 							fatalExit(fmt.Errorf("cannot resume paused upgradeable contract"))
 						}
@@ -883,7 +898,22 @@ func main() {
 				}
 				price, limit := parseGasPriceAndLimit(c)
 				ac := web3_actions.NewWeb3ActionsClient(network.URL)
-				err := ac.Transfer(ctx, network.ChainID, contractAddress, price, limit, c.Bool("wait"), c.Bool("to-string"), c.Uint64("timeout"), c.Args())
+				gp := web3_actions.GasPriceLimits{
+					GasPrice: price,
+					GasLimit: limit,
+				}
+				argsIn, err := web3_actions.ConvertTailForTransfer(ctx, c.Args())
+				if err != nil {
+					fatalExit(err)
+				}
+				payload := web3_actions.SendContractTxPayload{
+					SmartContractAddr: contractAddress,
+					SendTxPayload: web3_actions.SendTxPayload{
+						TransferArgs:   argsIn,
+						GasPriceLimits: gp,
+					},
+				}
+				err = ac.Transfer(ctx, payload, c.Bool("wait"), c.Uint64("timeout"))
 				if err != nil {
 					fatalExit(err)
 				}
@@ -1642,14 +1672,14 @@ func BuildSol(ctx context.Context, filename, solcVersion, evmVersion string, opt
 
 	fmt.Println("Successfully compiled contracts and wrote the following files:")
 	fmt.Println("Source file", sourceFile)
-	for _, filename := range filenames {
-		fmt.Println("", filename+".bin,", filename+".abi")
+	for _, fn := range filenames {
+		fmt.Println("", fn+".bin,", fn+".abi")
 	}
 }
 
 func FlattenSol(ctx context.Context, iFile, oFile string) {
 	if iFile == "" {
-		fatalExit(errors.New("Missing file name arg"))
+		fatalExit(errors.New("missing file name arg"))
 	}
 	_, oFile, err := FlattenSourceFile(ctx, iFile, oFile)
 	if err != nil {
@@ -1712,7 +1742,7 @@ func DeploySol(ctx context.Context, network web3_client.Network,
 	defer cancelFn()
 	receipt, err := ac.WaitForReceipt(waitCtx, tx.Hash)
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot get the receipt for transaction with hash '%v': %v", tx.Hash.Hex(), err))
+		fatalExit(fmt.Errorf("cannot get the receipt for transaction with hash '%v': %v", tx.Hash.Hex(), err))
 	}
 
 	switch format {

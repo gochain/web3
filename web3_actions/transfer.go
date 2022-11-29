@@ -3,35 +3,35 @@ package web3_actions
 import (
 	"context"
 	"fmt"
-	"math/big"
 
-	"github.com/gochain/gochain/v4/common"
 	"github.com/rs/zerolog/log"
-	"github.com/shopspring/decimal"
-	"github.com/zeus-fyi/gochain/web3/types"
 )
 
-func (w *Web3Actions) Transfer(ctx context.Context, chainID *big.Int, contractAddress string, gasPrice *big.Int, gasLimit uint64, wait, toString bool, timeoutInSeconds uint64, tail []string) error {
+func (w *Web3Actions) GetAndSetChainID(ctx context.Context) error {
 	w.Dial()
 	defer w.Close()
-	amountD, toAddress, err := convertTailForTransfer(ctx, tail)
+	chainID, err := w.GetChainID(ctx)
 	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("Web3Actions: convertTailForTransfer")
-		return err
+		log.Ctx(ctx).Err(err).Msg("Transfer: GetChainID")
+		return fmt.Errorf("couldn't get chain ID: %v", err)
 	}
 	w.SetChainID(chainID)
-	if contractAddress != "" {
-		return w.transferToContract(ctx, contractAddress, toAddress, amountD, wait, toString, timeoutInSeconds)
-	}
-	amount := web3_types.DecToInt(amountD, 18)
-	err = ValidateToAddress(ctx, toAddress)
+	return err
+}
+
+func (w *Web3Actions) Transfer(ctx context.Context, payload SendContractTxPayload, wait bool, timeoutInSeconds uint64) error {
+	w.Dial()
+	defer w.Close()
+	err := w.GetAndSetChainID(ctx)
 	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("Transfer: ValidateToAddress")
+		log.Ctx(ctx).Err(err).Msg("Web3Actions: GetAndSetChainID")
 		return err
 	}
-	address := common.HexToAddress(toAddress)
-	params := constructSendEtherPayload(amount, address, gasPrice, gasLimit)
-	tx, err := w.Send(ctx, params)
+	if payload.SmartContractAddr != "" {
+		payload.MethodName = Transfer
+		return w.transferToContract(ctx, payload, wait, timeoutInSeconds)
+	}
+	tx, err := w.Send(ctx, payload.SendTxPayload)
 	if err != nil {
 		err = fmt.Errorf("cannot create transaction: %v", err)
 		log.Ctx(ctx).Err(err).Msg("Transfer: Send")
@@ -41,14 +41,10 @@ func (w *Web3Actions) Transfer(ctx context.Context, chainID *big.Int, contractAd
 	return err
 }
 
-func (w *Web3Actions) transferToContract(ctx context.Context, contractAddress, toAddress string, amountD decimal.Decimal, wait, toString bool, timeoutInSeconds uint64) error {
-	decimals, derr := w.getContractDecimals(ctx, contractAddress)
-	if derr != nil {
-		log.Ctx(ctx).Err(derr).Msg("Web3Actions: transferToContract")
-		return derr
-	}
-	relativeAmount := web3_types.DecToInt(amountD, decimals)
-	err := w.CallContract(ctx, contractAddress, "erc20", "transfer", &big.Int{}, nil, 70000, wait, toString, nil, timeoutInSeconds, toAddress, relativeAmount)
+func (w *Web3Actions) transferToContract(ctx context.Context, payload SendContractTxPayload, wait bool, timeoutInSeconds uint64) error {
+	payload.ContractFile = ERC20
+	payload.MethodName = Transfer
+	err := w.CallContract(ctx, payload, wait, nil, timeoutInSeconds)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("Transfer: CallContract")
 		return err

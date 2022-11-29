@@ -3,7 +3,6 @@ package web3_actions
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"reflect"
 
 	"github.com/gochain/gochain/v4/accounts/abi"
@@ -16,9 +15,8 @@ import (
 )
 
 // CallFunctionWithArgs submits a transaction to execute a smart contract function call.
-func (w *Web3Actions) CallFunctionWithArgs(ctx context.Context, address string,
-	amount *big.Int, gasPrice *big.Int, gasLimit uint64, myabi abi.ABI, functionName string, params ...interface{}) (*web3_types.Transaction, error) {
-	signedTx, err := w.GetSignedTxToCallFunctionWithArgs(ctx, address, amount, gasPrice, gasLimit, myabi, functionName, params...)
+func (w *Web3Actions) CallFunctionWithArgs(ctx context.Context, payload SendContractTxPayload, myabi abi.ABI) (*web3_types.Transaction, error) {
+	signedTx, err := w.GetSignedTxToCallFunctionWithArgs(ctx, payload, myabi)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("CallFunctionWithData: GetSignedTxToCallFunctionWithArgs")
 		return nil, err
@@ -27,9 +25,8 @@ func (w *Web3Actions) CallFunctionWithArgs(ctx context.Context, address string,
 }
 
 // CallFunctionWithData if you already have the encoded function data, then use this
-func (w *Web3Actions) CallFunctionWithData(ctx context.Context, address string,
-	amount *big.Int, gasPrice *big.Int, gasLimit uint64, data []byte) (*web3_types.Transaction, error) {
-	signedTx, err := w.GetSignedTxToCallFunctionWithData(ctx, address, amount, gasPrice, gasLimit, data)
+func (w *Web3Actions) CallFunctionWithData(ctx context.Context, payload SendContractTxPayload, data []byte) (*web3_types.Transaction, error) {
+	signedTx, err := w.GetSignedTxToCallFunctionWithData(ctx, payload, data)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("CallFunctionWithData: GetSignedTxToCallFunctionWithData")
 		return nil, err

@@ -16,10 +16,12 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-func constructSendEtherPayload(amount *big.Int, address common.Address, gasPrice *big.Int, gasLimit uint64) SendEtherPayload {
-	params := SendEtherPayload{
-		Amount:    amount,
-		ToAddress: address,
+func constructSendEtherPayload(amount *big.Int, address common.Address, gasPrice *big.Int, gasLimit uint64) SendTxPayload {
+	params := SendTxPayload{
+		TransferArgs: TransferArgs{
+			Amount:    amount,
+			ToAddress: address,
+		},
 		GasPriceLimits: GasPriceLimits{
 			GasPrice: gasPrice,
 			GasLimit: gasLimit,
@@ -42,21 +44,32 @@ func ValidateToAddress(ctx context.Context, toAddress string) error {
 	return nil
 }
 
-func convertTailForTransfer(ctx context.Context, tail []string) (decimal.Decimal, string, error) {
+func ConvertTailForTransfer(ctx context.Context, tail []string) (TransferArgs, error) {
 	if len(tail) < 3 {
 		err := errors.New("invalid arguments. format is: `transfer X to ADDRESS`")
 		log.Ctx(ctx).Err(err).Msg("Web3Actions: Transfer")
-		return decimal.Decimal{}, "", err
+		return TransferArgs{}, err
 	}
 	amountS := tail[0]
 	amountD, err := decimal.NewFromString(amountS)
 	if err != nil {
 		err = fmt.Errorf("invalid amount %v", amountS)
 		log.Ctx(ctx).Err(err).Msg("Transfer: decimal.NewFromString")
-		return decimal.Decimal{}, "", err
+		return TransferArgs{}, err
 	}
 	toAddress := tail[2]
-	return amountD, toAddress, err
+
+	err = ValidateToAddress(ctx, toAddress)
+	if err != nil {
+		log.Ctx(ctx).Err(err).Msg("Transfer: ValidateToAddress")
+		return TransferArgs{}, err
+	}
+	address := common.HexToAddress(toAddress)
+	argsIn := TransferArgs{
+		Amount:    amountD.BigInt(),
+		ToAddress: address,
+	}
+	return argsIn, err
 }
 
 func marshalJSON(ctx context.Context, data interface{}) (string, error) {

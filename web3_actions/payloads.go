@@ -6,10 +6,22 @@ import (
 	"github.com/gochain/gochain/v4/common"
 )
 
-type SendEtherPayload struct {
+type SendContractTxPayload struct {
+	SmartContractAddr string
+	SendTxPayload
+	ContractFile string
+	MethodName   string
+	Params       []interface{}
+}
+
+type SendTxPayload struct {
+	TransferArgs
+	GasPriceLimits
+}
+
+type TransferArgs struct {
 	Amount    *big.Int
 	ToAddress common.Address
-	GasPriceLimits
 }
 
 type GasPriceLimits struct {
