@@ -14,7 +14,7 @@ func (w *Web3Actions) ReadERC20TokenBalance(ctx context.Context, contractAddress
 	payload := SendContractTxPayload{
 		SmartContractAddr: contractAddress,
 		ContractFile:      ERC20,
-		SendTxPayload:     SendTxPayload{},
+		SendEtherPayload:  SendEtherPayload{},
 		MethodName:        Decimals,
 	}
 	decimals, err := w.ReadERC20TokenDecimals(ctx, payload)

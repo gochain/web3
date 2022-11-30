@@ -25,7 +25,7 @@ func (w *Web3Actions) ResumeContract(ctx context.Context, contractAddress string
 	payload := SendContractTxPayload{
 		SmartContractAddr: contractAddress,
 		MethodName:        Resume,
-		SendTxPayload: SendTxPayload{
+		SendEtherPayload: SendEtherPayload{
 			TransferArgs: TransferArgs{
 				Amount:    amount,
 				ToAddress: common.Address{},

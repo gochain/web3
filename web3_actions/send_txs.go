@@ -13,7 +13,7 @@ import (
 )
 
 // Send performs a regular native coin transaction (not a contract)
-func (w *Web3Actions) Send(ctx context.Context, params SendTxPayload) (*web3_types.Transaction, error) {
+func (w *Web3Actions) Send(ctx context.Context, params SendEtherPayload) (*web3_types.Transaction, error) {
 	w.Dial()
 	defer w.Close()
 	signedTx, err := w.GetSignedSendTx(ctx, params)

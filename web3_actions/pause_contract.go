@@ -26,7 +26,7 @@ func (w *Web3Actions) PauseContract(ctx context.Context, contractAddress string,
 	payload := SendContractTxPayload{
 		SmartContractAddr: contractAddress,
 		MethodName:        Pause,
-		SendTxPayload: SendTxPayload{
+		SendEtherPayload: SendEtherPayload{
 			TransferArgs: TransferArgs{
 				Amount:    amount,
 				ToAddress: common.Address{},

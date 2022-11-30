@@ -20,7 +20,7 @@ func (w *Web3Actions) GetTargetContract(ctx context.Context, rpcURL, contractAdd
 	}
 	payload := SendContractTxPayload{
 		SmartContractAddr: contractAddress,
-		SendTxPayload:     SendTxPayload{},
+		SendEtherPayload:  SendEtherPayload{},
 		MethodName:        "target",
 		Params:            nil,
 	}

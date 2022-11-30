@@ -32,7 +32,7 @@ func (w *Web3Actions) UpgradeContract(ctx context.Context, contractAddress, newT
 	payload := SendContractTxPayload{
 		SmartContractAddr: contractAddress,
 		MethodName:        Upgrade,
-		SendTxPayload: SendTxPayload{
+		SendEtherPayload: SendEtherPayload{
 			TransferArgs: TransferArgs{
 				Amount:    amount,
 				ToAddress: common.Address{},

@@ -525,7 +525,7 @@ func main() {
 
 						payload := web3_actions.SendContractTxPayload{
 							SmartContractAddr: contractAddress,
-							SendTxPayload: web3_actions.SendTxPayload{
+							SendEtherPayload: web3_actions.SendEtherPayload{
 								TransferArgs: web3_actions.TransferArgs{
 									Amount:    amount,
 									ToAddress: common.Address{},
@@ -912,7 +912,7 @@ func main() {
 				}
 				payload := web3_actions.SendContractTxPayload{
 					SmartContractAddr: contractAddress,
-					SendTxPayload: web3_actions.SendTxPayload{
+					SendEtherPayload: web3_actions.SendEtherPayload{
 						TransferArgs:   argsIn,
 						GasPriceLimits: gp,
 					},
