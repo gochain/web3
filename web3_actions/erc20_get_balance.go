@@ -11,28 +11,37 @@ import (
 )
 
 func (w *Web3Actions) ReadERC20TokenBalance(ctx context.Context, contractAddress, addrHash string) (decimal.Decimal, error) {
-
 	payload := SendContractTxPayload{
 		SmartContractAddr: contractAddress,
 		ContractFile:      ERC20,
 		SendTxPayload:     SendTxPayload{},
 		MethodName:        Decimals,
-		Params:            []interface{}{addrHash},
 	}
-	decimals, err := w.GetContractConst(ctx, payload)
+	decimals, err := w.ReadERC20TokenDecimals(ctx, payload)
 	if err != nil {
+		log.Ctx(ctx).Err(err).Msg("ReadERC20TokenBalance")
 		return decimal.Decimal{}, err
 	}
 	// fmt.Println("DECIMALS:", decimals, reflect.TypeOf(decimals))
 	// todo: could get symbol here to display
 	payload.MethodName = BalanceOf
+	payload.Params = []interface{}{addrHash}
 	balance, err := w.GetContractConst(ctx, payload)
 	if err != nil {
+		log.Ctx(ctx).Err(err).Msg("ReadERC20TokenBalance")
 		return decimal.Decimal{}, err
 	}
 	// fmt.Println("BALANCE:", balance, reflect.TypeOf(balance))
-	fmt.Println(web3_types.IntToDec(balance[0].(*big.Int), int32(decimals[0].(uint8))))
+	fmt.Println(web3_types.IntToDec(balance[0].(*big.Int), decimals))
 
-	log.Ctx(ctx).Info().Msgf("BALANCE:", web3_types.IntToDec(balance[0].(*big.Int), int32(decimals[0].(uint8))))
-	return web3_types.IntToDec(balance[0].(*big.Int), int32(decimals[0].(uint8))), err
+	log.Ctx(ctx).Info().Msgf("BALANCE:", web3_types.IntToDec(balance[0].(*big.Int), decimals))
+	return web3_types.IntToDec(balance[0].(*big.Int), decimals), err
+}
+func (w *Web3Actions) ReadERC20TokenDecimals(ctx context.Context, payload SendContractTxPayload) (int32, error) {
+	payload.Params = []interface{}{}
+	decimals, err := w.GetContractConst(ctx, payload)
+	if err != nil {
+		return 0, err
+	}
+	return int32(decimals[0].(uint8)), err
 }
