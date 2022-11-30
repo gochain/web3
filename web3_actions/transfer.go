@@ -3,6 +3,7 @@ package web3_actions
 import (
 	"context"
 	"fmt"
+	"math/big"
 
 	"github.com/rs/zerolog/log"
 )
@@ -19,7 +20,7 @@ func (w *Web3Actions) GetAndSetChainID(ctx context.Context) error {
 	return err
 }
 
-func (w *Web3Actions) Transfer(ctx context.Context, payload SendContractTxPayload, wait bool, timeoutInSeconds uint64) error {
+func (w *Web3Actions) TransferToken(ctx context.Context, payload SendContractTxPayload, wait bool, timeoutInSeconds uint64) error {
 	w.Dial()
 	defer w.Close()
 	err := w.GetAndSetChainID(ctx)
@@ -34,22 +35,16 @@ func (w *Web3Actions) Transfer(ctx context.Context, payload SendContractTxPayloa
 	}
 	if payload.SmartContractAddr != "" {
 		payload.MethodName = Transfer
-		return w.transferToContract(ctx, payload, wait, timeoutInSeconds)
+		return w.transferToken(ctx, &payload, wait, timeoutInSeconds)
 	}
-	tx, err := w.Send(ctx, payload.SendTxPayload)
-	if err != nil {
-		err = fmt.Errorf("cannot create transaction: %v", err)
-		log.Ctx(ctx).Err(err).Msg("Transfer: Send")
-		return err
-	}
-	log.Ctx(ctx).Info().Interface("txHash", tx.Hash.Hex()).Msg("Transfer: txHash")
 	return err
 }
 
-func (w *Web3Actions) transferToContract(ctx context.Context, payload SendContractTxPayload, wait bool, timeoutInSeconds uint64) error {
+func (w *Web3Actions) transferToken(ctx context.Context, payload *SendContractTxPayload, wait bool, timeoutInSeconds uint64) error {
 	payload.ContractFile = ERC20
 	payload.MethodName = Transfer
 	payload.Params = []interface{}{payload.ToAddress, payload.Amount}
+	payload.Amount = &big.Int{}
 	err := w.CallContract(ctx, payload, wait, nil, timeoutInSeconds)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("Transfer: CallContract")

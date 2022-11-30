@@ -43,7 +43,7 @@ func (w *Web3Actions) PauseContract(ctx context.Context, contractAddress string,
 			GasPriceLimits: gp,
 		},
 	}
-	tx, err := w.CallTransactFunction(ctx, myabi, payload)
+	tx, err := w.CallTransactFunction(ctx, myabi, &payload)
 	if err != nil {
 		err = errors.New("cannot pause the contract")
 		log.Ctx(ctx).Err(err).Msg("Web3Actions: PauseContract")

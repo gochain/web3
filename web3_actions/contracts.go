@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gochain/gochain/v4/accounts/abi"
+	"github.com/gochain/gochain/v4/common"
 	"github.com/rs/zerolog/log"
 	web3_types "github.com/zeus-fyi/gochain/web3/types"
 )
@@ -45,7 +46,7 @@ func ListContract(ctx context.Context, contractFile string) error {
 	return err
 }
 
-func (w *Web3Actions) GetContractConst(ctx context.Context, payload SendContractTxPayload) ([]interface{}, error) {
+func (w *Web3Actions) GetContractConst(ctx context.Context, payload *SendContractTxPayload) ([]interface{}, error) {
 	w.Dial()
 	defer w.Close()
 	myabi, err := web3_types.GetABI(payload.ContractFile)
@@ -73,7 +74,7 @@ func (w *Web3Actions) GetContractConst(ctx context.Context, payload SendContract
 }
 
 func (w *Web3Actions) CallContract(ctx context.Context,
-	payload SendContractTxPayload, waitForReceipt bool, data []byte, timeoutInSeconds uint64) error {
+	payload *SendContractTxPayload, waitForReceipt bool, data []byte, timeoutInSeconds uint64) error {
 	w.Dial()
 	defer w.Close()
 	var err error
@@ -133,10 +134,15 @@ func (w *Web3Actions) CallContract(ctx context.Context,
 	if !waitForReceipt {
 		return err
 	}
+
+	return w.waitForConfirmation(ctx, myabi, tx.Hash, timeoutInSeconds)
+}
+
+func (w *Web3Actions) waitForConfirmation(ctx context.Context, myabi *abi.ABI, tx common.Hash, timeoutInSeconds uint64) error {
 	fmt.Println("Waiting for receipt...")
 	ctx, cancelFunc := context.WithTimeout(ctx, time.Duration(timeoutInSeconds)*time.Second)
 	defer cancelFunc()
-	receipt, err := w.WaitForReceipt(ctx, tx.Hash)
+	receipt, err := w.WaitForReceipt(ctx, tx)
 	if err != nil {
 		err = fmt.Errorf("getting receipt: %v", err)
 		log.Ctx(ctx).Err(err).Msg("CallContract: CallTransactFunction")
@@ -151,6 +157,6 @@ func (w *Web3Actions) CallContract(ctx context.Context,
 }
 
 func (w *Web3Actions) CallTransactFunction(ctx context.Context, myabi abi.ABI,
-	payload SendContractTxPayload) (*web3_types.Transaction, error) {
+	payload *SendContractTxPayload) (*web3_types.Transaction, error) {
 	return w.CallFunctionWithArgs(ctx, payload, myabi)
 }

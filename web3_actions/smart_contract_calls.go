@@ -15,7 +15,7 @@ import (
 )
 
 // CallFunctionWithArgs submits a transaction to execute a smart contract function call.
-func (w *Web3Actions) CallFunctionWithArgs(ctx context.Context, payload SendContractTxPayload, myabi abi.ABI) (*web3_types.Transaction, error) {
+func (w *Web3Actions) CallFunctionWithArgs(ctx context.Context, payload *SendContractTxPayload, myabi abi.ABI) (*web3_types.Transaction, error) {
 	signedTx, err := w.GetSignedTxToCallFunctionWithArgs(ctx, payload, myabi)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("CallFunctionWithData: GetSignedTxToCallFunctionWithArgs")
@@ -25,7 +25,7 @@ func (w *Web3Actions) CallFunctionWithArgs(ctx context.Context, payload SendCont
 }
 
 // CallFunctionWithData if you already have the encoded function data, then use this
-func (w *Web3Actions) CallFunctionWithData(ctx context.Context, payload SendContractTxPayload, data []byte) (*web3_types.Transaction, error) {
+func (w *Web3Actions) CallFunctionWithData(ctx context.Context, payload *SendContractTxPayload, data []byte) (*web3_types.Transaction, error) {
 	signedTx, err := w.GetSignedTxToCallFunctionWithData(ctx, payload, data)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("CallFunctionWithData: GetSignedTxToCallFunctionWithData")

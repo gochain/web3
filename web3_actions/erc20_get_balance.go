@@ -26,7 +26,7 @@ func (w *Web3Actions) ReadERC20TokenBalance(ctx context.Context, contractAddress
 	// todo: could get symbol here to display
 	payload.MethodName = BalanceOf
 	payload.Params = []interface{}{addrHash}
-	balance, err := w.GetContractConst(ctx, payload)
+	balance, err := w.GetContractConst(ctx, &payload)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("ReadERC20TokenBalance")
 		return decimal.Decimal{}, err
@@ -37,9 +37,10 @@ func (w *Web3Actions) ReadERC20TokenBalance(ctx context.Context, contractAddress
 	log.Ctx(ctx).Info().Msgf("BALANCE:", web3_types.IntToDec(balance[0].(*big.Int), decimals))
 	return web3_types.IntToDec(balance[0].(*big.Int), decimals), err
 }
+
 func (w *Web3Actions) ReadERC20TokenDecimals(ctx context.Context, payload SendContractTxPayload) (int32, error) {
 	payload.Params = []interface{}{}
-	decimals, err := w.GetContractConst(ctx, payload)
+	decimals, err := w.GetContractConst(ctx, &payload)
 	if err != nil {
 		return 0, err
 	}

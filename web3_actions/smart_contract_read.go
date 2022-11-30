@@ -13,7 +13,7 @@ import (
 )
 
 // CallConstantFunction executes a contract function call without submitting a transaction.
-func (w *Web3Actions) CallConstantFunction(ctx context.Context, myabi abi.ABI, payload SendContractTxPayload) ([]interface{}, error) {
+func (w *Web3Actions) CallConstantFunction(ctx context.Context, myabi abi.ABI, payload *SendContractTxPayload) ([]interface{}, error) {
 	if payload.SmartContractAddr == "" {
 		err := errors.New("no contract address specified")
 		log.Ctx(ctx).Err(err).Msg("CallConstantFunction")
@@ -57,7 +57,7 @@ func (w *Web3Actions) GetContractDecimals(ctx context.Context, contractAddress s
 		MethodName:        Decimals,
 		Params:            nil,
 	}
-	decimals, derr := w.GetContractConst(ctx, payload)
+	decimals, derr := w.GetContractConst(ctx, &payload)
 	if derr != nil {
 		log.Ctx(ctx).Err(derr).Msg("Web3Actions: GetContractDecimals")
 		return 0, derr

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gochain/gochain/v4/accounts/abi"
+	"github.com/gochain/gochain/v4/common"
 	"github.com/gochain/gochain/v4/core/types"
 	"github.com/gochain/gochain/v4/crypto"
 	"github.com/rs/zerolog/log"
@@ -12,7 +13,7 @@ import (
 )
 
 // GetSignedTxToCallFunctionWithData prepares the tx for broadcast
-func (w *Web3Actions) GetSignedTxToCallFunctionWithData(ctx context.Context, payload SendContractTxPayload, data []byte) (*types.Transaction, error) {
+func (w *Web3Actions) GetSignedTxToCallFunctionWithData(ctx context.Context, payload *SendContractTxPayload, data []byte) (*types.Transaction, error) {
 	var err error
 	w.Dial()
 	defer w.Close()
@@ -34,7 +35,7 @@ func (w *Web3Actions) GetSignedTxToCallFunctionWithData(ctx context.Context, pay
 		log.Ctx(ctx).Err(err).Msg("CallFunctionWithData: GetPendingTransactionCount")
 		return nil, fmt.Errorf("cannot get nonce: %v", err)
 	}
-	tx := types.NewTransaction(nonce, payload.ToAddress, payload.Amount, payload.GasLimit, payload.GasPrice, data)
+	tx := types.NewTransaction(nonce, common.HexToAddress(payload.SmartContractAddr), payload.Amount, payload.GasLimit, payload.GasPrice, data)
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), w.EcdsaPrivateKey())
 	if err != nil {
 		err = fmt.Errorf("cannot sign transaction: %v", err)
@@ -45,7 +46,7 @@ func (w *Web3Actions) GetSignedTxToCallFunctionWithData(ctx context.Context, pay
 }
 
 // GetSignedTxToCallFunctionWithArgs prepares the tx for broadcast
-func (w *Web3Actions) GetSignedTxToCallFunctionWithArgs(ctx context.Context, payload SendContractTxPayload, myabi abi.ABI) (*types.Transaction, error) {
+func (w *Web3Actions) GetSignedTxToCallFunctionWithArgs(ctx context.Context, payload *SendContractTxPayload, myabi abi.ABI) (*types.Transaction, error) {
 	fn := myabi.Methods[payload.MethodName]
 	goParams, err := web3_types.ConvertArguments(fn.Inputs, payload.Params)
 	if err != nil {
