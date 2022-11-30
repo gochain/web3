@@ -8,7 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (w *Web3Actions) GetSignedSendTx(ctx context.Context, params SendTxPayload) (*types.Transaction, error) {
+func (w *Web3Actions) GetSignedSendTx(ctx context.Context, params SendEtherPayload) (*types.Transaction, error) {
 	w.Dial()
 	defer w.Close()
 	err := w.SetGasPriceAndLimit(ctx, &params.GasPriceLimits)

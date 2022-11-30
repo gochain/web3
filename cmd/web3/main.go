@@ -20,7 +20,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gochain/gochain/v4/accounts/abi"
 	"github.com/gochain/gochain/v4/accounts/keystore"
 	"github.com/gochain/gochain/v4/common"
 	"github.com/gochain/gochain/v4/common/hexutil"
@@ -526,7 +525,7 @@ func main() {
 
 						payload := web3_actions.SendContractTxPayload{
 							SmartContractAddr: contractAddress,
-							SendTxPayload: web3_actions.SendTxPayload{
+							SendEtherPayload: web3_actions.SendEtherPayload{
 								TransferArgs: web3_actions.TransferArgs{
 									Amount:    amount,
 									ToAddress: common.Address{},
@@ -534,7 +533,7 @@ func main() {
 								GasPriceLimits: gp,
 							},
 						}
-						err = ac.CallContract(ctx, abiFile, function, payload, waitForReceipt, dataB, c.Uint64("timeout"), args...)
+						err = ac.CallContract(ctx, &payload, waitForReceipt, dataB, c.Uint64("timeout"))
 						if err != nil {
 							fatalExit(err)
 						}
@@ -642,7 +641,12 @@ func main() {
 					Name:  "target",
 					Usage: "Return target address of upgradeable proxy",
 					Action: func(c *cli.Context) {
-						GetTargetContract(ctx, network.URL, contractAddress)
+						ac := web3_actions.NewWeb3ActionsClient(network.URL)
+						addr, err := ac.GetTargetContract(ctx, network.URL, contractAddress)
+						if err != nil {
+							fatalExit(fmt.Errorf("cannot upgrade contract to new address:%v", err))
+						}
+						fmt.Println(addr)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -908,12 +912,12 @@ func main() {
 				}
 				payload := web3_actions.SendContractTxPayload{
 					SmartContractAddr: contractAddress,
-					SendTxPayload: web3_actions.SendTxPayload{
+					SendEtherPayload: web3_actions.SendEtherPayload{
 						TransferArgs:   argsIn,
 						GasPriceLimits: gp,
 					},
 				}
-				err = ac.Transfer(ctx, payload, c.Bool("wait"), c.Uint64("timeout"))
+				err = ac.TransferERC20Token(ctx, payload, c.Bool("wait"), c.Uint64("timeout"))
 				if err != nil {
 					fatalExit(err)
 				}
@@ -1866,29 +1870,6 @@ func VerifyContract(ctx context.Context, network web3_client.Network, explorerUR
 		fatalExit(fmt.Errorf("cannot parse the error message: %v", err))
 	}
 	fatalExit(fmt.Errorf("Cannot verify the contract: %s, error code: %v", errResp.Error.Message, resp.StatusCode))
-}
-
-func GetTargetContract(ctx context.Context, rpcURL, contractAddress string) {
-	ac := web3_actions.NewWeb3ActionsClient(rpcURL)
-	ac.Dial()
-	defer ac.Close()
-	myabi, err := abi.JSON(strings.NewReader(assets.UpgradeableProxyABI))
-	if err != nil {
-		log.Fatalf("Cannot initialize ABI: %v", err)
-	}
-	res, err := ac.CallConstantFunction(ctx, myabi, contractAddress, "target")
-	if err != nil {
-		log.Fatalf("Cannot upgrade the contract: %v", err)
-	}
-	if len(res) != 1 {
-		log.Fatalf("Expected single result but got: %v", res)
-	}
-	switch res := res[0].(type) {
-	case common.Address:
-		fmt.Println(res.String())
-	default:
-		log.Fatalf("Unexpected return: %#v", res)
-	}
 }
 
 func marshalJSON(data interface{}) string {

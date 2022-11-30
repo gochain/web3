@@ -23,10 +23,10 @@ func (w *Web3Actions) TransferERC20Token(ctx context.Context, payload SendContra
 	return w.transferToken(ctx, &payload, wait, timeoutInSeconds)
 }
 
+// transferToken requires you to place the amounts in the params, payload amount otherwise is payable
 func (w *Web3Actions) transferToken(ctx context.Context, payload *SendContractTxPayload, wait bool, timeoutInSeconds uint64) error {
 	payload.ContractFile = ERC20
 	payload.MethodName = Transfer
-	payload.Params = []interface{}{payload.ToAddress, payload.Amount}
 	payload.Amount = &big.Int{}
 	err := w.CallContract(ctx, payload, wait, nil, timeoutInSeconds)
 	if err != nil {
@@ -34,5 +34,4 @@ func (w *Web3Actions) transferToken(ctx context.Context, payload *SendContractTx
 		return err
 	}
 	return err
-
 }

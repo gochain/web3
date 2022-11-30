@@ -32,7 +32,7 @@ func (w *Web3Actions) UpgradeContract(ctx context.Context, contractAddress, newT
 	payload := SendContractTxPayload{
 		SmartContractAddr: contractAddress,
 		MethodName:        Upgrade,
-		SendTxPayload: SendTxPayload{
+		SendEtherPayload: SendEtherPayload{
 			TransferArgs: TransferArgs{
 				Amount:    amount,
 				ToAddress: common.Address{},
@@ -41,7 +41,7 @@ func (w *Web3Actions) UpgradeContract(ctx context.Context, contractAddress, newT
 		},
 		Params: []interface{}{newTargetAddress},
 	}
-	tx, err := w.CallTransactFunction(ctx, myabi, &payload)
+	tx, err := w.CallTransactFunction(ctx, &payload)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Interface("tx", tx).Msg("UpgradeContract: Cannot upgrade the contract")
 		return err

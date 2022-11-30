@@ -16,8 +16,8 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-func constructSendEtherPayload(amount *big.Int, address common.Address, gasPrice *big.Int, gasLimit uint64) SendTxPayload {
-	params := SendTxPayload{
+func constructSendEtherPayload(amount *big.Int, address common.Address, gasPrice *big.Int, gasLimit uint64) SendEtherPayload {
+	params := SendEtherPayload{
 		TransferArgs: TransferArgs{
 			Amount:    amount,
 			ToAddress: address,

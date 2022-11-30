@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gochain/gochain/v4/accounts/abi"
 	"github.com/gochain/gochain/v4/common"
 	"github.com/gochain/gochain/v4/core/types"
 	"github.com/gochain/gochain/v4/crypto"
@@ -46,7 +45,24 @@ func (w *Web3Actions) GetSignedTxToCallFunctionWithData(ctx context.Context, pay
 }
 
 // GetSignedTxToCallFunctionWithArgs prepares the tx for broadcast
-func (w *Web3Actions) GetSignedTxToCallFunctionWithArgs(ctx context.Context, payload *SendContractTxPayload, myabi abi.ABI) (*types.Transaction, error) {
+func (w *Web3Actions) GetSignedTxToCallFunctionWithArgs(ctx context.Context, payload *SendContractTxPayload) (*types.Transaction, error) {
+	w.Dial()
+	defer w.Close()
+	err := w.GetAndSetChainID(ctx)
+	if err != nil {
+		log.Ctx(ctx).Err(err).Msg("Web3Actions: GetAndSetChainID")
+		return nil, err
+	}
+	err = w.SetGasPriceAndLimit(ctx, &payload.GasPriceLimits)
+	if err != nil {
+		log.Ctx(ctx).Err(err).Msg("Web3Actions: Transfer: SetGasPriceAndLimit")
+		return nil, err
+	}
+	myabi, err := web3_types.GetABI(payload.ContractFile)
+	if err != nil {
+		log.Ctx(ctx).Err(err).Msg("CallContract: GetABI")
+		return nil, err
+	}
 	fn := myabi.Methods[payload.MethodName]
 	goParams, err := web3_types.ConvertArguments(fn.Inputs, payload.Params)
 	if err != nil {

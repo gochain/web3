@@ -53,7 +53,7 @@ func (w *Web3Actions) GetContractDecimals(ctx context.Context, contractAddress s
 	payload := SendContractTxPayload{
 		SmartContractAddr: contractAddress,
 		ContractFile:      ERC20,
-		SendTxPayload:     SendTxPayload{},
+		SendEtherPayload:  SendEtherPayload{},
 		MethodName:        Decimals,
 		Params:            nil,
 	}

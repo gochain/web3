@@ -8,13 +8,13 @@ import (
 
 type SendContractTxPayload struct {
 	SmartContractAddr string
-	SendTxPayload
-	ContractFile string
-	MethodName   string
-	Params       []interface{}
+	SendEtherPayload  // payable would be an amount, otherwise for tokens use the params field
+	ContractFile      string
+	MethodName        string
+	Params            []interface{}
 }
 
-type SendTxPayload struct {
+type SendEtherPayload struct {
 	TransferArgs
 	GasPriceLimits
 }
