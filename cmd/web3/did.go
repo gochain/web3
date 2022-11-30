@@ -95,7 +95,11 @@ func CreateDID(ctx context.Context, rpcURL string, chainID *big.Int, privateKey,
 	copy(idBytes32[:], d.ID)
 
 	ac.Account = acc
-	tx, err := ac.CallTransactFunction(ctx, myabi, registryAddress, "register", &big.Int{}, nil, 70000, idBytes32, hash)
+	gp := web3_actions.GasPriceLimits{
+		GasPrice: nil,
+		GasLimit: 70000,
+	}
+	tx, err := ac.CallTransactFunction(ctx, myabi, registryAddress, "register", &big.Int{}, gp, idBytes32, hash)
 	if err != nil {
 		log.Fatalf("Cannot register DID identifier: %v", err)
 	}

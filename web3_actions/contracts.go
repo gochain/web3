@@ -2,12 +2,11 @@ package web3_actions
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"math/big"
 	"time"
 
 	"github.com/gochain/gochain/v4/accounts/abi"
+	"github.com/gochain/gochain/v4/common"
 	"github.com/rs/zerolog/log"
 	web3_types "github.com/zeus-fyi/gochain/web3/types"
 )
@@ -18,14 +17,15 @@ var (
 	format  string
 )
 
-func marshalJSON(ctx context.Context, data interface{}) (string, error) {
-	b, err := json.MarshalIndent(data, "", "  ")
-	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("marshalJSON")
-		return "", err
-	}
-	return string(b), err
-}
+const (
+	ERC20     = "erc20"
+	Transfer  = "transfer"
+	Decimals  = "decimals"
+	BalanceOf = "balanceOf"
+	Pause     = "pause"
+	Resume    = "resume"
+	Upgrade   = "upgrade"
+)
 
 func ListContract(ctx context.Context, contractFile string) error {
 	myabi, err := web3_types.GetABI(contractFile)
@@ -46,17 +46,17 @@ func ListContract(ctx context.Context, contractFile string) error {
 	return err
 }
 
-func (w *Web3Actions) GetContractConst(ctx context.Context, contractAddress, contractFile, functionName string, parameters ...interface{}) ([]interface{}, error) {
+func (w *Web3Actions) GetContractConst(ctx context.Context, payload *SendContractTxPayload) ([]interface{}, error) {
 	w.Dial()
 	defer w.Close()
-	myabi, err := web3_types.GetABI(contractFile)
+	myabi, err := web3_types.GetABI(payload.ContractFile)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("GetContractConst: GetABI")
 		return nil, err
 	}
-	fn, ok := myabi.Methods[functionName]
+	fn, ok := myabi.Methods[payload.MethodName]
 	if !ok {
-		err = fmt.Errorf("there is no such function: %v", functionName)
+		err = fmt.Errorf("there is no such function: %v", payload.MethodName)
 		log.Ctx(ctx).Err(err).Msg("GetContractConst: myabi.Methods")
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (w *Web3Actions) GetContractConst(ctx context.Context, contractAddress, con
 		log.Ctx(ctx).Err(err).Msg("GetContractConst: !IsConstant")
 		return nil, err
 	}
-	res, err := w.CallConstantFunction(ctx, *myabi, contractAddress, functionName, parameters...)
+	res, err := w.CallConstantFunction(ctx, *myabi, payload)
 	if err != nil {
 		err = fmt.Errorf("error calling constant function: %v", err)
 		log.Ctx(ctx).Err(err).Msg("GetContractConst: CallConstantFunction")
@@ -73,23 +73,23 @@ func (w *Web3Actions) GetContractConst(ctx context.Context, contractAddress, con
 	return res, nil
 }
 
-func (w *Web3Actions) CallContract(ctx context.Context, contractAddress, abiFile, functionName string,
-	amount *big.Int, gasPrice *big.Int, gasLimit uint64, waitForReceipt, toString bool, data []byte, timeoutInSeconds uint64, parameters ...interface{}) error {
+func (w *Web3Actions) CallContract(ctx context.Context,
+	payload *SendContractTxPayload, waitForReceipt bool, data []byte, timeoutInSeconds uint64) error {
 	w.Dial()
 	defer w.Close()
 	var err error
 	var tx *web3_types.Transaction
 	var myabi *abi.ABI
 	if len(data) > 0 {
-		tx, err = w.CallFunctionWithData(ctx, contractAddress, amount, gasPrice, gasLimit, data)
+		tx, err = w.CallFunctionWithData(ctx, payload, data)
 	} else {
 		// var m abi.Method
-		myabi, err = web3_types.GetABI(abiFile)
+		myabi, err = web3_types.GetABI(payload.ContractFile)
 		if err != nil {
 			log.Ctx(ctx).Err(err).Msg("CallContract: GetABI")
 			return err
 		}
-		m, ok := myabi.Methods[functionName]
+		m, ok := myabi.Methods[payload.MethodName]
 		if !ok {
 			err = fmt.Errorf("error calling constant function: %v", err)
 			log.Ctx(ctx).Err(err).Msg("CallContract: GetABI")
@@ -97,7 +97,7 @@ func (w *Web3Actions) CallContract(ctx context.Context, contractAddress, abiFile
 		}
 
 		if m.IsConstant() {
-			res, cerr := w.CallConstantFunction(ctx, *myabi, contractAddress, functionName, parameters...)
+			res, cerr := w.CallConstantFunction(ctx, *myabi, payload)
 			if cerr != nil {
 				cerr = fmt.Errorf("error calling constant function: %v", cerr)
 				log.Ctx(ctx).Err(cerr).Msg("CallContract: CallConstantFunction")
@@ -114,12 +114,6 @@ func (w *Web3Actions) CallContract(ctx context.Context, contractAddress, abiFile
 				fmt.Println(marshalJSON(ctx, hashMap))
 				return err
 			}
-			if toString {
-				for i := range res {
-					fmt.Printf("%s\n", res[i])
-				}
-				return err
-			}
 			for _, r := range res {
 				// These explicit checks ensure we get hex encoded output.
 				if s, okay := r.(fmt.Stringer); okay {
@@ -129,7 +123,7 @@ func (w *Web3Actions) CallContract(ctx context.Context, contractAddress, abiFile
 			}
 			return err
 		}
-		tx, err = w.CallTransactFunction(ctx, *myabi, contractAddress, functionName, amount, gasPrice, gasLimit, parameters...)
+		tx, err = w.CallTransactFunction(ctx, *myabi, payload)
 		if err != nil {
 			log.Ctx(ctx).Err(err).Msg("CallContract: CallTransactFunction")
 			return err
@@ -140,10 +134,15 @@ func (w *Web3Actions) CallContract(ctx context.Context, contractAddress, abiFile
 	if !waitForReceipt {
 		return err
 	}
+
+	return w.waitForConfirmation(ctx, myabi, tx.Hash, timeoutInSeconds)
+}
+
+func (w *Web3Actions) waitForConfirmation(ctx context.Context, myabi *abi.ABI, tx common.Hash, timeoutInSeconds uint64) error {
 	fmt.Println("Waiting for receipt...")
 	ctx, cancelFunc := context.WithTimeout(ctx, time.Duration(timeoutInSeconds)*time.Second)
 	defer cancelFunc()
-	receipt, err := w.WaitForReceipt(ctx, tx.Hash)
+	receipt, err := w.WaitForReceipt(ctx, tx)
 	if err != nil {
 		err = fmt.Errorf("getting receipt: %v", err)
 		log.Ctx(ctx).Err(err).Msg("CallContract: CallTransactFunction")
@@ -157,7 +156,7 @@ func (w *Web3Actions) CallContract(ctx context.Context, contractAddress, abiFile
 	return err
 }
 
-func (w *Web3Actions) CallTransactFunction(ctx context.Context, myabi abi.ABI, address, functionName string,
-	amount *big.Int, gasPrice *big.Int, gasLimit uint64, params ...interface{}) (*web3_types.Transaction, error) {
-	return w.CallFunctionWithArgs(ctx, address, amount, gasPrice, gasLimit, myabi, functionName, params...)
+func (w *Web3Actions) CallTransactFunction(ctx context.Context, myabi abi.ABI,
+	payload *SendContractTxPayload) (*web3_types.Transaction, error) {
+	return w.CallFunctionWithArgs(ctx, payload, myabi)
 }

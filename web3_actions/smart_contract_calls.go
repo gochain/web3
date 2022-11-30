@@ -3,7 +3,6 @@ package web3_actions
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"reflect"
 
 	"github.com/gochain/gochain/v4/accounts/abi"
@@ -16,9 +15,8 @@ import (
 )
 
 // CallFunctionWithArgs submits a transaction to execute a smart contract function call.
-func (w *Web3Actions) CallFunctionWithArgs(ctx context.Context, address string,
-	amount *big.Int, gasPrice *big.Int, gasLimit uint64, myabi abi.ABI, functionName string, params ...interface{}) (*web3_types.Transaction, error) {
-	signedTx, err := w.GetSignedTxToCallFunctionWithArgs(ctx, address, amount, gasPrice, gasLimit, myabi, functionName, params...)
+func (w *Web3Actions) CallFunctionWithArgs(ctx context.Context, payload *SendContractTxPayload, myabi abi.ABI) (*web3_types.Transaction, error) {
+	signedTx, err := w.GetSignedTxToCallFunctionWithArgs(ctx, payload, myabi)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("CallFunctionWithData: GetSignedTxToCallFunctionWithArgs")
 		return nil, err
@@ -27,9 +25,8 @@ func (w *Web3Actions) CallFunctionWithArgs(ctx context.Context, address string,
 }
 
 // CallFunctionWithData if you already have the encoded function data, then use this
-func (w *Web3Actions) CallFunctionWithData(ctx context.Context, address string,
-	amount *big.Int, gasPrice *big.Int, gasLimit uint64, data []byte) (*web3_types.Transaction, error) {
-	signedTx, err := w.GetSignedTxToCallFunctionWithData(ctx, address, amount, gasPrice, gasLimit, data)
+func (w *Web3Actions) CallFunctionWithData(ctx context.Context, payload *SendContractTxPayload, data []byte) (*web3_types.Transaction, error) {
+	signedTx, err := w.GetSignedTxToCallFunctionWithData(ctx, payload, data)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("CallFunctionWithData: GetSignedTxToCallFunctionWithData")
 		return nil, err
@@ -50,23 +47,23 @@ func (w *Web3Actions) CallFunctionWithData(ctx context.Context, address string,
 }
 
 func convertOutputParams(params []interface{}) []interface{} {
-	for i := range params {
-		p := params[i]
+	for ind := range params {
+		p := params[ind]
 		if h, ok := p.(common.Hash); ok {
-			params[i] = h
+			params[ind] = h
 		} else if a, okAddr := p.(common.Address); okAddr {
-			params[i] = a
+			params[ind] = a
 		} else if b, okBytes := p.(hexutil.Bytes); okBytes {
-			params[i] = b
+			params[ind] = b
 		} else if v := reflect.ValueOf(p); v.Kind() == reflect.Array {
 			if t := v.Type(); t.Elem().Kind() == reflect.Uint8 {
-				b := make([]byte, t.Len())
-				bv := reflect.ValueOf(b)
+				ba := make([]byte, t.Len())
+				bv := reflect.ValueOf(ba)
 				// Copy since we can't t.Slice() unaddressable arrays.
 				for i := 0; i < t.Len(); i++ {
 					bv.Index(i).Set(v.Index(i))
 				}
-				params[i] = hexutil.Bytes(b)
+				params[ind] = hexutil.Bytes(ba)
 			}
 		}
 	}
