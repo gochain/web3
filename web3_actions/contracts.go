@@ -123,7 +123,7 @@ func (w *Web3Actions) CallContract(ctx context.Context,
 			}
 			return err
 		}
-		tx, err = w.CallTransactFunction(ctx, *myabi, payload)
+		tx, err = w.CallTransactFunction(ctx, payload)
 		if err != nil {
 			log.Ctx(ctx).Err(err).Msg("CallContract: CallTransactFunction")
 			return err
@@ -156,7 +156,6 @@ func (w *Web3Actions) waitForConfirmation(ctx context.Context, myabi *abi.ABI, t
 	return err
 }
 
-func (w *Web3Actions) CallTransactFunction(ctx context.Context, myabi abi.ABI,
-	payload *SendContractTxPayload) (*web3_types.Transaction, error) {
-	return w.CallFunctionWithArgs(ctx, payload, myabi)
+func (w *Web3Actions) CallTransactFunction(ctx context.Context, payload *SendContractTxPayload) (*web3_types.Transaction, error) {
+	return w.CallFunctionWithArgs(ctx, payload)
 }

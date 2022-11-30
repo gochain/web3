@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/gochain/gochain/v4/accounts/abi"
 	"github.com/gochain/gochain/v4/common"
 	"github.com/gochain/gochain/v4/common/hexutil"
 	"github.com/gochain/gochain/v4/crypto"
@@ -15,8 +14,8 @@ import (
 )
 
 // CallFunctionWithArgs submits a transaction to execute a smart contract function call.
-func (w *Web3Actions) CallFunctionWithArgs(ctx context.Context, payload *SendContractTxPayload, myabi abi.ABI) (*web3_types.Transaction, error) {
-	signedTx, err := w.GetSignedTxToCallFunctionWithArgs(ctx, payload, myabi)
+func (w *Web3Actions) CallFunctionWithArgs(ctx context.Context, payload *SendContractTxPayload) (*web3_types.Transaction, error) {
+	signedTx, err := w.GetSignedTxToCallFunctionWithArgs(ctx, payload)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("CallFunctionWithData: GetSignedTxToCallFunctionWithArgs")
 		return nil, err
