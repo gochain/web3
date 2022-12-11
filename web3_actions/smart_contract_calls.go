@@ -58,7 +58,7 @@ func convertOutputParams(params []interface{}) []interface{} {
 			if t := v.Type(); t.Elem().Kind() == reflect.Uint8 {
 				ba := make([]byte, t.Len())
 				bv := reflect.ValueOf(ba)
-				// Copy since we can't t.Slice() unaddressable arrays.
+				// RsyncBucket since we can't t.Slice() unaddressable arrays.
 				for i := 0; i < t.Len(); i++ {
 					bv.Index(i).Set(v.Index(i))
 				}
