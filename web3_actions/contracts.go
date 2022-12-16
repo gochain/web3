@@ -19,6 +19,7 @@ var (
 
 const (
 	ValidatorDeposits = "validatorDeposits"
+	Deposit           = "deposit"
 	ERC20             = "erc20"
 	Transfer          = "transfer"
 	Decimals          = "decimals"
