@@ -15,24 +15,24 @@ import (
 
 // GetABI accepts either built in contracts (erc20, erc721), a file location or a URL
 func GetABI(abiFile string) (*abi.ABI, error) {
-	abi, err := ABIBuiltIn(abiFile)
+	abiContract, err := ABIBuiltIn(abiFile)
 	if err != nil {
 		log.Err(err).Msg("GetABI: ABIBuiltIn")
-		return nil, fmt.Errorf("Cannot get ABI from the bundled storage: %v", err)
+		return nil, fmt.Errorf("cannot get ABI from the bundled storage: %v", err)
 	}
-	if abi != nil {
-		return abi, nil
+	if abiContract != nil {
+		return abiContract, nil
 	}
-	abi, err = ABIOpenFile(abiFile)
+	abiContract, err = ABIOpenFile(abiFile)
 	if err == nil {
 		log.Err(err).Msg("GetABI: ABIOpenFile")
-		return abi, nil
+		return abiContract, nil
 	}
 	// else most likely just not found, log it?
-	abi, err = ABIOpenURL(abiFile)
+	abiContract, err = ABIOpenURL(abiFile)
 	if err == nil {
 		log.Err(err).Msg("GetABI: ABIOpenURL")
-		return abi, nil
+		return abiContract, nil
 	}
 	return nil, err
 }
@@ -81,5 +81,7 @@ func readAbi(reader io.Reader) (*abi.ABI, error) {
 }
 
 var bundledContracts = map[string]string{
-	"erc20":  assets.ERC20ABI,
-	"erc721": assets.ERC721ABI}
+	"erc20":             assets.ERC20ABI,
+	"erc721":            assets.ERC721ABI,
+	"validatorDeposits": assets.ValidatorDeposits,
+}
