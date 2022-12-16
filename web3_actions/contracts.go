@@ -18,13 +18,14 @@ var (
 )
 
 const (
-	ERC20     = "erc20"
-	Transfer  = "transfer"
-	Decimals  = "decimals"
-	BalanceOf = "balanceOf"
-	Pause     = "pause"
-	Resume    = "resume"
-	Upgrade   = "upgrade"
+	ValidatorDeposits = "validatorDeposits"
+	ERC20             = "erc20"
+	Transfer          = "transfer"
+	Decimals          = "decimals"
+	BalanceOf         = "balanceOf"
+	Pause             = "pause"
+	Resume            = "resume"
+	Upgrade           = "upgrade"
 )
 
 func ListContract(ctx context.Context, contractFile string) error {
