@@ -49,11 +49,18 @@ func ListContract(ctx context.Context, contractFile string) error {
 func (w *Web3Actions) GetContractConst(ctx context.Context, payload *SendContractTxPayload) ([]interface{}, error) {
 	w.Dial()
 	defer w.Close()
-	myabi, err := web3_types.GetABI(payload.ContractFile)
-	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("GetContractConst: GetABI")
-		return nil, err
+
+	myabi := payload.ContractABI
+	if myabi == nil {
+		abiInternal, aerr := web3_types.GetABI(payload.ContractFile)
+		if aerr != nil {
+			log.Ctx(ctx).Err(aerr).Msg("CallContract: GetABI")
+			return nil, aerr
+		}
+		myabi = abiInternal
 	}
+
+	var err error
 	fn, ok := myabi.Methods[payload.MethodName]
 	if !ok {
 		err = fmt.Errorf("there is no such function: %v", payload.MethodName)
@@ -84,10 +91,14 @@ func (w *Web3Actions) CallContract(ctx context.Context,
 		tx, err = w.CallFunctionWithData(ctx, payload, data)
 	} else {
 		// var m abi.Method
-		myabi, err = web3_types.GetABI(payload.ContractFile)
-		if err != nil {
-			log.Ctx(ctx).Err(err).Msg("CallContract: GetABI")
-			return err
+		myabi = payload.ContractABI
+		if myabi == nil {
+			abiInternal, aerr := web3_types.GetABI(payload.ContractFile)
+			if aerr != nil {
+				log.Ctx(ctx).Err(aerr).Msg("CallContract: GetABI")
+				return aerr
+			}
+			myabi = abiInternal
 		}
 		m, ok := myabi.Methods[payload.MethodName]
 		if !ok {
