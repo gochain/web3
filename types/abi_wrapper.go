@@ -17,7 +17,7 @@ func GetABI(abiFile string) (*abi.ABI, error) {
 	abiIn, err := ABIBuiltIn(abiFile)
 	if err != nil {
 		log.Err(err).Msg("GetABI: ABIBuiltIn")
-		return nil, fmt.Errorf("Cannot get ABI from the bundled storage: %v", err)
+		return nil, fmt.Errorf("cannot get ABI from the bundled storage: %v", err)
 	}
 	if abiIn != nil {
 		return abiIn, nil
