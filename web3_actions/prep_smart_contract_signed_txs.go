@@ -58,11 +58,17 @@ func (w *Web3Actions) GetSignedTxToCallFunctionWithArgs(ctx context.Context, pay
 		log.Ctx(ctx).Err(err).Msg("Web3Actions: Transfer: SetGasPriceAndLimit")
 		return nil, err
 	}
-	myabi, err := web3_types.GetABI(payload.ContractFile)
-	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("CallContract: GetABI")
-		return nil, err
+
+	myabi := payload.ContractABI
+	if myabi == nil {
+		abiInternal, aerr := web3_types.GetABI(payload.ContractFile)
+		if aerr != nil {
+			log.Ctx(ctx).Err(aerr).Msg("CallContract: GetABI")
+			return nil, aerr
+		}
+		myabi = abiInternal
 	}
+
 	fn := myabi.Methods[payload.MethodName]
 	goParams, err := web3_types.ConvertArguments(fn.Inputs, payload.Params)
 	if err != nil {

@@ -3,7 +3,6 @@ package web3_types
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -15,24 +14,24 @@ import (
 
 // GetABI accepts either built in contracts (erc20, erc721), a file location or a URL
 func GetABI(abiFile string) (*abi.ABI, error) {
-	abiContract, err := ABIBuiltIn(abiFile)
+	abiIn, err := ABIBuiltIn(abiFile)
 	if err != nil {
 		log.Err(err).Msg("GetABI: ABIBuiltIn")
 		return nil, fmt.Errorf("cannot get ABI from the bundled storage: %v", err)
 	}
-	if abiContract != nil {
-		return abiContract, nil
+	if abiIn != nil {
+		return abiIn, nil
 	}
-	abiContract, err = ABIOpenFile(abiFile)
+	abiIn, err = ABIOpenFile(abiFile)
 	if err == nil {
 		log.Err(err).Msg("GetABI: ABIOpenFile")
-		return abiContract, nil
+		return abiIn, nil
 	}
 	// else most likely just not found, log it?
-	abiContract, err = ABIOpenURL(abiFile)
+	abiIn, err = ABIOpenURL(abiFile)
 	if err == nil {
 		log.Err(err).Msg("GetABI: ABIOpenURL")
-		return abiContract, nil
+		return abiIn, nil
 	}
 	return nil, err
 }
@@ -61,7 +60,7 @@ func ABIOpenURL(abiFile string) (*abi.ABI, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		bodyBytes, berr := ioutil.ReadAll(resp.Body)
+		bodyBytes, berr := io.ReadAll(resp.Body)
 		if berr != nil {
 			log.Err(berr).Msg("ABIOpenURL: ReadAll")
 			return nil, berr
@@ -72,16 +71,14 @@ func ABIOpenURL(abiFile string) (*abi.ABI, error) {
 }
 
 func readAbi(reader io.Reader) (*abi.ABI, error) {
-	abi, err := abi.JSON(reader)
+	abiIn, err := abi.JSON(reader)
 	if err != nil {
 		log.Err(err).Msg("readAbi:  abi.JSON")
 		return nil, err
 	}
-	return &abi, nil
+	return &abiIn, nil
 }
 
 var bundledContracts = map[string]string{
-	"erc20":             assets.ERC20ABI,
-	"erc721":            assets.ERC721ABI,
-	"validatorDeposits": assets.ValidatorDeposits,
-}
+	"erc20":  assets.ERC20ABI,
+	"erc721": assets.ERC721ABI}
