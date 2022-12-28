@@ -98,7 +98,7 @@ func downloadFile(ctx context.Context, url string) ([]byte, error) {
 	defer response.Body.Close()
 	_, err = io.Copy(&dst, response.Body)
 	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("downloadFile: RsyncBucket")
+		log.Ctx(ctx).Err(err).Msg("downloadFile: Copy")
 		return nil, err
 	}
 	return dst.Bytes(), nil
