@@ -3,7 +3,6 @@ module github.com/zeus-fyi/gochain/web3
 go 1.19
 
 require (
-	github.com/gochain/gochain/v4 v4.1.0
 	github.com/rs/zerolog v1.28.0
 	github.com/shopspring/decimal v1.3.1
 	github.com/treeder/gotils/v2 v2.0.18
@@ -16,12 +15,15 @@ require (
 	github.com/allegro/bigcache v1.2.1 // indirect
 	github.com/aristanetworks/goarista v0.0.0-20210319202508-5b0c587084ea // indirect
 	github.com/btcsuite/btcd v0.21.0-beta // indirect
+	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
 	github.com/cespare/cp v1.1.1 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deckarep/golang-set v1.8.0 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
 	github.com/edsrzf/mmap-go v1.1.0 // indirect
+	github.com/ethereum/go-ethereum v1.10.26 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
@@ -32,9 +34,9 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d // indirect
-	github.com/huin/goupnp v1.0.1-0.20200620063722-49508fba0031 // indirect
-	github.com/jackpal/go-nat-pmp v1.0.2-0.20160603034137-1fa385a6f458 // indirect
-	github.com/karalabe/usb v0.0.0-20191104083709-911d15fe12a9 // indirect
+	github.com/huin/goupnp v1.0.3 // indirect
+	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
+	github.com/karalabe/usb v0.0.2 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect

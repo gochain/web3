@@ -210,6 +210,16 @@ func (c *client) GetTransactionReceipt(ctx context.Context, hash common.Hash) (*
 	return r, err
 }
 
+// SuggestGasTipCap retrieves the currently suggested gas tip cap after 1559 to
+// allow a timely execution of a transaction.
+func (c *client) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
+	var hex hexutil.Big
+	if err := c.r.CallContext(ctx, &hex, "eth_maxPriorityFeePerGas"); err != nil {
+		return nil, err
+	}
+	return (*big.Int)(&hex), nil
+}
+
 func (c *client) GetGasPrice(ctx context.Context) (*big.Int, error) {
 	var hex hexutil.Big
 	if err := c.r.CallContext(ctx, &hex, "eth_gasPrice"); err != nil {
