@@ -159,6 +159,7 @@ type Transaction struct {
 	BlockHash        common.Hash
 	TransactionIndex uint64
 }
+
 type Event struct {
 	Name   string                 `json:"name"`
 	Fields map[string]interface{} `json:"fields"`

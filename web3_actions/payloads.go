@@ -30,3 +30,11 @@ type GasPriceLimits struct {
 	GasPrice *big.Int
 	GasLimit uint64
 }
+type CallMsg struct {
+	From     *common.Address // the sender of the 'transaction'
+	To       *common.Address // the destination contract (nil for contract creation)
+	Gas      uint64          // if 0, the call executes with near-infinite gas
+	GasPrice *big.Int        // wei <-> gas exchange ratio
+	Value    *big.Int        // amount of wei sent along with the call
+	Data     []byte          // input data, usually an ABI-encoded contract method invocation
+}

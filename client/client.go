@@ -42,6 +42,8 @@ type Client interface {
 	GetChainID(ctx context.Context) (*big.Int, error)
 	// GetNetworkID returns the network id.
 	GetNetworkID(ctx context.Context) (*big.Int, error)
+	// GetGasPriceEstimateForTx returns the estimated gas cost for a given transcation
+	GetGasPriceEstimateForTx(ctx context.Context, msg web3_types.CallMsg) (*big.Int, error)
 	// GetGasPrice returns a suggested gas price.
 	GetGasPrice(ctx context.Context) (*big.Int, error)
 	// GetPendingTransactionCount returns the transaction count including pending txs.
@@ -220,6 +222,15 @@ func (c *client) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
 	return (*big.Int)(&hex), nil
 }
 
+func (c *client) GetGasPriceEstimateForTx(ctx context.Context, msg web3_types.CallMsg) (*big.Int, error) {
+	var hex hexutil.Big
+	if err := c.r.CallContext(ctx, &hex, "eth_estimateGas", toCallArg(msg)); err != nil {
+		zlog.Err(err).Msg("GetGasPriceEstimateForTx: CallContext")
+		return nil, err
+	}
+	return (*big.Int)(&hex), nil
+}
+
 func (c *client) GetGasPrice(ctx context.Context) (*big.Int, error) {
 	var hex hexutil.Big
 	if err := c.r.CallContext(ctx, &hex, "eth_gasPrice"); err != nil {
@@ -243,7 +254,7 @@ func (c *client) getTransactionCount(ctx context.Context, account common.Address
 }
 
 func (c *client) SendRawTransaction(ctx context.Context, tx []byte) error {
-	return c.r.CallContext(ctx, nil, "eth_sendRawTransaction", common.ToHex(tx))
+	return c.r.CallContext(ctx, nil, "eth_sendRawTransaction", hexutil.Encode(tx))
 }
 
 func (c *client) getBlock(ctx context.Context, method string, hashOrNum string, includeTxs bool) (*web3_types.Block, error) {
