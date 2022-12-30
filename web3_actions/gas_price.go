@@ -3,7 +3,6 @@ package web3_actions
 import (
 	"context"
 	"fmt"
-	"math/big"
 
 	"github.com/rs/zerolog/log"
 )
@@ -23,16 +22,6 @@ func (w *Web3Actions) SetGasPriceAndLimit(ctx context.Context, params *GasPriceL
 			return fmt.Errorf("cannot get gas price: %v", gerr)
 		}
 		params.GasPrice = gasPrice
-	}
-
-	// checks that gas limit is not less than gas price, else makes them equal
-	glBigInt := big.Int{}
-	glBigInt.SetUint64(params.GasLimit)
-	b := big.Int{}
-	diff := b.Sub(&glBigInt, params.GasPrice)
-	if diff.Sign() == -1 {
-		glBigInt.SetUint64(params.GasPrice.Uint64())
-		params.GasLimit = glBigInt.Uint64()
 	}
 	return nil
 }
