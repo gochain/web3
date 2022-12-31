@@ -99,7 +99,19 @@ func CreateDID(ctx context.Context, rpcURL string, chainID *big.Int, privateKey,
 		GasPrice: nil,
 		GasLimit: 70000,
 	}
-	tx, err := ac.CallTransactFunction(ctx, myabi, registryAddress, "register", &big.Int{}, gp, idBytes32, hash)
+
+	scp := &web3_actions.SendContractTxPayload{
+		SmartContractAddr: registryAddress,
+		SendEtherPayload: web3_actions.SendEtherPayload{
+			TransferArgs:   web3_actions.TransferArgs{},
+			GasPriceLimits: gp,
+		},
+		ContractFile: "",
+		ContractABI:  &myabi,
+		MethodName:   "register",
+		Params:       []interface{}{&big.Int{}, gp, idBytes32, hash},
+	}
+	tx, err := ac.CallTransactFunction(ctx, scp)
 	if err != nil {
 		log.Fatalf("Cannot register DID identifier: %v", err)
 	}
@@ -142,7 +154,15 @@ func DIDOwner(ctx context.Context, rpcURL, privateKey, id, registryAddress strin
 	var idBytes32 [32]byte
 	copy(idBytes32[:], d.ID)
 
-	result, err := ac.CallConstantFunction(ctx, myabi, registryAddress, "owner", idBytes32)
+	scp := &web3_actions.SendContractTxPayload{
+		SmartContractAddr: "",
+		SendEtherPayload:  web3_actions.SendEtherPayload{},
+		ContractFile:      "",
+		ContractABI:       &myabi,
+		MethodName:        "owner",
+		Params:            []interface{}{idBytes32},
+	}
+	result, err := ac.CallConstantFunction(ctx, scp)
 	if err != nil {
 		log.Fatalf("Cannot call the contract: %v", err)
 	}
@@ -175,7 +195,15 @@ func DIDHash(ctx context.Context, rpcURL, privateKey, id, registryAddress string
 	var idBytes32 [32]byte
 	copy(idBytes32[:], d.ID)
 
-	result, err := ac.CallConstantFunction(ctx, myabi, registryAddress, "hash", idBytes32)
+	scp := &web3_actions.SendContractTxPayload{
+		SmartContractAddr: registryAddress,
+		SendEtherPayload:  web3_actions.SendEtherPayload{},
+		ContractFile:      "",
+		ContractABI:       &myabi,
+		MethodName:        "hash",
+		Params:            []interface{}{idBytes32},
+	}
+	result, err := ac.CallConstantFunction(ctx, scp)
 	if err != nil {
 		log.Fatalf("Cannot call the contract: %v", err)
 	}
@@ -377,7 +405,15 @@ func readDIDDocument(ctx context.Context, rpcURL, registryAddress, id string) (*
 	var idBytes32 [32]byte
 	copy(idBytes32[:], d.ID)
 
-	result, err := ac.CallConstantFunction(ctx, myabi, registryAddress, "hash", idBytes32)
+	scp := &web3_actions.SendContractTxPayload{
+		SmartContractAddr: registryAddress,
+		SendEtherPayload:  web3_actions.SendEtherPayload{},
+		ContractFile:      "",
+		ContractABI:       &myabi,
+		MethodName:        "hash",
+		Params:            []interface{}{idBytes32},
+	}
+	result, err := ac.CallConstantFunction(ctx, scp)
 	if err != nil {
 		return nil, fmt.Errorf("Cannot call the contract: %v", err)
 	}

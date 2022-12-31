@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/gochain/gochain/v4/accounts/abi"
 	"github.com/gochain/gochain/v4/common"
 	"github.com/gochain/gochain/v4/common/hexutil"
 	"github.com/rs/zerolog/log"
@@ -13,19 +12,19 @@ import (
 )
 
 // CallConstantFunction executes a contract function call without submitting a transaction.
-func (w *Web3Actions) CallConstantFunction(ctx context.Context, myabi abi.ABI, payload *SendContractTxPayload) ([]interface{}, error) {
+func (w *Web3Actions) CallConstantFunction(ctx context.Context, payload *SendContractTxPayload) ([]interface{}, error) {
 	if payload.SmartContractAddr == "" {
 		err := errors.New("no contract address specified")
 		log.Ctx(ctx).Err(err).Msg("CallConstantFunction")
 		return nil, err
 	}
-	fn := myabi.Methods[payload.MethodName]
+	fn := payload.ContractABI.Methods[payload.MethodName]
 	goParams, err := web3_types.ConvertArguments(fn.Inputs, payload.Params)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("CallConstantFunction: ConvertArguments")
 		return nil, err
 	}
-	input, err := myabi.Pack(payload.MethodName, goParams...)
+	input, err := payload.ContractABI.Pack(payload.MethodName, goParams...)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("CallConstantFunction: myabi.Pack")
 		return nil, fmt.Errorf("failed to pack values: %v", err)
