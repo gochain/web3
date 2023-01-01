@@ -71,7 +71,8 @@ func (w *Web3Actions) GetContractConst(ctx context.Context, payload *SendContrac
 		log.Ctx(ctx).Err(err).Msg("GetContractConst: !IsConstant")
 		return nil, err
 	}
-	res, err := w.CallConstantFunction(ctx, *myabi, payload)
+
+	res, err := w.CallConstantFunction(ctx, payload)
 	if err != nil {
 		err = fmt.Errorf("error calling constant function: %v", err)
 		log.Ctx(ctx).Err(err).Msg("GetContractConst: CallConstantFunction")
@@ -108,7 +109,7 @@ func (w *Web3Actions) CallContract(ctx context.Context,
 		}
 
 		if m.IsConstant() {
-			res, cerr := w.CallConstantFunction(ctx, *myabi, payload)
+			res, cerr := w.CallConstantFunction(ctx, payload)
 			if cerr != nil {
 				cerr = fmt.Errorf("error calling constant function: %v", cerr)
 				log.Ctx(ctx).Err(cerr).Msg("CallContract: CallConstantFunction")

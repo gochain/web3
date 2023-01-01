@@ -20,11 +20,12 @@ func (w *Web3Actions) GetTargetContract(ctx context.Context, rpcURL, contractAdd
 	}
 	payload := SendContractTxPayload{
 		SmartContractAddr: contractAddress,
+		ContractABI:       &myabi,
 		SendEtherPayload:  SendEtherPayload{},
 		MethodName:        "target",
 		Params:            nil,
 	}
-	res, err := ac.CallConstantFunction(ctx, myabi, &payload)
+	res, err := ac.CallConstantFunction(ctx, &payload)
 	if err != nil {
 		return "", err
 	}
