@@ -1,6 +1,6 @@
 module github.com/zeus-fyi/gochain/web3
 
-go 1.19
+go 1.20
 
 require (
 	github.com/gochain/gochain/v4 v4.1.0
