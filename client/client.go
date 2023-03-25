@@ -55,6 +55,7 @@ type Client interface {
 	Call(ctx context.Context, msg web3_types.CallMsg) ([]byte, error)
 	Close()
 	SetChainID(*big.Int)
+	SetHeader(ctx context.Context, key string, value string)
 }
 
 // Dial returns a new client backed by dialing url (supported schemes "http", "https", "ws" and "wss").
@@ -70,6 +71,10 @@ func Dial(url string) (Client, error) {
 // NewClient returns a new client backed by an existing rpc.Client.
 func NewClient(r *rpc.Client) Client {
 	return &client{r: r}
+}
+
+func (c *client) SetHeader(ctx context.Context, key, value string) {
+	c.r.SetHeader(key, value)
 }
 
 type client struct {
