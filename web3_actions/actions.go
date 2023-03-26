@@ -1,6 +1,8 @@
 package web3_actions
 
 import (
+	"context"
+
 	"github.com/zeus-fyi/gochain/web3/accounts"
 	web3_client "github.com/zeus-fyi/gochain/web3/client"
 )
@@ -8,6 +10,7 @@ import (
 type Web3Actions struct {
 	web3_client.Client
 	*accounts.Account
+	Headers map[string]string
 	NodeURL string
 	Network string
 }
@@ -18,6 +21,9 @@ func (w *Web3Actions) Dial() {
 		panic(err)
 	}
 	w.Client = c
+	for k, h := range w.Headers {
+		w.Client.SetHeader(context.Background(), k, h)
+	}
 }
 
 func NewWeb3ActionsClient(nodeUrl string) Web3Actions {
