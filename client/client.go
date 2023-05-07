@@ -34,6 +34,8 @@ type Client interface {
 	GetTransactionByHash(ctx context.Context, hash common.Hash) (*web3_types.Transaction, error)
 	// GetSnapshot returns the latest clique snapshot.
 	GetSnapshot(ctx context.Context) (*web3_types.Snapshot, error)
+	// GetTxPoolContent returns tx_mempool content.
+	GetTxPoolContent(ctx context.Context) (map[string]map[string]map[string]*web3_types.RpcTransaction, error)
 	// GetID returns unique identifying information for the network.
 	GetID(ctx context.Context) (*web3_types.ID, error)
 	// GetTransactionReceipt returns the receipt for a transaction hash.
@@ -110,6 +112,15 @@ func (c *client) GetCode(ctx context.Context, address string, blockNumber *big.I
 		return result, err
 	}
 	return result, err
+}
+
+func (c *client) GetTxPoolContent(ctx context.Context) (map[string]map[string]map[string]*web3_types.RpcTransaction, error) {
+	var txPool map[string]map[string]map[string]*web3_types.RpcTransaction
+	if err := c.r.CallContext(ctx, &txPool, "txpool_content"); err != nil {
+		zlog.Err(err).Msg("GetTxPoolContent: CallContext")
+		return nil, err
+	}
+	return txPool, nil
 }
 
 func (c *client) GetBlockByNumber(ctx context.Context, number *big.Int, includeTxs bool) (*web3_types.Block, error) {

@@ -169,17 +169,19 @@ func (r *RpcBlock) CopyFrom(b *Block) error {
 }
 
 type RpcTransaction struct {
-	Nonce    *hexutil.Uint64 `json:"nonce"`
-	GasPrice *hexutil.Big    `json:"gasPrice"`
-	GasLimit *hexutil.Uint64 `json:"gas"`
-	To       *common.Address `json:"to"`
-	Value    *hexutil.Big    `json:"value"`
-	Input    *hexutil.Bytes  `json:"input"`
-	From     *common.Address `json:"from"`
-	V        *hexutil.Big    `json:"v"`
-	R        *hexutil.Big    `json:"r"`
-	S        *hexutil.Big    `json:"s"`
-	Hash     *common.Hash    `json:"hash"`
+	Nonce     *hexutil.Uint64 `json:"nonce"`
+	GasPrice  *hexutil.Big    `json:"gasPrice"`
+	GasLimit  *hexutil.Uint64 `json:"gas"`
+	GasFeeCap *hexutil.Big    `json:"maxFeePerGas,omitempty"`
+	GasTipCap *hexutil.Big    `json:"maxPriorityFeePerGas,omitempty"`
+	To        *common.Address `json:"to"`
+	Value     *hexutil.Big    `json:"value"`
+	Input     *hexutil.Bytes  `json:"input"`
+	From      *common.Address `json:"from"`
+	V         *hexutil.Big    `json:"v"`
+	R         *hexutil.Big    `json:"r"`
+	S         *hexutil.Big    `json:"s"`
+	Hash      *common.Hash    `json:"hash"`
 
 	BlockNumber      *hexutil.Big    `json:"blockNumber,omitempty"`
 	BlockHash        *common.Hash    `json:"blockHash,omitempty"`
