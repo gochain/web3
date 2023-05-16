@@ -199,7 +199,7 @@ func (c *client) GetBlockNumber(ctx context.Context) (*big.Int, error) {
 		zlog.Err(err).Msg("GetBlockNumber: CallContext")
 		return nil, err
 	}
-	number, _ := new(big.Int).SetString(result.String(), 10)
+	number := new(big.Int).SetUint64(uint64(result))
 	return number, err
 }
 
