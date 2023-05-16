@@ -42,6 +42,8 @@ type Client interface {
 	GetTransactionReceipt(ctx context.Context, hash common.Hash) (*web3_types.Receipt, error)
 	// GetChainID returns the chain id for the network.
 	GetChainID(ctx context.Context) (*big.Int, error)
+	// GetBlockNumber returns the number of most recent block the client is on.
+	GetBlockNumber(ctx context.Context) (*big.Int, error)
 	// GetNetworkID returns the network id.
 	GetNetworkID(ctx context.Context) (*big.Int, error)
 	// GetGasPriceEstimateForTx returns the estimated gas cost for a given transcation
@@ -96,6 +98,12 @@ func (c *client) Call(ctx context.Context, msg web3_types.CallMsg) ([]byte, erro
 		return nil, err
 	}
 	return result, err
+}
+
+func (c *client) GetNumber(ctx context.Context, address string, blockNumber *big.Int) (*big.Int, error) {
+	var result hexutil.Big
+	err := c.r.CallContext(ctx, &result, "eth_getBalance", common.HexToAddress(address), toBlockNumArg(blockNumber))
+	return (*big.Int)(&result), err
 }
 
 func (c *client) GetBalance(ctx context.Context, address string, blockNumber *big.Int) (*big.Int, error) {
@@ -182,6 +190,17 @@ func (c *client) GetID(ctx context.Context) (*web3_types.ID, error) {
 		return nil, err
 	}
 	return &web3_types.ID{NetworkID: netID, ChainID: (*big.Int)(chainID), GenesisHash: block.Hash}, nil
+}
+
+func (c *client) GetBlockNumber(ctx context.Context) (*big.Int, error) {
+	var result hexutil.Uint64
+	err := c.r.CallContext(ctx, &result, "eth_blockNumber")
+	if err != nil {
+		zlog.Err(err).Msg("GetBlockNumber: CallContext")
+		return nil, err
+	}
+	number, _ := new(big.Int).SetString(result.String(), 10)
+	return number, err
 }
 
 func (c *client) GetNetworkID(ctx context.Context) (*big.Int, error) {
