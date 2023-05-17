@@ -50,8 +50,8 @@ type Client interface {
 	GetGasPriceEstimateForTx(ctx context.Context, msg web3_types.CallMsg) (*big.Int, error)
 	// GetGasPrice returns a suggested gas price.
 	GetGasPrice(ctx context.Context) (*big.Int, error)
-	// GetPendingTransactionCount returns the transaction count including pending txs.
-	// This value is also the next legal nonce.
+	// GetSyncStatus returns true if the node is syncing.
+	GetSyncStatus(ctx context.Context) (bool, error)
 	GetPendingTransactionCount(ctx context.Context, account common.Address) (uint64, error)
 	// SendRawTransaction sends the signed raw transaction bytes.
 	SendRawTransaction(ctx context.Context, tx []byte) error
@@ -201,6 +201,16 @@ func (c *client) GetBlockNumber(ctx context.Context) (*big.Int, error) {
 	}
 	number := new(big.Int).SetUint64(uint64(result))
 	return number, err
+}
+
+func (c *client) GetSyncStatus(ctx context.Context) (bool, error) {
+	var result bool
+	err := c.r.CallContext(ctx, &result, "eth_syncing")
+	if err != nil {
+		zlog.Err(err).Msg("GetSyncStatus: CallContext")
+		return result, err
+	}
+	return result, err
 }
 
 func (c *client) GetNetworkID(ctx context.Context) (*big.Int, error) {
