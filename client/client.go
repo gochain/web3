@@ -116,33 +116,37 @@ func (c *client) Call(ctx context.Context, msg web3_types.CallMsg) ([]byte, erro
 func (c *client) ResetNetwork(ctx context.Context, rpcUrl string, blockNumber int) error {
 	if rpcUrl != "" && blockNumber != 0 {
 		args := toForkingArg(rpcUrl, blockNumber)
-		return c.r.Call(ctx, "hardhat_reset", args)
+		return c.r.CallContext(ctx, nil, "hardhat_reset", args)
 	}
-	return c.r.Call(ctx, "hardhat_reset")
+	return c.r.CallContext(ctx, nil, "hardhat_reset")
 }
 
 func (c *client) ImpersonateAccount(ctx context.Context, address string) error {
-	err := c.r.Call(ctx, "hardhat_impersonateAccount", common.HexToAddress(address))
+	err := c.r.CallContext(ctx, nil, "hardhat_impersonateAccount", common.HexToAddress(address))
 	return err
 }
 
 func (c *client) StopImpersonatingAccount(ctx context.Context, address string) error {
-	err := c.r.Call(ctx, "hardhat_stopImpersonatingAccount", common.HexToAddress(address))
+	err := c.r.CallContext(ctx, nil, "hardhat_stopImpersonatingAccount", common.HexToAddress(address))
 	return err
 }
 
 func (c *client) SetNonce(ctx context.Context, address string, nonce hexutil.Big) error {
-	err := c.r.Call(ctx, "hardhat_setNonce", common.HexToAddress(address), nonce.String())
+	err := c.r.CallContext(ctx, nil, "hardhat_setNonce", common.HexToAddress(address), nonce.String())
 	return err
 }
 
 func (c *client) SetCode(ctx context.Context, address string, bytes hexutil.Bytes) error {
-	err := c.r.Call(ctx, "hardhat_setCode", common.HexToAddress(address), bytes.String())
+	err := c.r.CallContext(ctx, nil, "hardhat_setCode", common.HexToAddress(address), bytes.String())
 	return err
 }
 
 func (c *client) SetBalance(ctx context.Context, address string, balance hexutil.Big) error {
-	err := c.r.Call(ctx, "hardhat_setBalance", common.HexToAddress(address), balance.String())
+	err := c.r.CallContext(ctx, nil, "hardhat_setBalance", common.HexToAddress(address), balance)
+	if err != nil {
+		zlog.Err(err).Msg("SetBalance error")
+		return err
+	}
 	return err
 }
 
