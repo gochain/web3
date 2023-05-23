@@ -60,6 +60,19 @@ type Client interface {
 	Close()
 	SetChainID(*big.Int)
 	SetHeader(ctx context.Context, key string, value string)
+
+	// SetBalance hardhat method
+	SetBalance(ctx context.Context, address string, balance hexutil.Big) error
+	// SetNonce hardhat method
+	SetNonce(ctx context.Context, address string, nonce hexutil.Big) error
+	// SetCode hardhat method
+	SetCode(ctx context.Context, address string, bytes hexutil.Bytes) error
+	// ImpersonateAccount hardhat method
+	ImpersonateAccount(ctx context.Context, address string) error
+	// StopImpersonatingAccount hardhat method
+	StopImpersonatingAccount(ctx context.Context, address string) error
+	// ResetNetwork hardhat method
+	ResetNetwork(ctx context.Context, rpcUrl string, blockNumber int) error
 }
 
 // Dial returns a new client backed by dialing url (supported schemes "http", "https", "ws" and "wss").
@@ -98,6 +111,39 @@ func (c *client) Call(ctx context.Context, msg web3_types.CallMsg) ([]byte, erro
 		return nil, err
 	}
 	return result, err
+}
+
+func (c *client) ResetNetwork(ctx context.Context, rpcUrl string, blockNumber int) error {
+	if rpcUrl != "" && blockNumber != 0 {
+		args := toForkingArg(rpcUrl, blockNumber)
+		return c.r.Call(ctx, "hardhat_reset", args)
+	}
+	return c.r.Call(ctx, "hardhat_reset")
+}
+
+func (c *client) ImpersonateAccount(ctx context.Context, address string) error {
+	err := c.r.Call(ctx, "hardhat_impersonateAccount", common.HexToAddress(address))
+	return err
+}
+
+func (c *client) StopImpersonatingAccount(ctx context.Context, address string) error {
+	err := c.r.Call(ctx, "hardhat_stopImpersonatingAccount", common.HexToAddress(address))
+	return err
+}
+
+func (c *client) SetNonce(ctx context.Context, address string, nonce hexutil.Big) error {
+	err := c.r.Call(ctx, "hardhat_setNonce", common.HexToAddress(address), nonce.String())
+	return err
+}
+
+func (c *client) SetCode(ctx context.Context, address string, bytes hexutil.Bytes) error {
+	err := c.r.Call(ctx, "hardhat_setCode", common.HexToAddress(address), bytes.String())
+	return err
+}
+
+func (c *client) SetBalance(ctx context.Context, address string, balance hexutil.Big) error {
+	err := c.r.Call(ctx, "hardhat_setBalance", common.HexToAddress(address), balance.String())
+	return err
 }
 
 func (c *client) GetNumber(ctx context.Context, address string, blockNumber *big.Int) (*big.Int, error) {
@@ -393,6 +439,16 @@ func toCallArg(msg web3_types.CallMsg) interface{} {
 	}
 	if msg.GasPrice != nil {
 		arg["gasPrice"] = (*hexutil.Big)(msg.GasPrice)
+	}
+	return arg
+}
+
+func toForkingArg(jsonRpcURL string, blockNumber int) interface{} {
+	arg := map[string]map[string]any{
+		"forking": {
+			"jsonRpcUrl":  jsonRpcURL,
+			"blockNumber": blockNumber,
+		},
 	}
 	return arg
 }
