@@ -13,10 +13,22 @@ import (
 
 // CallConstantFunction executes a contract function call without submitting a transaction.
 func (w *Web3Actions) CallConstantFunction(ctx context.Context, payload *SendContractTxPayload) ([]interface{}, error) {
+	w.Dial()
+	defer w.Close()
 	if payload.SmartContractAddr == "" {
 		err := errors.New("no contract address specified")
 		log.Ctx(ctx).Err(err).Msg("CallConstantFunction")
 		return nil, err
+	}
+	if payload.ContractFile == "erc20" {
+		abiLoaded, err := web3_types.ABIBuiltIn(ERC20)
+		if err != nil {
+			return nil, err
+		}
+		payload.ContractABI = abiLoaded
+	}
+	if payload.ContractABI == nil {
+		return nil, errors.New("no contract abi specified")
 	}
 	fn := payload.ContractABI.Methods[payload.MethodName]
 	goParams, err := web3_types.ConvertArguments(fn.Inputs, payload.Params)
@@ -29,8 +41,6 @@ func (w *Web3Actions) CallConstantFunction(ctx context.Context, payload *SendCon
 		log.Ctx(ctx).Err(err).Msg("CallConstantFunction: myabi.Pack")
 		return nil, fmt.Errorf("failed to pack values: %v", err)
 	}
-	w.Dial()
-	defer w.Close()
 	scAddr := common.HexToAddress(payload.SmartContractAddr)
 
 	res, err := w.Call(ctx, web3_types.CallMsg{Data: input, To: &scAddr})

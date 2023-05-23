@@ -53,6 +53,7 @@ type Client interface {
 	// GetSyncStatus returns true if the node is syncing.
 	GetSyncStatus(ctx context.Context) (bool, error)
 	GetPendingTransactionCount(ctx context.Context, account common.Address) (uint64, error)
+	GetStorageAt(ctx context.Context, addr, slot string) (hexutil.Bytes, error)
 	// SendRawTransaction sends the signed raw transaction bytes.
 	SendRawTransaction(ctx context.Context, tx []byte) error
 	// Call executes a call without submitting a transaction.
@@ -73,6 +74,10 @@ type Client interface {
 	StopImpersonatingAccount(ctx context.Context, address string) error
 	// ResetNetwork hardhat method
 	ResetNetwork(ctx context.Context, rpcUrl string, blockNumber int) error
+	// GetEVMSnapshot hardhat method
+	GetEVMSnapshot(ctx context.Context) (*big.Int, error)
+	// SetStorageAt hardhat method
+	SetStorageAt(ctx context.Context, addr, slot, value string) error
 }
 
 // Dial returns a new client backed by dialing url (supported schemes "http", "https", "ws" and "wss").
@@ -111,6 +116,23 @@ func (c *client) Call(ctx context.Context, msg web3_types.CallMsg) ([]byte, erro
 		return nil, err
 	}
 	return result, err
+}
+
+func (c *client) GetStorageAt(ctx context.Context, addr, slot string) (hexutil.Bytes, error) {
+	var result hexutil.Bytes
+	err := c.r.CallContext(ctx, &result, "eth_getStorageAt", addr, slot)
+	return result, err
+}
+
+func (c *client) SetStorageAt(ctx context.Context, addr, slot, value string) error {
+	err := c.r.CallContext(ctx, nil, "hardhat_setStorageAt", addr, slot, value)
+	return err
+}
+
+func (c *client) GetEVMSnapshot(ctx context.Context) (*big.Int, error) {
+	var result hexutil.Big
+	err := c.r.CallContext(ctx, &result, "evm_snapshot")
+	return (*big.Int)(&result), err
 }
 
 func (c *client) ResetNetwork(ctx context.Context, rpcUrl string, blockNumber int) error {
