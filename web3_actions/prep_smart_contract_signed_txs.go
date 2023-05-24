@@ -25,7 +25,7 @@ func (w *Web3Actions) GetSignedTxToCallFunctionWithData(ctx context.Context, pay
 	from := w.Address()
 	est, err := w.GetGasPriceEstimateForTx(ctx, web3_types.CallMsg{
 		From:     &from,
-		To:       nil,
+		To:       &payload.ToAddress,
 		GasPrice: payload.GasPrice,
 		Data:     data,
 	})
