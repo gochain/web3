@@ -54,6 +54,8 @@ type Client interface {
 	GetSyncStatus(ctx context.Context) (bool, error)
 	GetPendingTransactionCount(ctx context.Context, account common.Address) (uint64, error)
 	GetStorageAt(ctx context.Context, addr, slot string) (hexutil.Bytes, error)
+	// SendTransaction sends a transaction from a user
+	SendTransaction(ctx context.Context, tx *web3_types.RpcTransaction) error
 	// SendRawTransaction sends the signed raw transaction bytes.
 	SendRawTransaction(ctx context.Context, tx []byte) error
 	// Call executes a call without submitting a transaction.
@@ -151,7 +153,8 @@ func (c *client) ResetNetwork(ctx context.Context, rpcUrl string, blockNumber in
 }
 
 func (c *client) ImpersonateAccount(ctx context.Context, address string) error {
-	err := c.r.CallContext(ctx, nil, "hardhat_impersonateAccount", common.HexToAddress(address))
+	var result any
+	err := c.r.CallContext(ctx, &result, "hardhat_impersonateAccount", common.HexToAddress(address))
 	return err
 }
 
@@ -199,6 +202,36 @@ func (c *client) GetCode(ctx context.Context, address string, blockNumber *big.I
 		return result, err
 	}
 	return result, err
+}
+
+func (c *client) SendTransaction(ctx context.Context, tx *web3_types.RpcTransaction) error {
+	var data []byte
+	if tx.Input != nil {
+		data = *tx.Input
+	}
+	callArgs := web3_types.CallMsg{
+		From: tx.From,
+		To:   tx.To,
+		Data: data,
+	}
+	if tx.Value != nil {
+		callArgs.Value = tx.Value.ToInt()
+	}
+	if tx.GasLimit != nil {
+		gasLimit := *tx.GasLimit
+		callArgs.Gas = uint64(gasLimit)
+	}
+	if tx.GasTipCap != nil {
+		callArgs.GasTipCap = tx.GasTipCap.ToInt()
+	}
+	if tx.GasFeeCap != nil {
+		callArgs.GasFeeCap = tx.GasFeeCap.ToInt()
+	}
+	if tx.GasPrice != nil {
+		callArgs.GasPrice = tx.GasPrice.ToInt()
+	}
+	args := toCallArg(callArgs)
+	return c.r.CallContext(ctx, nil, "eth_sendTransaction", args)
 }
 
 func (c *client) GetTxPoolContent(ctx context.Context) (map[string]map[string]map[string]*web3_types.RpcTransaction, error) {
@@ -472,6 +505,12 @@ func toCallArg(msg web3_types.CallMsg) interface{} {
 	}
 	if msg.GasPrice != nil {
 		arg["gasPrice"] = (*hexutil.Big)(msg.GasPrice)
+	}
+	if msg.GasFeeCap != nil {
+		arg["maxFeePerGas"] = (*hexutil.Big)(msg.GasFeeCap)
+	}
+	if msg.GasTipCap != nil {
+		arg["maxPriorityFeePerGas"] = (*hexutil.Big)(msg.GasTipCap)
 	}
 	return arg
 }
