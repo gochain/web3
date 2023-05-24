@@ -67,7 +67,7 @@ type Client interface {
 	// SetNonce hardhat method
 	SetNonce(ctx context.Context, address string, nonce hexutil.Big) error
 	// SetCode hardhat method
-	SetCode(ctx context.Context, address string, bytes hexutil.Bytes) error
+	SetCode(ctx context.Context, address string, bytes string) error
 	// ImpersonateAccount hardhat method
 	ImpersonateAccount(ctx context.Context, address string) error
 	// StopImpersonatingAccount hardhat method
@@ -165,8 +165,8 @@ func (c *client) SetNonce(ctx context.Context, address string, nonce hexutil.Big
 	return err
 }
 
-func (c *client) SetCode(ctx context.Context, address string, bytes hexutil.Bytes) error {
-	err := c.r.CallContext(ctx, nil, "hardhat_setCode", common.HexToAddress(address), bytes.String())
+func (c *client) SetCode(ctx context.Context, address string, bytes string) error {
+	err := c.r.CallContext(ctx, nil, "hardhat_setCode", common.HexToAddress(address), bytes)
 	return err
 }
 
