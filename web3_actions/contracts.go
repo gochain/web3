@@ -25,6 +25,7 @@ const (
 	Pause     = "pause"
 	Resume    = "resume"
 	Upgrade   = "upgrade"
+	Approve   = "approve"
 )
 
 func ListContract(ctx context.Context, contractFile string) error {
@@ -39,7 +40,6 @@ func ListContract(ctx context.Context, contractFile string) error {
 		fmt.Println(outPut)
 		return merr
 	}
-
 	for _, method := range myabi.Methods {
 		fmt.Println(method)
 	}
@@ -49,7 +49,6 @@ func ListContract(ctx context.Context, contractFile string) error {
 func (w *Web3Actions) GetContractConst(ctx context.Context, payload *SendContractTxPayload) ([]interface{}, error) {
 	w.Dial()
 	defer w.Close()
-
 	myabi := payload.ContractABI
 	if myabi == nil {
 		abiInternal, aerr := web3_types.GetABI(payload.ContractFile)
@@ -59,7 +58,6 @@ func (w *Web3Actions) GetContractConst(ctx context.Context, payload *SendContrac
 		}
 		myabi = abiInternal
 	}
-
 	var err error
 	fn, ok := myabi.Methods[payload.MethodName]
 	if !ok {
@@ -71,7 +69,6 @@ func (w *Web3Actions) GetContractConst(ctx context.Context, payload *SendContrac
 		log.Ctx(ctx).Err(err).Msg("GetContractConst: !IsConstant")
 		return nil, err
 	}
-
 	res, err := w.CallConstantFunction(ctx, payload)
 	if err != nil {
 		err = fmt.Errorf("error calling constant function: %v", err)
@@ -107,7 +104,6 @@ func (w *Web3Actions) CallContract(ctx context.Context,
 			log.Ctx(ctx).Err(err).Msg("CallContract: GetABI")
 			return err
 		}
-
 		if m.IsConstant() {
 			res, cerr := w.CallConstantFunction(ctx, payload)
 			if cerr != nil {
@@ -141,7 +137,6 @@ func (w *Web3Actions) CallContract(ctx context.Context,
 			return err
 		}
 	}
-
 	fmt.Println("Transaction hash:", tx.Hash.Hex())
 	if !waitForReceipt {
 		return err

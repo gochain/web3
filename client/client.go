@@ -78,6 +78,8 @@ type Client interface {
 	GetEVMSnapshot(ctx context.Context) (*big.Int, error)
 	// SetStorageAt hardhat method
 	SetStorageAt(ctx context.Context, addr, slot, value string) error
+	// MineBlock hardhat method
+	MineBlock(ctx context.Context, blocksToMine hexutil.Big) error
 }
 
 // Dial returns a new client backed by dialing url (supported schemes "http", "https", "ws" and "wss").
@@ -116,6 +118,11 @@ func (c *client) Call(ctx context.Context, msg web3_types.CallMsg) ([]byte, erro
 		return nil, err
 	}
 	return result, err
+}
+
+func (c *client) MineBlock(ctx context.Context, blocksToMine hexutil.Big) error {
+	err := c.r.CallContext(ctx, nil, "hardhat_mine", blocksToMine.String())
+	return err
 }
 
 func (c *client) GetStorageAt(ctx context.Context, addr, slot string) (hexutil.Bytes, error) {

@@ -917,7 +917,7 @@ func main() {
 						GasPriceLimits: gp,
 					},
 				}
-				err = ac.TransferERC20Token(ctx, payload, c.Bool("wait"), c.Uint64("timeout"))
+				err = ac.TransferERC20TokenManually(ctx, payload, c.Bool("wait"), c.Uint64("timeout"))
 				if err != nil {
 					fatalExit(err)
 				}

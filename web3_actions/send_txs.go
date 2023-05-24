@@ -17,6 +17,10 @@ func (w *Web3Actions) Send(ctx context.Context, params SendEtherPayload) (*web3_
 	w.Dial()
 	defer w.Close()
 	signedTx, err := w.GetSignedSendTx(ctx, params)
+	if err != nil {
+		log.Ctx(ctx).Err(err).Msg("Send: GetSignedSendTx")
+		return nil, fmt.Errorf("failed to get transaction: %v", err)
+	}
 	err = w.SendSignedTransaction(ctx, signedTx)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("Send: SendTransaction")
