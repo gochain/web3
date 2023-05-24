@@ -133,6 +133,18 @@ func (w *Web3Actions) GetSignedTxToDeploySmartContract(ctx context.Context, payl
 		log.Ctx(ctx).Err(err).Msg("GetSignedTxToCallFunctionWithData: SetGasPriceAndLimit")
 		return nil, err
 	}
+	from := w.Address()
+	est, err := w.GetGasPriceEstimateForTx(ctx, web3_types.CallMsg{
+		From:     &from,
+		To:       nil,
+		GasPrice: payload.GasPrice,
+		Data:     data,
+	})
+	if err != nil {
+		log.Ctx(ctx).Err(err).Msg("GetSignedTxToCallFunctionWithData: SetGasPriceAndLimit")
+		return nil, err
+	}
+	payload.GasLimit = est.Uint64()
 	chainID, err := w.GetChainID(ctx)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("CallFunctionWithData: GetChainID")
