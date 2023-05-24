@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog/log"
 )
 
@@ -17,7 +18,8 @@ func (w *Web3Actions) ReadERC20TokenBalance(ctx context.Context, contractAddress
 		MethodName:        Decimals,
 	}
 	payload.MethodName = BalanceOf
-	payload.Params = []interface{}{addrHash}
+	addrString := common.HexToAddress(addrHash).String()
+	payload.Params = []interface{}{addrString}
 	balance, err := w.GetContractConst(ctx, &payload)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("ReadERC20TokenBalance")
