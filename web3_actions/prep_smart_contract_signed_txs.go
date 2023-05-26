@@ -33,7 +33,9 @@ func (w *Web3Actions) GetSignedTxToCallFunctionWithData(ctx context.Context, pay
 		log.Ctx(ctx).Err(err).Msg("GetSignedTxToCallFunctionWithData: SetGasPriceAndLimit")
 		return nil, err
 	}
-	payload.GasLimit = est.Uint64()
+	if payload.GasLimit == 0 {
+		payload.GasLimit = est.Uint64()
+	}
 	chainID, err := w.GetChainID(ctx)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("CallFunctionWithData: GetChainID")
