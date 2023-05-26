@@ -22,19 +22,8 @@ func (w *Web3Actions) GetSignedTxToCallFunctionWithData(ctx context.Context, pay
 		log.Ctx(ctx).Err(err).Msg("GetSignedTxToCallFunctionWithData: SetGasPriceAndLimit")
 		return nil, err
 	}
-	from := w.Address()
-	est, err := w.GetGasPriceEstimateForTx(ctx, web3_types.CallMsg{
-		From:     &from,
-		To:       &payload.ToAddress,
-		GasPrice: payload.GasPrice,
-		Data:     data,
-	})
-	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("GetSignedTxToCallFunctionWithData: SetGasPriceAndLimit")
-		return nil, err
-	}
-	if payload.GasLimit == 0 {
-		payload.GasLimit = est.Uint64()
+	if payload.GasLimit == 21000 {
+		payload.GasLimit = 21000 * 10
 	}
 	chainID, err := w.GetChainID(ctx)
 	if err != nil {
