@@ -22,18 +22,20 @@ func (w *Web3Actions) GetSignedTxToCallFunctionWithData(ctx context.Context, pay
 		log.Ctx(ctx).Err(err).Msg("GetSignedTxToCallFunctionWithData: SetGasPriceAndLimit")
 		return nil, err
 	}
-	from := w.Address()
-	est, err := w.GetGasPriceEstimateForTx(ctx, web3_types.CallMsg{
-		From:     &from,
-		To:       &payload.ToAddress,
-		GasPrice: payload.GasPrice,
-		Data:     data,
-	})
-	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("GetSignedTxToCallFunctionWithData: SetGasPriceAndLimit")
-		return nil, err
-	}
-	payload.GasLimit = est.Uint64()
+	//	from := w.Address()
+	//est, err := w.GetGasPriceEstimateForTx(ctx, web3_types.CallMsg{
+	//	From:     &from,
+	//	To:       &payload.ToAddress,
+	//	GasPrice: payload.GasPrice,
+	//	Data:     data,
+	//})
+	//if err != nil {
+	//	log.Ctx(ctx).Err(err).Msg("GetSignedTxToCallFunctionWithData: SetGasPriceAndLimit")
+	//	return nil, err
+	//}
+	payload.GasLimit = 3000000
+
+	//payload.GasLimit = est.Uint64()
 	chainID, err := w.GetChainID(ctx)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("CallFunctionWithData: GetChainID")
@@ -65,12 +67,6 @@ func (w *Web3Actions) GetSignedTxToCallFunctionWithArgs(ctx context.Context, pay
 		log.Ctx(ctx).Err(err).Msg("Web3Actions: GetAndSetChainID")
 		return nil, err
 	}
-	err = w.SetGasPriceAndLimit(ctx, &payload.GasPriceLimits)
-	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("Web3Actions: Transfer: SetGasPriceAndLimit")
-		return nil, err
-	}
-
 	myabi := payload.ContractABI
 	if myabi == nil {
 		abiInternal, aerr := web3_types.GetABI(payload.ContractFile)
