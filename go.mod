@@ -3,7 +3,7 @@ module github.com/zeus-fyi/gochain/web3
 go 1.20
 
 require (
-	github.com/gochain/gochain/v4 v4.1.0
+	github.com/zeus-fyi/gochain/v4 v4.1.0
 	github.com/rs/zerolog v1.29.0
 	github.com/shopspring/decimal v1.3.1
 	github.com/treeder/gotils/v2 v2.0.18
