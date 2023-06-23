@@ -80,7 +80,7 @@ case "$(uname)" in
                 echo "Installing web3 for mac x86_64"
             ;;
             arm*|aarch*)
-                $sh_c "$curl /tmp/web3_linux $url/$version/web3_mac_arm64"
+                $sh_c "$curl /tmp/web3_mac $url/$version/web3_mac_arm64"
                 echo "Installing web3 for mac arm64"
             ;;
             *)
