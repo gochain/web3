@@ -60,9 +60,9 @@ GLOBAL OPTIONS:
 
 Quick one line install:
 
-```sh
-curl -LSs https://raw.githubusercontent.com/gochain/web3/master/install.sh | sh
-```
+~~curl -LSs https://raw.githubusercontent.com/gochain/web3/master/install.sh | sh~~
+
+Download the binary from the repo
 
 [Install Docker](https://docs.docker.com/install/) (optional) - not required for all commands, but if you plan on building and deploying smart contracts, 
 you'll need Docker installed.
@@ -84,23 +84,7 @@ web3 start
 export WEB3_NETWORK=localhost
 ```
 
-#### b) Use the GoChain testnet
-
-```sh
-export WEB3_NETWORK=testnet
-```
-
-To do any write operations, you'll need some testnet GO. You can get some at https://faucet.gochain.io/ or ask in [GoChain Developers Telegram Group](https://t.me/gochain_testnet). 
-
-#### c) Use the GoChain mainnet or another web3 network
-
-```sh
-export WEB3_NETWORK=gochain
-```
-
-You'll need mainnet GO for this which you can [buy on various exchanges](https://gochain.io/go).
-
-#### d) Ethereum or any other web3 compatible network
+#### b) Ethereum or any other web3 compatible network
 
 Most people use Infura for Ethereum which requires an API key to use. Sign in to [Infura](https://infura.io), create a project, click the settings tab and find your unique mainnet RPC URL under "ENDPOINTS". Then set web3 to use it with:
 
@@ -325,10 +309,10 @@ on each command with the `--network` or `--rpc-url` flag.
 
 Available name networks are:
 
-* gochain (default)
-* testnet
+* sepolia (default)
 * ethereum
 * ropsten
+* goerli
 * localhost
 
 The RPC URL is a full URL to a host, for eg: `https://rpc.gochain.io` or `http://localhost:8545`
@@ -459,7 +443,7 @@ web3 block BLOCK_ID
 
 ### Show information about an address
 
-```sj
+```sh
 web3 transaction ADDRESS_HASH
 ```
 
@@ -501,7 +485,7 @@ go install github.com/gochain/web3/cmd/web3
 Clone this repo:
 
 ```sh
-git clone https://github.com/gochain/web3
+git clone https://github.com/avan-pra/web3
 cd web3
 make install
 # or just `make build` to build it into current directory

@@ -3,7 +3,9 @@ build:
 	go build ./cmd/web3
 
 install: build
-	sudo cp web3 /usr/local/bin/web3
+	mkdir -p ${HOME}/.local/bin
+	cp web3 ${HOME}/.local/bin
+	@echo "web3 was install to ${HOME}/.local/bin don't forget to add it to your PATH"
 
 builder:
 	docker build -t gochain/builder:latest -f Dockerfile.build .

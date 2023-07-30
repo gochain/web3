@@ -75,7 +75,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:        "network, n",
-			Usage:       `The name of the network. Options: gochain/testnet/ethereum/ropsten/localhost. (default: "gochain")`,
+			Usage:       `The name of the network. Options: sepolia/ethereum/ropsten/goerli/localhost. (default: "sepolia")`,
 			Destination: &netName,
 			EnvVar:      networkVarName,
 			Hidden:      false},
@@ -360,10 +360,11 @@ func main() {
 						for i, v := range c.Args().Tail() {
 							args[i] = v
 						}
+						amount := toAmountBig(c.String("amount"))
 						price, limit := parseGasPriceAndLimit(c)
 						DeploySol(ctx, network, privateKey, binFile, c.String("verify"),
 							c.String("solc-version"), c.String("evm-version"), c.BoolT("optimize"),
-							c.String("explorer-api"), price, limit, upgradeable, c.Uint64("timeout"), args...)
+							c.String("explorer-api"), price, limit, amount, upgradeable, c.Uint64("timeout"), args...)
 					},
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -372,6 +373,10 @@ func main() {
 							EnvVar:      pkVarName,
 							Destination: &privateKey,
 							Hidden:      false},
+						cli.StringFlag{
+							Name:   "amount",
+							Usage:  "Amount in wei that you want to send to the transaction",
+							Hidden: false},
 						cli.BoolFlag{
 							Name:        "upgradeable",
 							Usage:       "Allow contract to be upgraded",
@@ -399,7 +404,7 @@ func main() {
 						},
 						cli.Uint64Flag{
 							Name:  "gas-limit",
-							Value: 4000000,
+							Value: 3000000,
 						},
 						cli.StringFlag{
 							Name:  "gas-price",
@@ -526,7 +531,7 @@ func main() {
 						},
 						cli.Uint64Flag{
 							Name:  "gas-limit",
-							Value: 70000,
+							Value: 30000,
 						},
 						cli.StringFlag{
 							Name:  "gas-price",
@@ -1154,9 +1159,9 @@ func getNetwork(name, rpcURL string, testnet bool) web3.Network {
 			if name != "" {
 				fatalExit(fmt.Errorf("Cannot set both network %q and testnet", name))
 			}
-			name = "testnet"
+			name = "sepolia"
 		} else if name == "" {
-			name = "gochain"
+			name = "sepolia"
 		}
 		var ok bool
 		network, ok = web3.Networks[name]
@@ -1627,7 +1632,7 @@ func FlattenSol(ctx context.Context, iFile, oFile string) {
 
 func DeploySol(ctx context.Context, network web3.Network,
 	privateKey, binFile, contractSource, solcVersion, evmVersion string, optimize bool, explorerURL string,
-	gasPrice *big.Int, gasLimit uint64, upgradeable bool, timeoutInSeconds uint64, params ...interface{}) {
+	gasPrice *big.Int, gasLimit uint64, amount *big.Int, upgradeable bool, timeoutInSeconds uint64, params ...interface{}) {
 
 	if binFile == "" {
 		fatalExit(errors.New("Missing contract name arg."))
@@ -1662,7 +1667,7 @@ func DeploySol(ctx context.Context, network web3.Network,
 		}
 		abi = string(b)
 	}
-	tx, err := web3.DeployContract(ctx, client, privateKey, string(bin), abi, gasPrice, gasLimit, params...)
+	tx, err := web3.DeployContract(ctx, client, privateKey, string(bin), abi, amount, gasPrice, gasLimit, params...)
 	if err != nil {
 		fatalExit(fmt.Errorf("Error deploying contract: %v", err))
 	}
@@ -1694,7 +1699,7 @@ func DeploySol(ctx context.Context, network web3.Network,
 	}
 
 	// Deploy proxy contract.
-	proxyTx, err := web3.DeployContract(ctx, client, privateKey, assets.OwnerUpgradeableProxyCode(receipt.ContractAddress), "", gasPrice, gasLimit)
+	proxyTx, err := web3.DeployContract(ctx, client, privateKey, assets.OwnerUpgradeableProxyCode(receipt.ContractAddress), "", amount, gasPrice, gasLimit)
 	if err != nil {
 		log.Fatalf("Cannot deploy the upgradeable proxy contract: %v", err)
 	}

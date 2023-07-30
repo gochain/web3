@@ -10,30 +10,28 @@ const (
 )
 
 var Networks = map[string]Network{
-	"testnet": {
-		Name:        "testnet",
-		URL:         testnetURL,
-		ChainID:     big.NewInt(31337),
-		Unit:        "GO",
-		ExplorerURL: testnetExplorerURL,
-	},
-	"gochain": {
-		Name:        "gochain",
-		URL:         mainnetURL,
-		ChainID:     big.NewInt(60),
-		Unit:        "GO",
-		ExplorerURL: mainnetExplorerURL,
-	},
 	"localhost": {
 		Name: "localhost",
 		URL:  "http://localhost:8545",
 		Unit: "GO",
 	},
+	"goerli": {
+		Name:        "goerli",
+		URL:         "https://ethereum-goerli.publicnode.com",
+		Unit:        "ETH",
+		ExplorerURL: "https://goerli.etherscan.io",
+	},
+	"sepolia": {
+		Name:        "sepolia",
+		URL:         "https://endpoints.omniatech.io/v1/eth/sepolia/public",
+		ChainID:     big.NewInt(11155111),
+		Unit:        "SepoliaETH",
+		ExplorerURL: "https://sepolia.etherscan.io",
+	},
 	"ethereum": {
 		Name: "ethereum",
-		URL:  "https://mainnet.infura.io/v3/bc5b0e5cfd9b4385befb69a68a9400c3",
-		// URL: "https://cloudflare-eth.com", // these don't worry very well, constant problems
-		// URL: "https://main-rpc.linkpool.io",
+		// change the URL
+		URL:         "https://mainnet.infura.io/v3/bc5b0e5cfd9b4385befb69a68a9400c3",
 		ChainID:     big.NewInt(1),
 		Unit:        "ETH",
 		ExplorerURL: "https://etherscan.io",
