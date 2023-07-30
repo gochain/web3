@@ -323,7 +323,7 @@ func DeployContract(ctx context.Context, client Client, privateKeyHex string, bi
 }
 
 // Send performs a regular native coin transaction (not a contract)
-func Send(ctx context.Context, client Client, privateKeyHex string, address common.Address, amount *big.Int, gasPrice *big.Int, gasLimit uint64) (*Transaction, error) {
+func Send(ctx context.Context, client Client, privateKeyHex string, address common.Address, amount *big.Int, gasPrice *big.Int, gasLimit uint64, data []byte) (*Transaction, error) {
 	if len(privateKeyHex) > 2 && privateKeyHex[:2] == "0x" {
 		privateKeyHex = privateKeyHex[2:]
 	}
@@ -355,7 +355,7 @@ func Send(ctx context.Context, client Client, privateKeyHex string, address comm
 	if err != nil {
 		return nil, fmt.Errorf("cannot get nonce: %v", err)
 	}
-	tx := types.NewTransaction(nonce, address, amount, gasLimit, gasPrice, nil)
+	tx := types.NewTransaction(nonce, address, amount, gasLimit, gasPrice, data)
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign transaction: %v", err)
@@ -591,7 +591,7 @@ func convertOutputParams(params []interface{}) []interface{} {
 	return params
 }
 
-//TODO Deprecated: prefer built-in UnpackValues() func and convertOutputParams.
+// TODO Deprecated: prefer built-in UnpackValues() func and convertOutputParams.
 func convertOutputParameter(t abi.Argument) (interface{}, error) {
 	switch t.Type.T {
 	case abi.BoolTy:

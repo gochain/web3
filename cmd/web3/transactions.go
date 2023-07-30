@@ -79,7 +79,7 @@ func ReplaceTx(ctx context.Context, privateKey string, network web3.Network, non
 	return tx
 }
 
-func Transfer(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, contractAddress string, gasPrice *big.Int, gasLimit uint64, wait, toString bool, timeoutInSeconds uint64, tail []string) {
+func Transfer(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, contractAddress string, gasPrice *big.Int, gasLimit uint64, data []byte, wait, toString bool, timeoutInSeconds uint64, tail []string) {
 	if len(tail) < 3 {
 		fatalExit(errors.New("Invalid arguments. Format is: `transfer X to ADDRESS`"))
 	}
@@ -104,11 +104,27 @@ func Transfer(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, 
 			fatalExit(err)
 		}
 		amount := web3.DecToInt(amountD, int32(decimals[0].(uint8)))
-		callContract(ctx, client, privateKey, contractAddress, "erc20", "transfer", &big.Int{}, nil, 70000, wait, toString, nil, timeoutInSeconds, toAddress, amount)
+		callContract(ctx, client, privateKey, contractAddress, "erc20", "transfer", &big.Int{}, nil, 70000, wait, toString, data, timeoutInSeconds, toAddress, amount)
 		return
 	}
 
-	amount := web3.DecToInt(amountD, 18)
+	var unit_oom int32 = 0
+	unit_name := tail[1]
+	if unit_name != "to" {
+		toAddress = tail[3]
+		switch unit_name {
+		case "ether":
+			unit_oom = 18
+		case "gwei":
+			unit_oom = 9
+		case "wei":
+			unit_oom = 0
+		default:
+			fatalExit(fmt.Errorf("unknown unit order of magnitude %v", unit_name))
+		}
+	}
+
+	amount := web3.DecToInt(amountD, unit_oom)
 	if toAddress == "" {
 		fatalExit(errors.New("The recepient address cannot be empty"))
 	}
@@ -116,7 +132,7 @@ func Transfer(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, 
 		fatalExit(fmt.Errorf("Invalid to 'address': %s", toAddress))
 	}
 	address := common.HexToAddress(toAddress)
-	tx, err := web3.Send(ctx, client, privateKey, address, amount, gasPrice, gasLimit)
+	tx, err := web3.Send(ctx, client, privateKey, address, amount, gasPrice, gasLimit, data)
 	if err != nil {
 		fatalExit(fmt.Errorf("Cannot create transaction: %v", err))
 	}

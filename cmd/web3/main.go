@@ -786,7 +786,7 @@ func main() {
 		},
 		{
 			Name:    "transfer",
-			Usage:   fmt.Sprintf("Transfer GO/ETH or ERC20 tokens to another account. eg: `web3 transfer 10.1 to 0xADDRESS`"),
+			Usage:   fmt.Sprintf("Transfer GO/ETH or ERC20 tokens to another account. eg: `web3 transfer 100000 gwei to 0xADDRESS`"),
 			Aliases: []string{"send"},
 			Flags: []cli.Flag{
 				cli.StringFlag{
@@ -817,7 +817,7 @@ func main() {
 				cli.Uint64Flag{
 					Name:  "gas-limit",
 					Usage: "Gas limit (multiplied by price for total gas)",
-					Value: 21000,
+					Value: 30000,
 				},
 				cli.StringFlag{
 					Name:  "gas-price",
@@ -826,6 +826,10 @@ func main() {
 				cli.StringFlag{
 					Name:  "gas-price-gwei",
 					Usage: "Gas price to use in GWEI, if left blank, will use suggested gas price.",
+				},
+				cli.StringFlag{
+					Name:  "data",
+					Usage: "Data for the transaction in hex (can copy from etherscan and other explorers)",
 				},
 			},
 			Action: func(c *cli.Context) {
@@ -836,8 +840,12 @@ func main() {
 						fatalExit(errors.New("You must set ERC20 contract address"))
 					}
 				}
+				dataB, err := hex.DecodeString(strings.TrimPrefix(c.String("data"), "0x"))
+				if err != nil {
+					fatalExit(err)
+				}
 				price, limit := parseGasPriceAndLimit(c)
-				Transfer(ctx, network.URL, network.ChainID, privateKey, contractAddress, price, limit, c.Bool("wait"), c.Bool("to-string"), c.Uint64("timeout"), c.Args())
+				Transfer(ctx, network.URL, network.ChainID, privateKey, contractAddress, price, limit, dataB, c.Bool("wait"), c.Bool("to-string"), c.Uint64("timeout"), c.Args())
 			},
 		},
 		{
