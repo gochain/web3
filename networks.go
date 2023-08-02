@@ -13,7 +13,7 @@ var Networks = map[string]Network{
 	"localhost": {
 		Name: "localhost",
 		URL:  "http://localhost:8545",
-		Unit: "GO",
+		Unit: "ETH",
 	},
 	"goerli": {
 		Name:        "goerli",
