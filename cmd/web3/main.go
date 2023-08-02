@@ -66,7 +66,7 @@ func main() {
 
 	// Flags
 	var netName, rpcUrl, function, contractAddress, toContractAddress, abiFile, privateKey, txFormat, txInputFormat string
-	var testnet, waitForReceipt, upgradeable bool
+	var waitForReceipt, upgradeable bool
 
 	app := cli.NewApp()
 	app.Name = "web3"
@@ -78,11 +78,6 @@ func main() {
 			Usage:       `The name of the network. Options: sepolia/ethereum/ropsten/goerli/localhost. (default: "sepolia")`,
 			Destination: &netName,
 			EnvVar:      networkVarName,
-			Hidden:      false},
-		cli.BoolFlag{
-			Name:        "testnet",
-			Usage:       "Shorthand for '-network testnet'.",
-			Destination: &testnet,
 			Hidden:      false},
 		cli.StringFlag{
 			Name:        "rpc-url",
@@ -103,7 +98,7 @@ func main() {
 	}
 	var network web3.Network
 	app.Before = func(*cli.Context) error {
-		network = getNetwork(netName, rpcUrl, testnet)
+		network = getNetwork(netName, rpcUrl)
 		return nil
 	}
 	app.Commands = []cli.Command{
@@ -158,26 +153,6 @@ func main() {
 					Destination: &abiFile,
 					Usage:       "ABI file matching deployed contract",
 					Hidden:      false},
-			},
-		},
-		{
-			Name:    "address",
-			Aliases: []string{"addr"},
-			Usage:   "Account details for a specific address, or the one corresponding to the private key.",
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:        "private-key, pk",
-					Usage:       "The private key",
-					EnvVar:      pkVarName,
-					Destination: &privateKey,
-					Hidden:      false},
-				cli.StringFlag{
-					Name:   "block",
-					Usage:  "Block number",
-					Hidden: false},
-			},
-			Action: func(c *cli.Context) {
-				GetAddressDetails(ctx, network, c.Args().First(), privateKey, false, "", c.String("block"))
 			},
 		},
 		{
@@ -691,28 +666,28 @@ func main() {
 				GetID(ctx, network.URL)
 			},
 		},
-		{
-			Name:  "start",
-			Usage: "Start a local GoChain development node",
-			Flags: []cli.Flag{
-				cli.BoolTFlag{
-					Name:  "detach, d",
-					Usage: "Run container in background.",
-				},
-				cli.StringFlag{
-					Name:  "env-file",
-					Usage: "Path to custom configuration file.",
-				},
-				cli.StringFlag{
-					Name:   "private-key,pk",
-					Usage:  "Private key",
-					EnvVar: pkVarName,
-				},
-			},
-			Action: func(c *cli.Context) error {
-				return start(ctx, c)
-			},
-		},
+		// {
+		// 	Name:  "start",
+		// 	Usage: "Start a local GoChain development node",
+		// 	Flags: []cli.Flag{
+		// 		cli.BoolTFlag{
+		// 			Name:  "detach, d",
+		// 			Usage: "Run container in background.",
+		// 		},
+		// 		cli.StringFlag{
+		// 			Name:  "env-file",
+		// 			Usage: "Path to custom configuration file.",
+		// 		},
+		// 		cli.StringFlag{
+		// 			Name:   "private-key,pk",
+		// 			Usage:  "Private key",
+		// 			EnvVar: pkVarName,
+		// 		},
+		// 	},
+		// 	Action: func(c *cli.Context) error {
+		// 		return start(ctx, c)
+		// 	},
+		// },
 		{
 			Name:  "myaddress",
 			Usage: fmt.Sprintf("Returns the address associated with %v", pkVarName),
@@ -726,7 +701,7 @@ func main() {
 			Action: func(c *cli.Context) {
 				pk := c.String("private-key")
 				if pk == "" {
-					fmt.Printf("%v not set", pkVarName)
+					fmt.Printf("%v not set\n", pkVarName)
 					return
 				}
 				acc, err := web3.ParsePrivateKey(pk)
@@ -770,6 +745,9 @@ func main() {
 					},
 					Action: func(c *cli.Context) {
 						f := c.String("keyfile")
+						if f == "" {
+							fatalExit(fmt.Errorf("No keyfile submitted"))
+						}
 						kbytes, err := ioutil.ReadFile(f)
 						if err != nil {
 							fatalExit(fmt.Errorf("Failed to read file %q: %v", f, err))
@@ -1151,24 +1129,16 @@ func toAmountBig(a string) *big.Int {
 }
 
 // getNetwork resolves the rpcUrl from the user specified options, or quits if an illegal combination or value is found.
-func getNetwork(name, rpcURL string, testnet bool) web3.Network {
+func getNetwork(name, rpcURL string) web3.Network {
 	var network web3.Network
 	if rpcURL != "" {
 		if name != "" {
 			fatalExit(fmt.Errorf("Cannot set both rpcURL %q and network %q", rpcURL, network))
 		}
-		if testnet {
-			fatalExit(fmt.Errorf("Cannot set both rpcURL %q and testnet", rpcURL))
-		}
 		network.URL = rpcURL
 		network.Unit = "GO"
 	} else {
-		if testnet {
-			if name != "" {
-				fatalExit(fmt.Errorf("Cannot set both network %q and testnet", name))
-			}
-			name = "sepolia"
-		} else if name == "" {
+		if name == "" {
 			name = "sepolia"
 		}
 		var ok bool
@@ -1583,10 +1553,10 @@ func BuildSol(ctx context.Context, filename, solcVersion, evmVersion string, opt
 		if fileparts[0] != "<stdin>" {
 			continue
 		}
-		if name != "" && fileparts[1] != name {
-			// this will skip all the little contract files that it used to litter the the directory with
-			continue
-		}
+		// if name != "" && fileparts[1] != name {
+		// 	// this will skip all the little contract files that it used to litter the the directory with
+		// 	continue
+		// }
 		path := filepath.Join(output, fileparts[1])
 		err := ioutil.WriteFile(path+".bin", []byte(v.Code), 0600)
 		if err != nil {
