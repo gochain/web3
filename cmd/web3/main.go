@@ -1136,7 +1136,7 @@ func getNetwork(name, rpcURL string) web3.Network {
 			fatalExit(fmt.Errorf("Cannot set both rpcURL %q and network %q", rpcURL, network))
 		}
 		network.URL = rpcURL
-		network.Unit = "GO"
+		network.Unit = "ETH"
 	} else {
 		if name == "" {
 			name = "sepolia"
@@ -1416,9 +1416,9 @@ func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, priv
 	}
 
 	if onlyBalance {
-		fmt.Println(web3.IntToDec(bal, 18))
+		fmt.Println(web3.WeiAsBase(bal), network.Unit)
 	} else {
-		fmt.Println("Balance:", web3.IntToDec(bal, 18))
+		fmt.Println(web3.WeiAsBase(bal))
 		if len(code) > 0 {
 			fmt.Println("Code:", string(code))
 		}
