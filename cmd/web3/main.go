@@ -299,8 +299,9 @@ func main() {
 					},
 				},
 				{
-					Name:  "build",
-					Usage: "Build the specified contract",
+					Name:    "build",
+					Aliases: []string{"compile"},
+					Usage:   "Build the specified contract",
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:  "solc-version, c",
@@ -1107,10 +1108,59 @@ func main() {
 				},
 			},
 		},
+		{
+			Name:  "storage",
+			Usage: "Retreive the storage at an address. eg: `web3 storage 0x21830e9472084139F8dD94B85a63dC078447a407 1`",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:   "block",
+					Usage:  "Block number",
+					Hidden: false},
+				cli.StringFlag{
+					Name:  "decode",
+					Usage: "Data format: hex/utf8",
+					Value: "hex",
+				},
+			},
+			Action: func(c *cli.Context) {
+				GetStorageAt(ctx, network, c.String("block"), c.String("decode"), c.Args())
+			},
+		},
 	}
 	err := app.Run(os.Args)
 	if err != nil {
 		fmt.Println("ERROR:", err)
+	}
+}
+
+func GetStorageAt(ctx context.Context, network web3.Network, blockNumber string, format string, tail []string) {
+	client, err := web3.Dial(network.URL)
+	if err != nil {
+		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
+	}
+	defer client.Close()
+	address := tail[0]
+	if address == "" {
+		fatalExit(errors.New("The recepient address cannot be empty"))
+	}
+	if !common.IsHexAddress(address) {
+		fatalExit(fmt.Errorf("Invalid to 'address': %s", address))
+	}
+	index := toAmountBig(tail[1])
+	if index.Cmp(big.NewInt(0)) == -1 {
+		fatalExit(fmt.Errorf("Sotrage index must be positive: %s", index))
+	}
+	result, err := client.GetStorageAt(ctx, address, index)
+	if err != nil {
+		return
+	}
+	switch format {
+	case "hex":
+		fmt.Println(common.BytesToHash(result).String())
+	case "utf8":
+		fmt.Println(string(result))
+	default:
+		fmt.Println(common.BytesToHash(result).String())
 	}
 }
 
@@ -1341,7 +1391,6 @@ func printInputData(data []byte, format string) {
 		fmt.Print("Input: ", string(data))
 	default:
 		fatalExit(fmt.Errorf(`unrecognized input data format %q: expected "len", "hex", or "utf8"`, format))
-
 	}
 }
 

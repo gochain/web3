@@ -14,7 +14,7 @@ https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/6874
 ![](https://github.com/gochain/web3/workflows/release/badge.svg)
 
 ```sh
-web3 --help
+~ web3 --help
 NAME:
    web3 - web3 cli tool
 
@@ -22,32 +22,30 @@ USAGE:
    web3 [global options] command [command options] [arguments...]
 
 VERSION:
-   0.2.34
+   2.3.5
 
 COMMANDS:
    block, bl        Block details for a block number (decimal integer) or hash (hexadecimal with 0x prefix). Omit for latest.
    transaction, tx  Transaction details for a tx hash
    receipt, rc      Transaction receipt for a tx hash
-   address, addr    Account details for a specific address, or the one corresponding to the private key.
-   balance          Get balance for your private key or an address passed in(you could also use "block" as an optional parameter). eg: `balance 0xABC123` 
+   balance          Get balance for your private key or an address passed in. eg: `balance 0xABC123`
    increasegas      Increase gas for a transaction. Useful if a tx is taking too long and you want it to go faster.
    replace          Replace transaction. If a transaction is still pending, you can attempt to replace it.
    contract, c      Contract operations
    snapshot, sn     Clique snapshot
    id, id           Network/Chain information
-   start            Start a local GoChain development node
    myaddress        Returns the address associated with WEB3_PRIVATE_KEY
    account, a       Account operations
-   transfer, send   Transfer GO/ETH to an account. eg: `web3 transfer 10.1 to 0xADDRESS`
+   transfer, send   Transfer GO/ETH or ERC20 tokens to another account. eg: `web3 transfer 100000 gwei to 0xADDRESS`
    env              List environment variables
-   generate, g      Generate code
+   generate, g      Generate a contract
    did              Distributed identity operations
    claim            Verifiable claims operations
+   storage          Retreive the storage at an address. eg: `web3 storage 0x21830e9472084139F8dD94B85a63dC078447a407 1`
    help, h          Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   --network value, -n value  The name of the network. Options: gochain/testnet/ethereum/ropsten/localhost. (default: "gochain") [$WEB3_NETWORK]
-   --testnet                  Shorthand for '-network testnet'.
+   --network value, -n value  The name of the network. Options: sepolia/ethereum/ropsten/goerli/localhost. (default: "sepolia") [$WEB3_NETWORK]
    --rpc-url value            The network RPC URL [$WEB3_RPC_URL]
    --verbose                  Enable verbose logging
    --format value, -f value   Output format. Options: json. Default: human readable output.

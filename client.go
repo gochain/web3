@@ -45,6 +45,8 @@ type Client interface {
 	SendRawTransaction(ctx context.Context, tx []byte) error
 	// Call executes a call without submitting a transaction.
 	Call(ctx context.Context, msg CallMsg) ([]byte, error)
+	// Retreive whats in the storage of an address at a given index
+	GetStorageAt(ctx context.Context, address string, index *big.Int) ([]byte, error)
 	Close()
 	SetChainID(*big.Int)
 }
@@ -70,6 +72,15 @@ type client struct {
 
 func (c *client) Close() {
 	c.r.Close()
+}
+
+func (c *client) GetStorageAt(ctx context.Context, address string, index *big.Int) ([]byte, error) {
+	var result hexutil.Bytes
+	err := c.r.CallContext(ctx, &result, "eth_getStorageAt", common.HexToAddress(address), common.BigToAddress(index), "latest")
+	if err != nil {
+		return nil, err
+	}
+	return result, err
 }
 
 func (c *client) Call(ctx context.Context, msg CallMsg) ([]byte, error) {
