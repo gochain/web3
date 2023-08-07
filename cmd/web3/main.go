@@ -130,7 +130,7 @@ func main() {
 			Usage:   "Transaction details for a tx hash",
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name:        "input",
+					Name:        "decode",
 					Usage:       "Transaction input data format: len/hex/utf8",
 					Destination: &txInputFormat,
 					Value:       "len",
