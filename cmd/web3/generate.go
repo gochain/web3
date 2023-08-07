@@ -62,10 +62,11 @@ func GenerateCode(ctx context.Context, c *cli.Context) {
 
 func getOpenZeppelinLib(ctx context.Context, version string) error {
 	if _, err := os.Stat("lib/oz"); os.IsNotExist(err) {
-		if version == "" {
-			version = OpenZeppelinVersion
-		}
-		cmd := exec.Command("git", "clone", "--depth", "1", "--branch", "v"+version, "https://github.com/OpenZeppelin/openzeppelin-contracts", "lib/oz")
+		// if version == "" {
+		// 	version = OpenZeppelinVersion
+		// }
+		_ = version
+		cmd := exec.Command("git", "clone", "--depth", "1", "https://github.com/OpenZeppelin/openzeppelin-contracts", "lib/oz")
 		log.Printf("Cloning OpenZeppelin v%v...", version)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr

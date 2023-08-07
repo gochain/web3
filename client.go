@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"strings"
 	"sync/atomic"
 
 	"github.com/gochain/gochain/v4/common"
@@ -93,9 +94,16 @@ func (c *client) Call(ctx context.Context, msg CallMsg) ([]byte, error) {
 }
 
 func (c *client) GetBalance(ctx context.Context, address string, blockNumber *big.Int) (*big.Int, error) {
-	var result hexutil.Big
+	var result string
 	err := c.r.CallContext(ctx, &result, "eth_getBalance", common.HexToAddress(address), toBlockNumArg(blockNumber))
-	return (*big.Int)(&result), err
+	if err != nil {
+		return big.NewInt(0), err
+	}
+	a, boolerror := big.NewInt(0).SetString(strings.Replace(result, "0x", "", -1), 16)
+	if boolerror != true {
+		return big.NewInt(0), err
+	}
+	return a, err
 }
 
 func (c *client) GetCode(ctx context.Context, address string, blockNumber *big.Int) ([]byte, error) {
@@ -217,7 +225,8 @@ func (c *client) getTransactionCount(ctx context.Context, account common.Address
 }
 
 func (c *client) SendRawTransaction(ctx context.Context, tx []byte) error {
-	return c.r.CallContext(ctx, nil, "eth_sendRawTransaction", common.ToHex(tx))
+	err := c.r.CallContext(ctx, nil, "eth_sendRawTransaction", common.ToHex(tx))
+	return err
 }
 
 func (c *client) getBlock(ctx context.Context, method string, hashOrNum string, includeTxs bool) (*Block, error) {

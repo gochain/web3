@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -98,68 +97,9 @@ func FlattenSourceFile(ctx context.Context, source, output string) (string, stri
 	if err != nil {
 		return "", "", err
 	}
-	if newFiles { //file has imports
-		err = getOpenZeppelinLib(ctx, openZeppelinVersion)
-		if err != nil {
-			return name, "", fmt.Errorf("failed to get openzeppelin lib: %v", err)
-		}
-		if err := os.MkdirAll(filepath.Dir(output), 0777); err != nil {
-			return name, "", fmt.Errorf("failed to make parent directories: %v", err)
-		}
-		f, _ := os.OpenFile(output, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
-		defer f.Close()
-		w := bufio.NewWriter(f)
-		for {
-			repeat := false
-			for _, iRec := range imports {
-				if iRec.Processed {
-					continue
-				}
-				// fmt.Println("handling:", iRec.FullPath)
-				_, newFiles2, _, _, err2 := loadAndSplitFile(imports, iRec.FullPath)
-				if err2 != nil {
-					return name, output, err2
-				}
-				repeat = repeat || newFiles2
-			}
-			if !repeat {
-				break
-			}
-		}
-		fmt.Fprintln(w, pragma)
-		for {
-			completed := true
-			for key, mp := range imports {
-				if mp.Written {
-					continue
-				}
-				completed = false
-				if mp.Resolved {
-					for _, line := range mp.Code {
-						fmt.Fprintln(w, line)
-					}
-					mp.Written = true
-					imports[key] = mp
-					continue
-				}
-				amResolved := true
-				for k2 := range mp.Uses {
-					if !imports[filepath.Base(k2)].Written {
-						amResolved = false
-					}
-				}
-				if amResolved {
-					mp.Resolved = true
-					imports[key] = mp
-					continue
-				}
-			}
-			if completed {
-				break
-			}
-		}
-		return name, output, w.Flush()
-	} //file doesn't have any imports, so just return the same file
+	_ = newFiles
+	_ = openZeppelinVersion
+	_ = pragma
 	return name, source, err
 
 }

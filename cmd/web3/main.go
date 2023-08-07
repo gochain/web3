@@ -322,7 +322,7 @@ func main() {
 						},
 					},
 					Action: func(c *cli.Context) {
-						BuildSol(ctx, c.Args().First(), c.String("solc-version"), c.String("evm-version"),
+						BuildSol(ctx, c.Args(), c.String("solc-version"), c.String("evm-version"),
 							c.BoolT("optimize"), c.String("output"))
 					},
 				},
@@ -1118,7 +1118,7 @@ func main() {
 					Hidden: false},
 				cli.StringFlag{
 					Name:  "decode",
-					Usage: "Data format: hex/utf8",
+					Usage: "Data format: int/hex/utf8",
 					Value: "hex",
 				},
 			},
@@ -1159,6 +1159,8 @@ func GetStorageAt(ctx context.Context, network web3.Network, blockNumber string,
 		fmt.Println(common.BytesToHash(result).String())
 	case "utf8":
 		fmt.Println(string(result))
+	case "int":
+		fmt.Println(big.NewInt(0).SetBytes(result))
 	default:
 		fmt.Println(common.BytesToHash(result).String())
 	}
@@ -1562,82 +1564,66 @@ func GetID(ctx context.Context, rpcURL string) {
 }
 
 // BuildSol builds a contract. Generated files will be under output, or the current directory.
-func BuildSol(ctx context.Context, filename, solcVersion, evmVersion string, optimize bool, output string) {
-	if filename == "" {
-		fatalExit(errors.New("Missing file name arg"))
-	}
-	flatOut := ""
-	if output != "" {
-		if err := os.MkdirAll(output, 0777); err != nil {
-			fatalExit(fmt.Errorf("Failed to create output directory: %v", err))
+func BuildSol(ctx context.Context, solfilenames []string, solcVersion, evmVersion string, optimize bool, output string) {
+	for _, solfilename := range solfilenames {
+		if solfilename == "" {
+			fatalExit(errors.New("Missing file name arg"))
 		}
-		basename := filepath.Base(filename)
-		oName := strings.TrimSuffix(basename, filepath.Ext(basename)) + "_flatten.sol"
-		flatOut = filepath.Join(output, oName)
-	}
-	name, sourceFile, err := FlattenSourceFile(ctx, filename, flatOut)
-	if err != nil {
-		fatalExit(fmt.Errorf("Cannot generate flattened file: %v", err))
-	}
-	b, err := ioutil.ReadFile(sourceFile)
-	if err != nil {
-		fatalExit(fmt.Errorf("Failed to read file %q: %v", sourceFile, err))
-	}
-	str := string(b) // convert content to a 'string'
-	if verbose {
-		log.Println("Building Sol:", str)
-	}
-	compileData, err := web3.CompileSolidityString(ctx, str, solcVersion, evmVersion, optimize)
-	if err != nil {
-		fatalExit(fmt.Errorf("Failed to compile %q: %v", sourceFile, err))
-	}
-	if verbose {
-		log.Println("Compiled Sol Details:", marshalJSON(compileData))
-	}
-	fmt.Println("NAME:", name)
-	var filenames []string
-	for contractName, v := range compileData {
-		fmt.Println("contractName:", contractName)
-		fileparts := strings.Split(contractName, ":")
-		if fileparts[0] != "<stdin>" {
-			continue
+		if output != "" {
+			if err := os.MkdirAll(output, 0777); err != nil {
+				fatalExit(fmt.Errorf("Failed to create output directory: %v", err))
+			}
 		}
-		// if name != "" && fileparts[1] != name {
-		// 	// this will skip all the little contract files that it used to litter the the directory with
-		// 	continue
-		// }
-		path := filepath.Join(output, fileparts[1])
-		err := ioutil.WriteFile(path+".bin", []byte(v.Code), 0600)
+		if verbose {
+			log.Println("Building Sol:", solfilename)
+		}
+		compileData, err := web3.CompileSolidityFile(ctx, solfilename, solcVersion, evmVersion, optimize)
 		if err != nil {
-			fatalExit(fmt.Errorf("Cannot write the bin file: %v", err))
+			fatalExit(fmt.Errorf("Failed to compile %q: %v", solfilename, err))
 		}
-		err = ioutil.WriteFile(path+".abi", []byte(marshalJSON(v.Info.AbiDefinition)), 0600)
-		if err != nil {
-			fatalExit(fmt.Errorf("Cannot write the abi file: %v", err))
+		if verbose {
+			log.Println("Compiled Sol Details:", marshalJSON(compileData))
 		}
-		filenames = append(filenames, fileparts[1])
-	}
+		var filenames []string
+		for contractName, v := range compileData {
+			fmt.Println("contractName:", contractName)
+			fileparts := strings.Split(contractName, ":")
+			if fileparts[0] != solfilename {
+				continue
+			}
+			path := filepath.Join(output, fileparts[1])
+			err := os.WriteFile(path+".bin", []byte(v.Code), 0600)
+			if err != nil {
+				fatalExit(fmt.Errorf("Cannot write the bin file: %v", err))
+			}
+			err = os.WriteFile(path+".abi", []byte(marshalJSON(v.Info.AbiDefinition)), 0600)
+			if err != nil {
+				fatalExit(fmt.Errorf("Cannot write the abi file: %v", err))
+			}
+			filenames = append(filenames, fileparts[1])
+		}
 
-	switch format {
-	case "json":
-		data := struct {
-			Source string   `json:"source"`
-			Bin    []string `json:"bin"`
-			ABI    []string `json:"abi"`
-		}{}
-		data.Source = sourceFile
-		for _, f := range filenames {
-			data.Bin = append(data.Bin, f+".bin")
-			data.ABI = append(data.ABI, f+".abi")
+		switch format {
+		case "json":
+			data := struct {
+				Source string   `json:"source"`
+				Bin    []string `json:"bin"`
+				ABI    []string `json:"abi"`
+			}{}
+			data.Source = solfilename
+			for _, f := range filenames {
+				data.Bin = append(data.Bin, f+".bin")
+				data.ABI = append(data.ABI, f+".abi")
+			}
+			fmt.Println(marshalJSON(data))
+			return
 		}
-		fmt.Println(marshalJSON(data))
-		return
-	}
 
-	fmt.Println("Successfully compiled contracts and wrote the following files:")
-	fmt.Println("Source file", sourceFile)
-	for _, filename := range filenames {
-		fmt.Println("", filename+".bin,", filename+".abi")
+		fmt.Println("Successfully compiled contracts and wrote the following files:")
+		fmt.Println("Source file", solfilename)
+		for _, filename := range filenames {
+			fmt.Println("", filename+".bin,", filename+".abi")
+		}
 	}
 }
 
