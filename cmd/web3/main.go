@@ -114,7 +114,7 @@ func main() {
 					Value:       "count",
 				},
 				cli.StringFlag{
-					Name:        "input",
+					Name:        "decode",
 					Usage:       "Transaction input data format: len/hex/utf8",
 					Destination: &txInputFormat,
 					Value:       "len",
@@ -1312,17 +1312,21 @@ func GetBlockDetails(ctx context.Context, network web3.Network, numberOrHash str
 		case "detail":
 			fmt.Println("Transaction Details:")
 			for i, tx := range block.TxDetails {
-				fmt.Printf("\t%d\t", i)
-				fmt.Print("Hash: ", tx.Hash.Hex())
-				fmt.Print(" From: ", tx.From.Hex())
-				fmt.Print(" To: ", tx.To.Hex())
-				fmt.Print(" Value: ", web3.WeiAsBase(tx.Value), " ", network.Unit)
-				fmt.Print(" Nonce: ", tx.Nonce)
-				fmt.Print(" Gas Limit: ", tx.GasLimit)
-				fmt.Print(" Gas Price: ", web3.WeiAsGwei(tx.GasPrice), " gwei")
+				fmt.Printf("\t%d:\t[", i)
+				fmt.Printf("Hash: %s,", tx.Hash.Hex())
+				fmt.Printf(" From: %s,", tx.From.Hex())
+				if tx.To != nil {
+					fmt.Printf(" To: %s,", tx.To.Hex())
+				} else {
+					fmt.Printf(" To: %s,", "0x0000000000000000000000000000000000000000")
+				}
+				fmt.Printf(" Value: %s %s,", web3.WeiAsBase(tx.Value), network.Unit)
+				fmt.Printf(" Nonce: %v,", tx.Nonce)
+				fmt.Printf(" Gas Limit: %v,", tx.GasLimit)
+				fmt.Printf(" Gas Price: %v gwei,", web3.WeiAsGwei(tx.GasPrice))
 				fmt.Print(" ")
 				printInputData(tx.Input, txInputFormat)
-				fmt.Println()
+				fmt.Println("]")
 			}
 		}
 	}
