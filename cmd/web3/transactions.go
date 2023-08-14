@@ -87,7 +87,9 @@ func Transfer(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, 
 	amountS := tail[0]
 	amountD, err := decimal.NewFromString(amountS)
 	if err != nil {
-		fatalExit(fmt.Errorf("invalid amount %v", amountS))
+		if amountS != "everything" && contractAddress == "" {
+			fatalExit(fmt.Errorf("invalid amount %v", amountS))
+		}
 	}
 	toAddress := tail[2]
 
@@ -124,7 +126,12 @@ func Transfer(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, 
 		}
 	}
 
-	amount := web3.DecToInt(amountD, unit_oom)
+	var amount *big.Int
+	if amountS == "everything" {
+		amount = big.NewInt(-1)
+	} else {
+		amount = web3.DecToInt(amountD, unit_oom)
+	}
 	if toAddress == "" {
 		fatalExit(errors.New("The recepient address cannot be empty"))
 	}

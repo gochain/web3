@@ -345,6 +345,9 @@ func Send(ctx context.Context, client Client, privateKeyHex string, address comm
 	if gasLimit == 0 {
 		gasLimit = 21000
 	}
+	if len(data) > 0 && gasLimit <= 21000 {
+		gasLimit = 30000
+	}
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
@@ -354,6 +357,14 @@ func Send(ctx context.Context, client Client, privateKeyHex string, address comm
 	nonce, err := client.GetPendingTransactionCount(ctx, fromAddress)
 	if err != nil {
 		return nil, fmt.Errorf("cannot get nonce: %v", err)
+	}
+	if amount.Cmp(big.NewInt(-1)) == 0 {
+		bal, err := client.GetBalance(ctx, fromAddress.String(), nil)
+		if err != nil {
+			return nil, fmt.Errorf("cannot get balance: %v", err)
+		}
+		amount.SetBits(bal.Bits())
+		amount.SetBits(big.NewInt(0).Sub(amount, big.NewInt(0).Mul(gasPrice, big.NewInt(int64(gasLimit)))).Bits())
 	}
 	tx := types.NewTransaction(nonce, address, amount, gasLimit, gasPrice, data)
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)

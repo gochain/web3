@@ -765,7 +765,7 @@ func main() {
 		},
 		{
 			Name:    "transfer",
-			Usage:   fmt.Sprintf("Transfer GO/ETH or ERC20 tokens to another account. eg: `web3 transfer 100000 gwei to 0xADDRESS`"),
+			Usage:   fmt.Sprintf("Transfer ETH or ERC20 tokens to another account. eg: `web3 transfer 100000 gwei to 0xADDRESS`. Unit default to wei if not specified. `everything` is allowed (without unit after) to wipe wallet."),
 			Aliases: []string{"send"},
 			Flags: []cli.Flag{
 				cli.StringFlag{
@@ -796,7 +796,7 @@ func main() {
 				cli.Uint64Flag{
 					Name:  "gas-limit",
 					Usage: "Gas limit (multiplied by price for total gas)",
-					Value: 30000,
+					Value: 21000,
 				},
 				cli.StringFlag{
 					Name:  "gas-price",
@@ -808,7 +808,7 @@ func main() {
 				},
 				cli.StringFlag{
 					Name:  "data",
-					Usage: "Data for the transaction in hex (can copy from etherscan and other explorers)",
+					Usage: "Data for the transaction in hex",
 				},
 			},
 			Action: func(c *cli.Context) {
