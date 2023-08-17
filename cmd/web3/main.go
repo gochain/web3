@@ -1152,7 +1152,7 @@ func GetStorageAt(ctx context.Context, network web3.Network, blockNumber string,
 	}
 	result, err := client.GetStorageAt(ctx, address, index)
 	if err != nil {
-		return
+		fatalExit(fmt.Errorf("Could not retreive the storage: %v", err))
 	}
 	switch format {
 	case "hex":

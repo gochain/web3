@@ -2,6 +2,7 @@ package web3
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -76,12 +77,19 @@ func (c *client) Close() {
 }
 
 func (c *client) GetStorageAt(ctx context.Context, address string, index *big.Int) ([]byte, error) {
-	var result hexutil.Bytes
+	var result string
 	err := c.r.CallContext(ctx, &result, "eth_getStorageAt", common.HexToAddress(address), common.BigToAddress(index), "latest")
 	if err != nil {
 		return nil, err
 	}
-	return result, err
+	// eth_getStorageAt returns 0x0 when a storage is empty decoding it would throw an error for
+	// odd length string this check bypasses it by adding a trailing 0 transforming it in 0x00
+	if len(result[2:])%2 == 1 {
+		result += "0"
+	}
+	var bresult []byte
+	bresult, err = hex.DecodeString(result[2:])
+	return bresult, err
 }
 
 func (c *client) Call(ctx context.Context, msg CallMsg) ([]byte, error) {
