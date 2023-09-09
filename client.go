@@ -78,7 +78,7 @@ func (c *client) Close() {
 
 func (c *client) GetStorageAt(ctx context.Context, address string, index *big.Int) ([]byte, error) {
 	var result string
-	err := c.r.CallContext(ctx, &result, "eth_getStorageAt", common.HexToAddress(address), common.BigToAddress(index), "latest")
+	err := c.r.CallContext(ctx, &result, "eth_getStorageAt", common.HexToAddress(address), common.BigToHash(index), "latest")
 	if err != nil {
 		return nil, err
 	}
