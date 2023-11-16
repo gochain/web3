@@ -14,6 +14,7 @@ import (
 	"github.com/gochain/gochain/v4/accounts/abi/bind"
 	"github.com/gochain/web3/assets"
 	"github.com/urfave/cli"
+	"github.com/gochain/web3/vyper"
 )
 
 const (
@@ -81,16 +82,33 @@ func getOpenZeppelinLib(ctx context.Context, version string) error {
 	return nil
 }
 
+// TODO return the vyper contract for ERC020
+func GenerateVyperContract(contractName string) {
+	cntr := vyper.GenerateVyperERC20Token()
+	vyper.WriteToFile(contractName, cntr)
+	fmt.Println(cntr)
+
+	
+}
+
 func GenerateContract(ctx context.Context, contractType string, c *cli.Context) {
-	if c.String("symbol") == "" {
-		fatalExit(errors.New("Symbol is required"))
-	}
-	if c.String("name") == "" {
-		fatalExit(errors.New("Name is required"))
+	if contractType != "erc20-vyper" {
+		if c.String("symbol") == "" {
+			fatalExit(errors.New("Symbol is required"))
+		}
+		if c.String("name") == "" {
+			fatalExit(errors.New("Name is required"))
+		}
+		if c.String("symbol") == "" {
+			fatalExit(errors.New("Symbol is required"))
+		}
+		if c.String("name") == "" {
+			fatalExit(errors.New("Name is required"))
+		}
 	}
 	err := getOpenZeppelinLib(ctx, OpenZeppelinVersion)
 	if err != nil {
-		fatalExit(err)
+	fatalExit(err)
 	}
 	if contractType == "erc20" {
 		// var capped *big.Int
@@ -138,6 +156,9 @@ func GenerateContract(ctx context.Context, contractType string, c *cli.Context) 
 			// Burnable:  c.Bool("burnable"),
 		}
 		processTemplate(OpenZeppelinVersion, params, params.Symbol, assets.ERC721Template)
+	} else if contractType == "erc20-vyper" {
+		GenerateVyperContract(c.String("symbol"))
+		//fmt.Println("You selected an erc20 token in Vyper.")
 	}
 }
 

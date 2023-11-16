@@ -308,7 +308,7 @@ func main() {
 		{
 			Name:    "contract",
 			Aliases: []string{"c"},
-			Usage:   "Contract operations",
+			Usage:   "Contract operations.",
 			Subcommands: []cli.Command{
 				{
 					Name:  "flatten",
@@ -929,6 +929,32 @@ func main() {
 							},
 							Action: func(c *cli.Context) {
 								GenerateContract(ctx, "erc721", c)
+							},
+						},
+						{
+							Name:  "erc20-vyper",
+							Usage: "Generate an ERC20 contract in Vyper",
+							Flags: []cli.Flag{
+								// cli.BoolTFlag{
+								// 	Name:  "pausable, p",
+								// 	Usage: "Pausable contract. Default: true",
+								// },
+								// cli.BoolTFlag{
+								// 	Name:  "mintable, m",
+								// 	Usage: "Mintable contract. Default: true",
+								// },
+								// cli.BoolTFlag{
+								// 	Name:  "burnable, b",
+								// 	Usage: "Burnable contract. Default: true",
+								// },
+								cli.StringFlag{
+									Name:     "symbol, s",
+									Usage:    "Token Symbol.",
+									Required: true,
+								},
+								},
+							Action: func(c *cli.Context) {
+								GenerateContract(ctx, "erc20-vyper", c)
 							},
 						},
 					},

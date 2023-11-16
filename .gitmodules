@@ -1,0 +1,3 @@
+[submodule "vyper/vyper-go"]
+	path = vyper/vyper-go
+	url = https://github.com/mac-lawson/vyper-go.git
