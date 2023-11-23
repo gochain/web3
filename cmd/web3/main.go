@@ -75,7 +75,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:        "network, n",
-			Usage:       `The name of the network. Options: sepolia/ethereum/ropsten/goerli/localhost. (default: "sepolia")`,
+			Usage:       `The name of the network. Options: sepolia/ethereum/ropsten/goerli/localhost. (default: "localhost")`,
 			Destination: &netName,
 			EnvVar:      networkVarName,
 			Hidden:      false},
@@ -1228,13 +1228,13 @@ func getNetwork(name, rpcURL string) web3.Network {
 	var network web3.Network
 	if rpcURL != "" {
 		if name != "" {
-			fatalExit(fmt.Errorf("Cannot set both rpcURL %q and network %q", rpcURL, network))
+			fatalExit(fmt.Errorf("Cannot set both rpcURL %q and network %q", rpcURL, name))
 		}
 		network.URL = rpcURL
 		network.Unit = "ETH"
 	} else {
 		if name == "" {
-			name = "sepolia"
+			name = "localhost"
 		}
 		var ok bool
 		network, ok = web3.Networks[name]
