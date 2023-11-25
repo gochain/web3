@@ -13,8 +13,8 @@ import (
 
 	"github.com/gochain/gochain/v4/accounts/abi/bind"
 	"github.com/gochain/web3/assets"
-	"github.com/urfave/cli"
 	"github.com/gochain/web3/vyper"
+	"github.com/urfave/cli"
 )
 
 const (
@@ -88,27 +88,26 @@ func GenerateVyperContract(contractName string) {
 	vyper.WriteToFile(contractName, cntr)
 	fmt.Println(cntr)
 
-	
 }
 
 func GenerateContract(ctx context.Context, contractType string, c *cli.Context) {
 	if contractType != "erc20-vyper" {
 		if c.String("symbol") == "" {
-			fatalExit(errors.New("Symbol is required"))
+			fatalExit(errors.New("symbol is required"))
 		}
 		if c.String("name") == "" {
-			fatalExit(errors.New("Name is required"))
+			fatalExit(errors.New("name is required"))
 		}
 		if c.String("symbol") == "" {
-			fatalExit(errors.New("Symbol is required"))
+			fatalExit(errors.New("symbol is required"))
 		}
 		if c.String("name") == "" {
-			fatalExit(errors.New("Name is required"))
+			fatalExit(errors.New("name is required"))
 		}
 	}
 	err := getOpenZeppelinLib(ctx, OpenZeppelinVersion)
 	if err != nil {
-	fatalExit(err)
+		fatalExit(err)
 	}
 	if contractType == "erc20" {
 		// var capped *big.Int
