@@ -28,6 +28,7 @@ import (
 	"github.com/gochain/gochain/v4/crypto"
 	"github.com/gochain/web3"
 	"github.com/gochain/web3/assets"
+	"github.com/gochain/web3/vyper"
 	"github.com/shopspring/decimal"
 	"github.com/treeder/gotils/v2"
 	"github.com/urfave/cli"
@@ -50,6 +51,7 @@ const (
 	networkVarName     = "WEB3_NETWORK"
 	rpcURLVarName      = "WEB3_RPC_URL"
 	didRegistryVarName = "WEB3_DID_REGISTRY"
+	langUsing          = "WEB3_LANGUAGE"
 )
 
 func main() {
@@ -65,7 +67,7 @@ func main() {
 	}()
 
 	// Flags
-	var netName, rpcUrl, function, contractAddress, toContractAddress, abiFile, privateKey, txFormat, txInputFormat string
+	var netName, rpcUrl, function, contractAddress, toContractAddress, abiFile, privateKey, txFormat, txInputFormat, lang string
 	var testnet, waitForReceipt, upgradeable bool
 
 	app := cli.NewApp()
@@ -78,6 +80,12 @@ func main() {
 			Usage:       `The name of the network. Options: gochain/testnet/ethereum/ropsten/localhost. (default: "gochain")`,
 			Destination: &netName,
 			EnvVar:      networkVarName,
+			Hidden:      false},
+		cli.StringFlag{
+			Name:        "language, l",
+			Usage:       `The name of the language to use. Options: solidity/vyper (default: "solidity")`,
+			Destination: &lang,
+			EnvVar:      langUsing,
 			Hidden:      false},
 		cli.BoolFlag{
 			Name:        "testnet",
@@ -308,7 +316,7 @@ func main() {
 		{
 			Name:    "contract",
 			Aliases: []string{"c"},
-			Usage:   "Contract operations",
+			Usage:   "Contract operations.",
 			Subcommands: []cli.Command{
 				{
 					Name:  "flatten",
@@ -348,6 +356,30 @@ func main() {
 					Action: func(c *cli.Context) {
 						BuildSol(ctx, c.Args().First(), c.String("solc-version"), c.String("evm-version"),
 							c.BoolT("optimize"), c.String("output"))
+					},
+				},
+				{
+					Name:  "build-vyper",
+					Usage: "Build the specified Vyper contract",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:     "vyperc-version, v",
+							Usage:    "The version of the Vyper compiler (must be installed locally, if not supplied will default to vyper --version)",
+							Required: false,
+						},
+						cli.StringFlag{
+							Name:     "output, o",
+							Usage:    "Output directory.",
+							Required: false,
+						},
+						cli.StringFlag{
+							Name:     "compile-options, c",
+							Usage:    "Options for the returning of the compiled contract. Include abi, bytecode, asm, ir, and source_map",
+							Required: true,
+						},
+					},
+					Action: func(c *cli.Context) {
+						vyper.CompileFromCLI(c.Args().First(), c.String("compile-options"))
 					},
 				},
 				{
@@ -929,6 +961,32 @@ func main() {
 							},
 							Action: func(c *cli.Context) {
 								GenerateContract(ctx, "erc721", c)
+							},
+						},
+						{
+							Name:  "erc20-vyper",
+							Usage: "Generate an ERC20 contract in Vyper",
+							Flags: []cli.Flag{
+								// cli.BoolTFlag{
+								// 	Name:  "pausable, p",
+								// 	Usage: "Pausable contract. Default: true",
+								// },
+								// cli.BoolTFlag{
+								// 	Name:  "mintable, m",
+								// 	Usage: "Mintable contract. Default: true",
+								// },
+								// cli.BoolTFlag{
+								// 	Name:  "burnable, b",
+								// 	Usage: "Burnable contract. Default: true",
+								// },
+								cli.StringFlag{
+									Name:     "symbol, s",
+									Usage:    "Token Symbol.",
+									Required: true,
+								},
+							},
+							Action: func(c *cli.Context) {
+								GenerateContract(ctx, "erc20-vyper", c)
 							},
 						},
 					},

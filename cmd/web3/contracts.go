@@ -9,9 +9,7 @@ import (
 	"github.com/gochain/gochain/v4/accounts/abi"
 	"github.com/gochain/web3"
 )
-
 func ListContract(contractFile string) {
-
 	myabi, err := web3.GetABI(contractFile)
 	if err != nil {
 		fatalExit(err)
@@ -25,7 +23,6 @@ func ListContract(contractFile string) {
 	for _, method := range myabi.Methods {
 		fmt.Println(method)
 	}
-
 }
 
 func GetContractConst(ctx context.Context, rpcURL, contractAddress, contractFile, functionName string, parameters ...interface{}) ([]interface{}, error) {
