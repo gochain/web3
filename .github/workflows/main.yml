@@ -52,18 +52,18 @@ jobs:
         sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
         CGO_ENABLED=1 GOOS=linux GOARCH="arm64" CC=aarch64-linux-gnu-gcc go build -ldflags "-X main.Version=$VERSION" -o web3_linux_arm64 ./cmd/web3
 
-        # Alpine build
-        docker create -v /data --name web3_sources alpine /bin/true
-        docker cp -a . web3_sources:/data/
-        docker build -t gochain/builder:latest -f Dockerfile.build .
-        docker run --rm --volumes-from web3_sources -w /data gochain/builder go build -ldflags "-X main.Version=$VERSION" -o web3_alpine ./cmd/web3 
-        docker cp web3_sources:/data/web3_alpine web3_alpine
-        # docker rm -f web3_sources
+        # # Alpine build
+        # docker create -v /data --name web3_sources alpine /bin/true
+        # docker cp -a . web3_sources:/data/
+        # docker build -t gochain/builder:latest -f Dockerfile.build .
+        # docker run --rm --volumes-from web3_sources -w /data gochain/builder go build -ldflags "-X main.Version=$VERSION" -o web3_alpine ./cmd/web3 
+        # docker cp web3_sources:/data/web3_alpine web3_alpine
+        # # docker rm -f web3_sources
 
     - name: GitHub release
       uses: ncipollo/release-action@v1
       with:
-        artifacts: "web3_linux, web3_alpine, web3_alpine, web3_linux_arm64"
+        artifacts: "web3_linux, web3_linux_arm64"
         token: ${{ secrets.GITHUB_TOKEN }}
         tag: v${{ env.VERSION }}
         name: ${{ env.VERSION }}
