@@ -7,7 +7,7 @@ require (
 	github.com/shopspring/decimal v1.3.1
 	github.com/treeder/gotils/v2 v2.0.18
 	github.com/urfave/cli v1.22.5
-	golang.org/x/crypto v0.17.0
+	golang.org/x/crypto v0.21.0
 )
 
 require (
@@ -44,9 +44,9 @@ require (
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208 // indirect
 	go.opencensus.io v0.22.2 // indirect
-	golang.org/x/net v0.19.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
