@@ -13,7 +13,7 @@ RUN cd $D && go build -o web3-alpine ./cmd/web3 && cp web3-alpine /tmp/
 
 # final stage
 FROM alpine
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates git
 WORKDIR /app
 COPY --from=build-env /tmp/web3-alpine /app/web3
 ENTRYPOINT ["/app/web3"]
