@@ -467,6 +467,9 @@ func ConvertArgument(abiType abi.Type, param interface{}) (interface{}, error) {
 		s = strings.TrimPrefix(s, "[")
 		s = strings.TrimSuffix(s, "]")
 		inputArray := strings.Split(s, ",")
+		if s == "" {
+			inputArray = nil
+		}
 		switch abiType.Elem.T {
 
 		case abi.AddressTy:
