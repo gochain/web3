@@ -44,6 +44,12 @@ var Networks = map[string]Network{
 		ChainID: big.NewInt(3),
 		Unit:    "ETH",
 	},
+	"sepolia": {
+		Name:    "sepolia",
+		URL:     "https://sepolia.infura.io/v3/bc5b0e5cfd9b4385befb69a68a9400c3",
+		ChainID: big.NewInt(11155111),
+		Unit:    "ETH",
+	},
 }
 
 type Network struct {
