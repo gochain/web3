@@ -360,23 +360,23 @@ func VerifyClaim(ctx context.Context, rpcURL, privateKey, registryAddress, filen
 
 func readDIDDocument(ctx context.Context, rpcURL, registryAddress, id string) (*did.Document, error) {
 	if registryAddress == "" {
-		return nil, fmt.Errorf("Registry contract address required")
+		return nil, fmt.Errorf("registry contract address required")
 	}
 
 	d, err := did.Parse(id)
 	if err != nil {
-		return nil, fmt.Errorf("Invalid DID: %s", id)
+		return nil, fmt.Errorf("invalid DID: %s", id)
 	}
 
 	client, err := web3.Dial(rpcURL)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to connect to %q: %v", rpcURL, err)
+		return nil, fmt.Errorf("failed to connect to %q: %v", rpcURL, err)
 	}
 	defer client.Close()
 
 	myabi, err := abi.JSON(strings.NewReader(assets.DIDRegistryABI))
 	if err != nil {
-		return nil, fmt.Errorf("Cannot initialize DIDRegistry ABI: %v", err)
+		return nil, fmt.Errorf("cannot initialize DIDRegistry ABI: %v", err)
 	}
 
 	var idBytes32 [32]byte
@@ -384,7 +384,7 @@ func readDIDDocument(ctx context.Context, rpcURL, registryAddress, id string) (*
 
 	result, err := web3.CallConstantFunction(ctx, client, myabi, registryAddress, "hash", idBytes32)
 	if err != nil {
-		return nil, fmt.Errorf("Cannot call the contract: %v", err)
+		return nil, fmt.Errorf("cannot call the contract: %v", err)
 	}
 	if len(result) != 1 {
 		log.Fatalf("Expected single result but got: %v", result)
@@ -393,13 +393,13 @@ func readDIDDocument(ctx context.Context, rpcURL, registryAddress, id string) (*
 	hash := result[0].(string)
 	resp, err := http.Get(fmt.Sprintf("https://ipfs.infura.io:5001/api/v0/cat?arg=%s", hash))
 	if err != nil {
-		return nil, fmt.Errorf("Unable to fetch DID document from IPFS: %s", err)
+		return nil, fmt.Errorf("unable to fetch DID document from IPFS: %s", err)
 	}
 	defer resp.Body.Close()
 
 	var doc did.Document
 	if err := json.NewDecoder(resp.Body).Decode(&doc); err != nil {
-		return nil, fmt.Errorf("Unable to decode DID document: %s", err)
+		return nil, fmt.Errorf("unable to decode DID document: %s", err)
 	}
 	return &doc, nil
 }

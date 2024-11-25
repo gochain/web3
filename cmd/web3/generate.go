@@ -31,18 +31,18 @@ func GenerateCode(ctx context.Context, c *cli.Context) {
 	case "objc":
 		lang = bind.LangObjC
 	default:
-		fatalExit(fmt.Errorf("Unsupported destination language: %v", lang))
+		fatalExit(fmt.Errorf("unsupported destination language: %v", lang))
 	}
 
 	abiFile := c.String("abi")
 
 	if abiFile == "" {
-		fatalExit(errors.New("Please set the ABI file name"))
+		fatalExit(errors.New("please set the ABI file name"))
 	}
 
 	abi, err := ioutil.ReadFile(abiFile)
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to read file %q: %v", abiFile, err))
+		fatalExit(fmt.Errorf("failed to read file %q: %v", abiFile, err))
 	}
 
 	abis := []string{string(abi)}
@@ -51,12 +51,12 @@ func GenerateCode(ctx context.Context, c *cli.Context) {
 
 	code, err := bind.Bind(types, abis, bins, nil, c.String("pkg"), lang, nil, nil)
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to generate ABI binding %q: %v", abiFile, err))
+		fatalExit(fmt.Errorf("failed to generate ABI binding %q: %v", abiFile, err))
 	}
 	outFile := c.String("out")
 
 	if err := ioutil.WriteFile(outFile, []byte(code), 0600); err != nil {
-		fatalExit(fmt.Errorf("Failed to write ABI binding %q: %v", abiFile, err))
+		fatalExit(fmt.Errorf("failed to write ABI binding %q: %v", abiFile, err))
 	}
 	fmt.Println("The generated code has been successfully written to", outFile, "file")
 }
@@ -72,11 +72,11 @@ func getOpenZeppelinLib(ctx context.Context, version string) error {
 		cmd.Stderr = os.Stderr
 		err := cmd.Run()
 		if err != nil {
-			fatalExit(fmt.Errorf("Cloning finished with error: %v", err))
+			fatalExit(fmt.Errorf("cloning finished with error: %v", err))
 		}
 		err = os.RemoveAll("lib/oz/.git")
 		if err != nil {
-			fatalExit(fmt.Errorf("Cannot cleanup .git dir in lib/oz: %v", err))
+			fatalExit(fmt.Errorf("cannot cleanup .git dir in lib/oz: %v", err))
 		}
 	}
 	return nil
@@ -164,12 +164,12 @@ func GenerateContract(ctx context.Context, contractType string, c *cli.Context) 
 func processTemplate(openZeppelinVersion string, params interface{}, fileName, contractTemplate string) {
 	tmpl, err := template.New("contract").Parse(contractTemplate)
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot parse the template: %v", err))
+		fatalExit(fmt.Errorf("cannot parse the template: %v", err))
 	}
 	var buff bytes.Buffer
 	err = tmpl.Execute(&buff, params)
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot execute the template: %v", err))
+		fatalExit(fmt.Errorf("cannot execute the template: %v", err))
 	}
 	s := fmt.Sprintf("// @openzeppelin v%v\n", openZeppelinVersion)
 	s += buff.String()
@@ -178,7 +178,7 @@ func processTemplate(openZeppelinVersion string, params interface{}, fileName, c
 func writeStringToFile(s, fileName string) {
 	err := ioutil.WriteFile(fileName+".sol", []byte(s), 0666)
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot create the file: %v", err))
+		fatalExit(fmt.Errorf("cannot create the file: %v", err))
 	}
 	fmt.Println("The sample contract has been successfully written to", fileName+".sol", "file")
 }

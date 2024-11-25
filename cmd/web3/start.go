@@ -86,7 +86,7 @@ func start(ctx context.Context, c *cli.Context) error {
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to run command %v", err))
+		fatalExit(fmt.Errorf("failed to run command %v", err))
 	}
 	return nil
 }

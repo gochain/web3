@@ -16,7 +16,7 @@ import (
 func IncreaseGas(ctx context.Context, privateKey string, network web3.Network, txHash string, amountGwei string) {
 	client, err := web3.Dial(network.URL)
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
+		fatalExit(fmt.Errorf("failed to connect to %q: %v", network.URL, err))
 	}
 	defer client.Close()
 	// then we'll clone the original and increase gas
@@ -42,7 +42,7 @@ func ReplaceTx(ctx context.Context, privateKey string, network web3.Network, non
 	gasPrice *big.Int, gasLimit uint64, data []byte) *types.Transaction {
 	client, err := web3.Dial(network.URL)
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
+		fatalExit(fmt.Errorf("failed to connect to %q: %v", network.URL, err))
 	}
 	defer client.Close()
 	if gasPrice == nil {
@@ -81,7 +81,7 @@ func ReplaceTx(ctx context.Context, privateKey string, network web3.Network, non
 
 func Transfer(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, contractAddress string, gasPrice *big.Int, gasLimit uint64, wait, toString bool, timeoutInSeconds uint64, tail []string) {
 	if len(tail) < 3 {
-		fatalExit(errors.New("Invalid arguments. Format is: `transfer X to ADDRESS`"))
+		fatalExit(errors.New("invalid arguments. Format is: `transfer X to ADDRESS`"))
 	}
 
 	amountS := tail[0]
@@ -93,7 +93,7 @@ func Transfer(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, 
 
 	client, err := web3.Dial(rpcURL)
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
+		fatalExit(fmt.Errorf("failed to connect to %q: %v", rpcURL, err))
 	}
 	client.SetChainID(chainID)
 	defer client.Close()
@@ -110,15 +110,15 @@ func Transfer(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, 
 
 	amount := web3.DecToInt(amountD, 18)
 	if toAddress == "" {
-		fatalExit(errors.New("The recepient address cannot be empty"))
+		fatalExit(errors.New("the recepient address cannot be empty"))
 	}
 	if !common.IsHexAddress(toAddress) {
-		fatalExit(fmt.Errorf("Invalid to 'address': %s", toAddress))
+		fatalExit(fmt.Errorf("invalid to 'address': %s", toAddress))
 	}
 	address := common.HexToAddress(toAddress)
 	tx, err := web3.Send(ctx, client, privateKey, address, amount, gasPrice, gasLimit)
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot create transaction: %v", err))
+		fatalExit(fmt.Errorf("cannot create transaction: %v", err))
 	}
 	fmt.Println("Transaction address:", tx.Hash.Hex())
 }
@@ -174,7 +174,7 @@ func GetTransactionReceipt(ctx context.Context, rpcURL, txhash, contractFile str
 	var myabi *abi.ABI
 	client, err := web3.Dial(rpcURL)
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
+		fatalExit(fmt.Errorf("failed to connect to %q: %v", rpcURL, err))
 	}
 	defer client.Close()
 	if contractFile != "" {
@@ -185,7 +185,7 @@ func GetTransactionReceipt(ctx context.Context, rpcURL, txhash, contractFile str
 	}
 	r, err := client.GetTransactionReceipt(ctx, common.HexToHash(txhash))
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to get transaction receipt: %v", err))
+		fatalExit(fmt.Errorf("failed to get transaction receipt: %v", err))
 	}
 	if verbose {
 		fmt.Println("Transaction Receipt Details:")

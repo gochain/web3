@@ -9,6 +9,7 @@ import (
 	"github.com/gochain/gochain/v4/accounts/abi"
 	"github.com/gochain/web3"
 )
+
 func ListContract(contractFile string) {
 	myabi, err := web3.GetABI(contractFile)
 	if err != nil {
@@ -28,7 +29,7 @@ func ListContract(contractFile string) {
 func GetContractConst(ctx context.Context, rpcURL, contractAddress, contractFile, functionName string, parameters ...interface{}) ([]interface{}, error) {
 	client, err := web3.Dial(rpcURL)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to connect to %q: %v", rpcURL, err)
+		return nil, fmt.Errorf("failed to connect to %q: %v", rpcURL, err)
 	}
 	defer client.Close()
 	myabi, err := web3.GetABI(contractFile)
@@ -37,14 +38,14 @@ func GetContractConst(ctx context.Context, rpcURL, contractAddress, contractFile
 	}
 	fn, ok := myabi.Methods[functionName]
 	if !ok {
-		return nil, fmt.Errorf("There is no such function: %v", functionName)
+		return nil, fmt.Errorf("there is no such function: %v", functionName)
 	}
 	if !fn.IsConstant() {
 		return nil, err
 	}
 	res, err := web3.CallConstantFunction(ctx, client, *myabi, contractAddress, functionName, parameters...)
 	if err != nil {
-		return nil, fmt.Errorf("Error calling constant function: %v", err)
+		return nil, fmt.Errorf("error calling constant function: %v", err)
 	}
 	return res, nil
 }
@@ -73,7 +74,7 @@ func callContract(ctx context.Context, client web3.Client, privateKey, contractA
 		if m.IsConstant() {
 			res, err := web3.CallConstantFunction(ctx, client, *myabi, contractAddress, functionName, parameters...)
 			if err != nil {
-				fatalExit(fmt.Errorf("Error calling constant function: %v", err))
+				fatalExit(fmt.Errorf("error calling constant function: %v", err))
 			}
 			switch format {
 			case "json":
@@ -104,7 +105,7 @@ func callContract(ctx context.Context, client web3.Client, privateKey, contractA
 		tx, err = web3.CallTransactFunction(ctx, client, *myabi, contractAddress, privateKey, functionName, amount, gasPrice, gasLimit, parameters...)
 	}
 	if err != nil {
-		fatalExit(fmt.Errorf("Error calling contract: %v", err))
+		fatalExit(fmt.Errorf("error calling contract: %v", err))
 	}
 	fmt.Println("Transaction hash:", tx.Hash.Hex())
 	if !waitForReceipt {
