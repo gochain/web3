@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,8 +27,10 @@ func extractFilePath(line string) string {
 	line = strings.Replace(line, "\"", "", 2)
 	line = strings.Replace(line, "'", "", 2)
 	line = strings.Replace(line, ";", "", 2)
-	line = strings.TrimSpace(filepath.Clean(line))
-	return line
+	if strings.HasPrefix(line, "http") {
+		return line
+	}
+	return strings.TrimSpace(filepath.Clean(line))
 }
 
 func loadAndSplitFile(imports map[string]importRec, fileName string) (name string, newFiles bool, openZeppelinVersion, pragma string, err error) {
@@ -54,8 +58,37 @@ func loadAndSplitFile(imports map[string]importRec, fileName string) (name strin
 		}
 		if strings.HasPrefix(line, "import") {
 			noImports = false
-			fpath := thisPath + "/" + extractFilePath(line)
-			fname := filepath.Base(fpath)
+			fpath := ""
+			fname := ""
+			fullFilePath := extractFilePath(line)
+			if strings.HasPrefix(fullFilePath, "http") {
+				var resp *http.Response
+				var out *os.File
+				fname = filepath.Base(fullFilePath)
+				resp, err = http.Get(fullFilePath)
+				if err != nil {
+					return
+				}
+				if resp.StatusCode != 200 {
+					err = fmt.Errorf("%s: %s", fullFilePath, resp.Status)
+					return
+				}
+				defer resp.Body.Close()
+				out, err = os.Create(fname)
+				if err != nil {
+					return
+				}
+				defer out.Close()
+				_, err = io.Copy(out, resp.Body)
+				if err != nil {
+					return
+				}
+				fpath = thisPath + "/" + fname
+			} else {
+				fpath = thisPath + "/" + fullFilePath
+				fname = filepath.Base(fpath)
+			}
+
 			if !imports[fname].Created {
 				newFiles = true
 				imports[fname] = importRec{
