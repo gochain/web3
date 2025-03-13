@@ -217,7 +217,7 @@ func main() {
 				if c.Bool("erc20") {
 					contractAddress = c.String("address")
 					if contractAddress == "" {
-						fatalExit(errors.New("You must set ERC20 contract address"))
+						fatalExit(errors.New("you must set ERC20 contract address"))
 					}
 				}
 				GetAddressDetails(ctx, network, c.Args().First(), privateKey, true, contractAddress, c.String("block"))
@@ -507,7 +507,7 @@ func main() {
 						price, limit := parseGasPriceAndLimit(c)
 						client, err := web3.Dial(network.URL)
 						if err != nil {
-							fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
+							fatalExit(fmt.Errorf("failed to connect to %q: %v", network.URL, err))
 						}
 						client.SetChainID(network.ChainID)
 						defer client.Close()
@@ -797,9 +797,9 @@ func main() {
 					},
 					Action: func(c *cli.Context) {
 						f := c.String("keyfile")
-						kbytes, err := ioutil.ReadFile(f)
+						kbytes, err := os.ReadFile(f)
 						if err != nil {
-							fatalExit(fmt.Errorf("Failed to read file %q: %v", f, err))
+							fatalExit(fmt.Errorf("failed to read file %q: %v", f, err))
 						}
 						key, err := keystore.DecryptKey(kbytes, c.String("password"))
 						if err != nil {
@@ -813,7 +813,7 @@ func main() {
 		},
 		{
 			Name:    "transfer",
-			Usage:   fmt.Sprintf("Transfer GO/ETH or ERC20 tokens to another account. eg: `web3 transfer 10.1 to 0xADDRESS`"),
+			Usage:   "transfer GO/ETH or ERC20 tokens to another account. eg: `web3 transfer 10.1 to 0xADDRESS`",
 			Aliases: []string{"send"},
 			Flags: []cli.Flag{
 				cli.StringFlag{
@@ -860,7 +860,7 @@ func main() {
 				if c.Bool("erc20") {
 					contractAddress = c.String("address")
 					if contractAddress == "" {
-						fatalExit(errors.New("You must set ERC20 contract address"))
+						fatalExit(errors.New("you must set ERC20 contract address"))
 					}
 				}
 				price, limit := parseGasPriceAndLimit(c)
@@ -1200,17 +1200,17 @@ func getNetwork(name, rpcURL string, testnet bool) web3.Network {
 	var network web3.Network
 	if rpcURL != "" {
 		if name != "" {
-			fatalExit(fmt.Errorf("Cannot set both rpcURL %q and network %q", rpcURL, network))
+			fatalExit(fmt.Errorf("cannot set both rpcURL %q and network %q", rpcURL, network))
 		}
 		if testnet {
-			fatalExit(fmt.Errorf("Cannot set both rpcURL %q and testnet", rpcURL))
+			fatalExit(fmt.Errorf("cannot set both rpcURL %q and testnet", rpcURL))
 		}
 		network.URL = rpcURL
 		network.Unit = "GO"
 	} else {
 		if testnet {
 			if name != "" {
-				fatalExit(fmt.Errorf("Cannot set both network %q and testnet", name))
+				fatalExit(fmt.Errorf("cannot set both network %q and testnet", name))
 			}
 			name = "testnet"
 		} else if name == "" {
@@ -1219,7 +1219,7 @@ func getNetwork(name, rpcURL string, testnet bool) web3.Network {
 		var ok bool
 		network, ok = web3.Networks[name]
 		if !ok {
-			fatalExit(fmt.Errorf("Unrecognized network %q", name))
+			fatalExit(fmt.Errorf("unrecognized network %q", name))
 		}
 		if verbose {
 			log.Printf("Network: %v", name)
@@ -1256,7 +1256,7 @@ func parseGasPriceAndLimit(c *cli.Context) (*big.Int, uint64) {
 func GetBlockDetails(ctx context.Context, network web3.Network, numberOrHash string, txFormat, txInputFormat string) {
 	client, err := web3.Dial(network.URL)
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
+		fatalExit(fmt.Errorf("failed to connect to %q: %v", network.URL, err))
 	}
 	defer client.Close()
 	var block *web3.Block
@@ -1266,13 +1266,13 @@ func GetBlockDetails(ctx context.Context, network web3.Network, numberOrHash str
 		includeTxs = true
 	case "count", "hash":
 	default:
-		fatalExit(fmt.Errorf(`Unrecognized transaction format %q: must be "count", "hash", or "detail"`, txFormat))
+		fatalExit(fmt.Errorf(`unrecognized transaction format %q: must be "count", "hash", or "detail"`, txFormat))
 	}
 	if strings.HasPrefix(numberOrHash, "0x") {
 		var err error
 		block, err = client.GetBlockByHash(ctx, numberOrHash, includeTxs)
 		if err != nil {
-			fatalExit(fmt.Errorf("Cannot get block details from the network: %v", err))
+			fatalExit(fmt.Errorf("cannot get block details from the network: %v", err))
 		}
 	} else {
 		var blockN *big.Int
@@ -1280,12 +1280,12 @@ func GetBlockDetails(ctx context.Context, network web3.Network, numberOrHash str
 		if numberOrHash != "" {
 			blockN, err = web3.ParseBigInt(numberOrHash)
 			if err != nil {
-				fatalExit(fmt.Errorf("Block argument must be a number (decimal integer) %q: %v", numberOrHash, err))
+				fatalExit(fmt.Errorf("block argument must be a number (decimal integer) %q: %v", numberOrHash, err))
 			}
 		}
 		block, err = client.GetBlockByNumber(ctx, blockN, includeTxs)
 		if err != nil {
-			fatalExit(fmt.Errorf("Cannot get block details from the network: %v", err))
+			fatalExit(fmt.Errorf("cannot get block details from the network: %v", err))
 		}
 	}
 	if verbose {
@@ -1369,13 +1369,13 @@ func (fa fmtAddresses) String() string {
 func GetTransactionDetails(ctx context.Context, network web3.Network, txhash, inputFormat string) {
 	client, err := web3.Dial(network.URL)
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
+		fatalExit(fmt.Errorf("failed to connect to %q: %v", network.URL, err))
 	}
 	defer client.Close()
 	// fmt.Println(network.URL)
 	tx, err := client.GetTransactionByHash(ctx, common.HexToHash(txhash))
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot get transaction details from %v network: %v", network.Name, err))
+		fatalExit(fmt.Errorf("cannot get transaction details from %v network: %v", network.Name, err))
 	}
 	if verbose {
 		fmt.Println("Transaction details:")
@@ -1424,7 +1424,7 @@ func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, priv
 	contractAddress string, blockNumber string) {
 	if addrHash == "" {
 		if privateKey == "" {
-			fatalExit(errors.New("Missing address. Must be specified as only argument, or implied from a private key."))
+			fatalExit(errors.New("missing address. Must be specified as only argument, or implied from a private key"))
 		}
 		acct, err := web3.ParsePrivateKey(privateKey)
 		if err != nil {
@@ -1455,22 +1455,22 @@ func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, priv
 	if blockNumber != "" {
 		blockN, err = web3.ParseBigInt(blockNumber)
 		if err != nil {
-			fatalExit(fmt.Errorf("Block argument must be a number (decimal integer) %q: %v", blockNumber, err))
+			fatalExit(fmt.Errorf("block argument must be a number (decimal integer) %q: %v", blockNumber, err))
 		}
 	}
 
 	client, err := web3.Dial(network.URL)
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
+		fatalExit(fmt.Errorf("failed to connect to %q: %v", network.URL, err))
 	}
 	defer client.Close()
 	bal, err := client.GetBalance(ctx, addrHash, blockN)
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot get address balance from the network: %v", err))
+		fatalExit(fmt.Errorf("cannot get address balance from the network: %v", err))
 	}
 	code, err := client.GetCode(ctx, addrHash, nil)
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot get address code from the network: %v", err))
+		fatalExit(fmt.Errorf("cannot get address code from the network: %v", err))
 	}
 	if verbose {
 		log.Println("Address details:")
@@ -1503,12 +1503,12 @@ func GetAddressDetails(ctx context.Context, network web3.Network, addrHash, priv
 func GetSnapshot(ctx context.Context, rpcURL string) {
 	client, err := web3.Dial(rpcURL)
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
+		fatalExit(fmt.Errorf("failed to connect to %q: %v", rpcURL, err))
 	}
 	defer client.Close()
 	s, err := client.GetSnapshot(ctx)
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot get snapshot from the network: %v", err))
+		fatalExit(fmt.Errorf("cannot get snapshot from the network: %v", err))
 	}
 	if verbose {
 		log.Println("Snapshot details:")
@@ -1567,12 +1567,12 @@ func GetSnapshot(ctx context.Context, rpcURL string) {
 func GetID(ctx context.Context, rpcURL string) {
 	client, err := web3.Dial(rpcURL)
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to connect to %q: %v", rpcURL, err))
+		fatalExit(fmt.Errorf("failed to connect to %q: %v", rpcURL, err))
 	}
 	defer client.Close()
 	id, err := client.GetID(ctx)
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot get id info from the network: %v", err))
+		fatalExit(fmt.Errorf("cannot get id info from the network: %v", err))
 	}
 	if verbose {
 		log.Println("Snapshot details:")
@@ -1590,12 +1590,12 @@ func GetID(ctx context.Context, rpcURL string) {
 // BuildSol builds a contract. Generated files will be under output, or the current directory.
 func BuildSol(ctx context.Context, filename, solcVersion, evmVersion string, optimize bool, output string) {
 	if filename == "" {
-		fatalExit(errors.New("Missing file name arg"))
+		fatalExit(errors.New("missing file name arg"))
 	}
 	flatOut := ""
 	if output != "" {
 		if err := os.MkdirAll(output, 0777); err != nil {
-			fatalExit(fmt.Errorf("Failed to create output directory: %v", err))
+			fatalExit(fmt.Errorf("failed to create output directory: %v", err))
 		}
 		basename := filepath.Base(filename)
 		oName := strings.TrimSuffix(basename, filepath.Ext(basename)) + "_flatten.sol"
@@ -1603,11 +1603,11 @@ func BuildSol(ctx context.Context, filename, solcVersion, evmVersion string, opt
 	}
 	name, sourceFile, err := FlattenSourceFile(ctx, filename, flatOut)
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot generate flattened file: %v", err))
+		fatalExit(fmt.Errorf("cannot generate flattened file: %v", err))
 	}
 	b, err := ioutil.ReadFile(sourceFile)
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to read file %q: %v", sourceFile, err))
+		fatalExit(fmt.Errorf("failed to read file %q: %v", sourceFile, err))
 	}
 	str := string(b) // convert content to a 'string'
 	if verbose {
@@ -1615,7 +1615,7 @@ func BuildSol(ctx context.Context, filename, solcVersion, evmVersion string, opt
 	}
 	compileData, err := web3.CompileSolidityString(ctx, str, solcVersion, evmVersion, optimize)
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to compile %q: %v", sourceFile, err))
+		fatalExit(fmt.Errorf("failed to compile %q: %v", sourceFile, err))
 	}
 	if verbose {
 		log.Println("Compiled Sol Details:", marshalJSON(compileData))
@@ -1635,11 +1635,11 @@ func BuildSol(ctx context.Context, filename, solcVersion, evmVersion string, opt
 		path := filepath.Join(output, fileparts[1])
 		err := ioutil.WriteFile(path+".bin", []byte(v.Code), 0600)
 		if err != nil {
-			fatalExit(fmt.Errorf("Cannot write the bin file: %v", err))
+			fatalExit(fmt.Errorf("cannot write the bin file: %v", err))
 		}
 		err = ioutil.WriteFile(path+".abi", []byte(marshalJSON(v.Info.AbiDefinition)), 0600)
 		if err != nil {
-			fatalExit(fmt.Errorf("Cannot write the abi file: %v", err))
+			fatalExit(fmt.Errorf("cannot write the abi file: %v", err))
 		}
 		filenames = append(filenames, fileparts[1])
 	}
@@ -1669,11 +1669,11 @@ func BuildSol(ctx context.Context, filename, solcVersion, evmVersion string, opt
 
 func FlattenSol(ctx context.Context, iFile, oFile string) {
 	if iFile == "" {
-		fatalExit(errors.New("Missing file name arg"))
+		fatalExit(errors.New("missing file name arg"))
 	}
 	_, oFile, err := FlattenSourceFile(ctx, iFile, oFile)
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot generate flattened file: %v", err))
+		fatalExit(fmt.Errorf("cannot generate flattened file: %v", err))
 	}
 	switch format {
 	case "json":
@@ -1688,11 +1688,11 @@ func DeploySol(ctx context.Context, network web3.Network,
 	gasPrice *big.Int, gasLimit uint64, upgradeable bool, timeoutInSeconds uint64, params ...interface{}) {
 
 	if binFile == "" {
-		fatalExit(errors.New("Missing contract name arg."))
+		fatalExit(errors.New("missing contract name arg"))
 	}
 	client, err := web3.Dial(network.URL)
 	if err != nil {
-		fatalExit(fmt.Errorf("Failed to connect to %q: %v", network.URL, err))
+		fatalExit(fmt.Errorf("failed to connect to %q: %v", network.URL, err))
 	}
 	client.SetChainID(network.ChainID)
 	defer client.Close()
@@ -1701,10 +1701,10 @@ func DeploySol(ctx context.Context, network web3.Network,
 	if strings.HasPrefix(binFile, "http") {
 		bin, err = gotils.GetBytes(binFile)
 	} else {
-		bin, err = ioutil.ReadFile(binFile)
+		bin, err = os.ReadFile(binFile)
 	}
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot read bin file %q: %v", binFile, err))
+		fatalExit(fmt.Errorf("cannot read bin file %q: %v", binFile, err))
 	}
 	var abi string
 	if len(params) > 0 {
@@ -1716,18 +1716,18 @@ func DeploySol(ctx context.Context, network web3.Network,
 			b, err = ioutil.ReadFile(abiFile)
 		}
 		if err != nil {
-			fatalExit(fmt.Errorf("Cannot read abi file %q: %v", abiFile, err))
+			fatalExit(fmt.Errorf("cannot read abi file %q: %v", abiFile, err))
 		}
 		abi = string(b)
 	}
 	tx, err := web3.DeployContract(ctx, client, privateKey, string(bin), abi, gasPrice, gasLimit, params...)
 	if err != nil {
-		fatalExit(fmt.Errorf("Error deploying contract: %v", err))
+		fatalExit(fmt.Errorf("error deploying contract: %v", err))
 	}
 	waitCtx, _ := context.WithTimeout(ctx, time.Duration(timeoutInSeconds)*time.Second)
 	receipt, err := web3.WaitForReceipt(waitCtx, client, tx.Hash)
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot get the receipt for transaction with hash '%v': %v", tx.Hash.Hex(), err))
+		fatalExit(fmt.Errorf("cannot get the receipt for transaction with hash '%v': %v", tx.Hash.Hex(), err))
 	}
 
 	switch format {
@@ -1737,7 +1737,7 @@ func DeploySol(ctx context.Context, network web3.Network,
 	}
 
 	if receipt.Status != types.ReceiptStatusSuccessful {
-		fatalExit(fmt.Errorf("Contract deploy tx failed: %s. Did you pass in the correct constructor arguments?", tx.Hash.Hex()))
+		fatalExit(fmt.Errorf("contract deploy tx failed: %s. Did you pass in the correct constructor arguments?", tx.Hash.Hex()))
 	}
 
 	// Exit early if contract is static.
@@ -1763,7 +1763,7 @@ func DeploySol(ctx context.Context, network web3.Network,
 	}
 
 	if proxyReceipt.Status != types.ReceiptStatusSuccessful {
-		fatalExit(fmt.Errorf("Upgradeable proxy contract deploy tx failed: %s", proxyTx.Hash.Hex()))
+		fatalExit(fmt.Errorf("upgradeable proxy contract deploy tx failed: %s", proxyTx.Hash.Hex()))
 	}
 
 	fmt.Println("Upgradeable contract has been successfully deployed.")
@@ -1794,12 +1794,12 @@ func VerifyContract(ctx context.Context, network web3.Network, explorerURL, cont
 	}
 	source, err := ioutil.ReadFile(sourceCodeFile)
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot read the source code file %q: %v", sourceCodeFile, err))
+		fatalExit(fmt.Errorf("cannot read the source code file %q: %v", sourceCodeFile, err))
 	}
 	if compilerVersion == "" {
 		sol, err := web3.SolidityVersion(string(source))
 		if err != nil {
-			fatalExit(fmt.Errorf("Cannot parse the version from the source code file %q: %v", sourceCodeFile, err))
+			fatalExit(fmt.Errorf("cannot parse the version from the source code file %q: %v", sourceCodeFile, err))
 		}
 		compilerVersion = sol.Version
 	}
@@ -1849,7 +1849,7 @@ func VerifyContract(ctx context.Context, network web3.Network, explorerURL, cont
 	if err != nil {
 		fatalExit(fmt.Errorf("cannot parse the error message: %v", err))
 	}
-	fatalExit(fmt.Errorf("Cannot verify the contract: %s, error code: %v", errResp.Error.Message, resp.StatusCode))
+	fatalExit(fmt.Errorf("cannot verify the contract: %s, error code: %v", errResp.Error.Message, resp.StatusCode))
 }
 
 func UpgradeContract(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, contractAddress, newTargetAddress string, amount *big.Int, timeoutInSeconds uint64) {
@@ -1949,7 +1949,7 @@ func ResumeContract(ctx context.Context, rpcURL string, chainID *big.Int, privat
 func marshalJSON(data interface{}) string {
 	b, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot marshal json: %v", err))
+		fatalExit(fmt.Errorf("cannot marshal json: %v", err))
 	}
 	return string(b)
 }
