@@ -1629,7 +1629,7 @@ func BuildSol(ctx context.Context, filename, solcVersion, evmVersion string, opt
 			continue
 		}
 		if name != "" && fileparts[1] != name {
-			// this will skip all the little contract files that it used to litter the the directory with
+			// this will skip all the little contract files that it used to litter the directory with
 			continue
 		}
 		path := filepath.Join(output, fileparts[1])

@@ -11,7 +11,7 @@ func InstallVyper(contractName string) {
 	output, err := cmd.Output()
 	fmt.Println(output)
 	if err != nil {
-		fmt.Println("*Web3.go Vyper Engine Error* Unable to install vyper compilier")
+		fmt.Println("*Web3.go Vyper Engine Error* Unable to install vyper compiler")
 	}
 }
 
