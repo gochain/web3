@@ -110,7 +110,7 @@ func Transfer(ctx context.Context, rpcURL string, chainID *big.Int, privateKey, 
 
 	amount := web3.DecToInt(amountD, 18)
 	if toAddress == "" {
-		fatalExit(errors.New("The recepient address cannot be empty"))
+		fatalExit(errors.New("The recipient address cannot be empty"))
 	}
 	if !common.IsHexAddress(toAddress) {
 		fatalExit(fmt.Errorf("Invalid to 'address': %s", toAddress))
