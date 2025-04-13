@@ -78,7 +78,7 @@ func (c *client) Call(ctx context.Context, msg CallMsg) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return result, err
+	return result, nil
 }
 
 func (c *client) GetBalance(ctx context.Context, address string, blockNumber *big.Int) (*big.Int, error) {
