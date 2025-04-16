@@ -1,14 +1,14 @@
 module github.com/gochain/web3
 
 go 1.22
-toolchain go1.23.7
+toolchain go1.24.1
 
 require (
 	github.com/gochain/gochain/v4 v4.3.1
 	github.com/shopspring/decimal v1.4.0
 	github.com/treeder/gotils/v2 v2.0.18
 	github.com/urfave/cli v1.22.5
-	golang.org/x/crypto v0.35.0
+	golang.org/x/crypto v0.36.0
 )
 
 require (
@@ -43,10 +43,10 @@ require (
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d // indirect
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	golang.org/x/net v0.36.0 // indirect
-	golang.org/x/sync v0.11.0 // indirect
-	golang.org/x/sys v0.30.0 // indirect
-	golang.org/x/text v0.22.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/sync v0.12.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 )
 
