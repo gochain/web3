@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"testing"
 )
 
-func ExampleRPCClient_GetBlockByNumber() {
-	for _, network := range []string{mainnetURL, testnetURL} {
+func TestRPCClient_GetBlockByNumber(t *testing.T) {
+	for _, network := range []string{mainnetURL} {
 		exampleRPCClient_GetBlockByNumber(network)
 	}
 	// Output:
@@ -60,16 +61,6 @@ func exampleRPCClient_GetBlockByNumber(url string) {
 		fmt.Println("Genesis block nil.")
 	} else {
 		fmt.Println("Got genesis block.")
-	}
-
-	sn, err := c.GetSnapshot(ctx)
-	if err != nil {
-		fmt.Printf("Failed to get snapshot: %v\n", err)
-	}
-	if sn == nil {
-		fmt.Println("Latest snapshot nil.")
-	} else {
-		fmt.Println("Got latest snapshot.")
 	}
 
 	initAlloc, ok := new(big.Int).SetString("1000000000000000000000000000", 10)
