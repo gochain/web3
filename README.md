@@ -9,7 +9,7 @@ Simple command line tool for interacting with web3 enabled blockchains - GoChain
 This repository also exports the backing golang `package web3`.
 
 [![API Reference](https://pkg.go.dev/badge/github.com/gochain/web3)](https://godoc.org/github.com/gochain/web3)
-![](https://github.com/gochain/web3/workflows/release/badge.svg)
+[![Release](https://github.com/gochain/web3/workflows/release/badge.svg)](https://github.com/gochain/web3/actions/workflows/main.yml)
 
 ```sh
 web3 --help
