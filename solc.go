@@ -13,7 +13,8 @@ import (
 	"strings"
 )
 
-var versionRegexp = regexp.MustCompile(`([0-9]+)\.([0-9]+)\.([0-9]+)`)
+var pragmaRegexp = regexp.MustCompile(`(?m)^\s*pragma\s+solidity\s+([^;]+);`)
+
 
 // Contract contains information about a compiled contract, alongside its code and runtime code.
 type Contract struct {
@@ -88,26 +89,37 @@ func (s *Solidity) makeArgs() ([]string, error) {
 	return args, nil
 }
 
-// SolidityVersion runs solc and parses its version output.
 func SolidityVersion(source string) (*Solidity, error) {
-	var err error
-	matches := versionRegexp.FindStringSubmatch(source)
-	if len(matches) != 4 {
-		return nil, fmt.Errorf("can't parse solc version %q", source)
-	}
-	s := &Solidity{Path: "docker"}
-	if s.Major, err = strconv.Atoi(matches[1]); err != nil {
-		return nil, err
-	}
-	if s.Minor, err = strconv.Atoi(matches[2]); err != nil {
-		return nil, err
-	}
-	if s.Patch, err = strconv.Atoi(matches[3]); err != nil {
-		return nil, err
-	}
-	s.Version = strconv.Itoa(s.Major) + "." + strconv.Itoa(s.Minor) + "." + strconv.Itoa(s.Patch)
-	return s, nil
+    var err error
+    // Extract pragma solidity version from source
+    matches := pragmaRegexp.FindStringSubmatch(source)
+    if len(matches) < 2 {
+        return nil, fmt.Errorf("can't find pragma solidity in %q", source)
+    }
+    versionConstraint := strings.TrimSpace(matches[1])
+
+    // Grab the first explicit version number like 0.8.0
+    versionNumber := regexp.MustCompile(`([0-9]+)\.([0-9]+)\.([0-9]+)`).FindString(versionConstraint)
+    if versionNumber == "" {
+        return nil, fmt.Errorf("invalid pragma solidity version: %q", versionConstraint)
+    }
+
+    parts := strings.Split(versionNumber, ".")
+    s := &Solidity{Path: "docker"}
+
+    if s.Major, err = strconv.Atoi(parts[0]); err != nil {
+        return nil, err
+    }
+    if s.Minor, err = strconv.Atoi(parts[1]); err != nil {
+        return nil, err
+    }
+    if s.Patch, err = strconv.Atoi(parts[2]); err != nil {
+        return nil, err
+    }
+    s.Version = versionNumber
+    return s, nil
 }
+
 
 // CompileSolidityString builds and returns all the contracts contained within a source string.
 func CompileSolidityString(ctx context.Context, source, solcVersion, evmVersion string, optimize bool) (map[string]*Contract, error) {
