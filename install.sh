@@ -99,7 +99,7 @@ case "$(uname)" in
     cat >&2 <<'EOF'
 
   Either your platform is not easily detectable or is not supported by this
-  installer script (yet - PRs welcome!.
+  installer script (yet - PRs welcome!).
 EOF
         exit 1
 esac
