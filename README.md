@@ -81,15 +81,6 @@ Run this command to start a local node. It will print 10 addresses with keys upo
 web3 start
 export WEB3_NETWORK=localhost
 ```
-
-#### b) Use the GoChain testnet
-
-```sh
-export WEB3_NETWORK=testnet
-```
-
-To do any write operations, you'll need some testnet GO. You can get some at https://faucet.gochain.io/ or ask in [GoChain Developers Telegram Group](https://t.me/gochain_testnet). 
-
 #### c) Use the GoChain mainnet or another web3 network
 
 ```sh
