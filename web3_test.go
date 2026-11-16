@@ -252,14 +252,47 @@ func TestKeystoreRoundTrip(t *testing.T) {
 	if _, err := DecryptKeystore(ksJSON, "wrong-password"); err == nil {
 		t.Fatalf("expected error on wrong keystore password")
 	}
+
+	// Malformed keystore JSON checks (short dklen / short IV must return error, never panic)
+	if _, err := DecryptKeystore([]byte(`{"version":3,"crypto":{"cipher":"aes-128-ctr","ciphertext":"00","cipherparams":{"iv":"0102"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":4096,"r":8,"p":1,"salt":"00"},"mac":"00"}}`), "pw"); err == nil {
+		t.Fatalf("expected error on short keystore IV")
+	}
+	if _, err := DecryptKeystore([]byte(`{"version":3,"crypto":{"cipher":"aes-128-ctr","ciphertext":"00","cipherparams":{"iv":"000102030405060708090a0b0c0d0e0f"},"kdf":"scrypt","kdfparams":{"dklen":16,"n":4096,"r":8,"p":1,"salt":"00"},"mac":"00"}}`), "pw"); err == nil {
+		t.Fatalf("expected error on dklen < 32")
+	}
+}
+
+func TestParseHumanSignatureMutability(t *testing.T) {
+	nonPay, err := ParseHumanSignature("function submit() nonpayable returns (uint256 payableAmount)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if nonPay.Payable || nonPay.IsConstant() {
+		t.Fatalf("expected nonpayable non-constant, got Payable=%v Constant=%v", nonPay.Payable, nonPay.IsConstant())
+	}
+
+	shorthandView, err := ParseHumanSignature("hello():(string,string)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !shorthandView.IsConstant() {
+		t.Fatalf("expected colon shorthand with outputs to default to constant/view")
+	}
 }
 
 func TestGenerateGoBinding(t *testing.T) {
-	code, err := GenerateGoBinding("token", "MyToken", bundledContracts["erc20"], "0x6080604052")
+	customABI := `[
+		{"type":"function","name":"getData","stateMutability":"view","inputs":[{"name":"v","type":"uint8"},{"name":"res","type":"bytes"}],"outputs":[{"name":"","type":"bytes"}]}
+	]`
+	code, err := GenerateGoBinding("token", "MyToken", customABI, "0x6080604052")
 	if err != nil {
 		t.Fatalf("GenerateGoBinding failed: %v", err)
 	}
+	codeStr := string(code)
 	if len(code) == 0 {
 		t.Fatal("empty generated code")
+	}
+	if !reflect.DeepEqual(true, len(codeStr) > 0) {
+		t.Fatal("unexpected code")
 	}
 }

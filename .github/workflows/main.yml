@@ -79,11 +79,14 @@ jobs:
           allowUpdates: true
 
       - name: Docker release
-        if: env.DOCKER_USER != ''
         env:
           DOCKER_USER: ${{ secrets.DOCKER_USER }}
           DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
         run: |
+          if [ -z "$DOCKER_USER" ]; then
+            echo "DOCKER_USER secret not set, skipping Docker Hub push."
+            exit 0
+          fi
           echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
           docker build --build-arg VERSION="$VERSION" -t gochain/web3:latest .
           docker tag gochain/web3:latest "gochain/web3:$VERSION"

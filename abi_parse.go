@@ -313,24 +313,37 @@ func ParseHumanSignature(sig string) (ABIMethod, error) {
 	}
 
 	rest := strings.TrimSpace(s[closeIdx+1:])
-	mut := "nonpayable"
-	if strings.Contains(rest, "view") {
-		mut = "view"
-	} else if strings.Contains(rest, "pure") {
-		mut = "pure"
-	} else if strings.Contains(rest, "payable") {
-		mut = "payable"
+	retIdx := strings.Index(rest, "returns")
+	colonIdx := strings.IndexByte(rest, ':')
+
+	modSegment := rest
+	var retPart string
+	isColonShorthand := false
+	if retIdx >= 0 && (colonIdx < 0 || retIdx < colonIdx) {
+		modSegment = strings.TrimSpace(rest[:retIdx])
+		retPart = strings.TrimSpace(rest[retIdx+len("returns"):])
+	} else if colonIdx >= 0 {
+		modSegment = strings.TrimSpace(rest[:colonIdx])
+		retPart = strings.TrimSpace(rest[colonIdx+1:])
+		isColonShorthand = true
+	}
+
+	mut := ""
+	for _, tok := range strings.Fields(modSegment) {
+		switch tok {
+		case "view", "pure", "payable", "nonpayable":
+			mut = tok
+		}
+	}
+	if mut == "" {
+		if isColonShorthand && retPart != "" {
+			mut = "view"
+		} else {
+			mut = "nonpayable"
+		}
 	}
 
 	var outputs ABIArguments
-	retIdx := strings.Index(rest, "returns")
-	colonIdx := strings.IndexByte(rest, ':')
-	var retPart string
-	if retIdx >= 0 {
-		retPart = strings.TrimSpace(rest[retIdx+len("returns"):])
-	} else if colonIdx >= 0 {
-		retPart = strings.TrimSpace(rest[colonIdx+1:])
-	}
 	if retPart != "" {
 		if strings.HasPrefix(retPart, "(") && strings.HasSuffix(retPart, ")") {
 			retPart = retPart[1 : len(retPart)-1]

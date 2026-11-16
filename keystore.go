@@ -63,6 +63,9 @@ func DecryptKeystore(keyJSON []byte, auth string) (*Account, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid iv hex: %w", err)
 	}
+	if len(iv) != aes.BlockSize {
+		return nil, fmt.Errorf("invalid iv length %d (expected %d)", len(iv), aes.BlockSize)
+	}
 	mac, err := hex.DecodeString(cj.MAC)
 	if err != nil {
 		return nil, fmt.Errorf("invalid mac hex: %w", err)
@@ -71,6 +74,9 @@ func DecryptKeystore(keyJSON []byte, auth string) (*Account, error) {
 	derivedKey, err := deriveKeystoreKey(cj, auth)
 	if err != nil {
 		return nil, err
+	}
+	if len(derivedKey) < 32 {
+		return nil, fmt.Errorf("derived key too short (%d bytes, need at least 32)", len(derivedKey))
 	}
 
 	calculatedMAC := Keccak256(derivedKey[16:32], cipherText)
@@ -170,12 +176,18 @@ func deriveKeystoreKey(cj cryptoJSON, auth string) ([]byte, error) {
 		return nil, fmt.Errorf("invalid kdf salt: %w", err)
 	}
 	dkLen := jsonInt(cj.KDFParams["dklen"])
+	if dkLen < 32 {
+		return nil, fmt.Errorf("invalid kdf dklen %d (must be at least 32)", dkLen)
+	}
 
 	switch strings.ToLower(cj.KDF) {
 	case "scrypt":
 		n := jsonInt(cj.KDFParams["n"])
 		r := jsonInt(cj.KDFParams["r"])
 		p := jsonInt(cj.KDFParams["p"])
+		if n <= 1 || r <= 0 || p <= 0 {
+			return nil, fmt.Errorf("invalid scrypt parameters (n=%d, r=%d, p=%d)", n, r, p)
+		}
 		return scrypt.Key([]byte(auth), salt, n, r, p, dkLen)
 	case "pbkdf2":
 		prf, _ := cj.KDFParams["prf"].(string)
@@ -183,6 +195,9 @@ func deriveKeystoreKey(cj cryptoJSON, auth string) ([]byte, error) {
 			return nil, fmt.Errorf("unsupported pbkdf2 prf %q", prf)
 		}
 		c := jsonInt(cj.KDFParams["c"])
+		if c <= 0 {
+			return nil, fmt.Errorf("invalid pbkdf2 iteration count %d", c)
+		}
 		return pbkdf2.Key([]byte(auth), salt, c, dkLen, sha256.New), nil
 	default:
 		return nil, fmt.Errorf("unsupported keystore kdf %q", cj.KDF)

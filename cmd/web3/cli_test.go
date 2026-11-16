@@ -74,8 +74,8 @@ func TestOfflineCLICommands(t *testing.T) {
 		t.Fatalf("keccak = %q", out)
 	}
 
-	// units
-	unitsOut := runCLI(t, "--format", "json", "units", "1.5eth")
+	// units (testing trailing global --format json flag hoisting!)
+	unitsOut := runCLI(t, "units", "1.5eth", "--format", "json")
 	if !strings.Contains(unitsOut, `"wei": "1500000000000000000"`) {
 		t.Fatalf("unexpected units json: %s", unitsOut)
 	}

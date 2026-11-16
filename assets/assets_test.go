@@ -42,6 +42,16 @@ func TestOpenZeppelinV5Generators(t *testing.T) {
 		t.Fatalf("unexpected ERC20 output:\n%s", erc20Src)
 	}
 
+	erc20ZeroDec, err := GenERC20(context.Background(), "5.3.0", &Erc20Params{
+		Symbol:      "ZERO",
+		TokenName:   "Zero Decimals",
+		Decimals:    0,
+		DecimalsSet: true,
+	})
+	if err != nil || !strings.Contains(erc20ZeroDec, "return 0;") {
+		t.Fatalf("expected 0 decimals override, got err=%v:\n%s", err, erc20ZeroDec)
+	}
+
 	// ERC721 without --base-uri (matching README quickstart)
 	erc721Src, err := GenERC721("5.3.0", &Erc721Params{
 		Symbol:    "CAT",

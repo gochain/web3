@@ -732,7 +732,7 @@ func contractUpgradeCmd(ctx context.Context) *cli.Command {
 				}
 				tx, err = web3.CallFunctionWithOpts(ctx, client, c.String("private-key"), proxyAddr, opts, proxyABI, "upgradeToAndCall", targetAddr, initData)
 			} else {
-				tx, err = web3.CallFunctionWithOpts(ctx, client, c.String("private-key"), proxyAddr, opts, proxyABI, "upgrade", targetAddr)
+				tx, err = web3.CallFunctionWithOpts(ctx, client, c.String("private-key"), proxyAddr, opts, proxyABI, "upgradeTo", targetAddr)
 			}
 			if err != nil {
 				return fmt.Errorf("cannot upgrade proxy: %w", err)

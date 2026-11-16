@@ -277,42 +277,47 @@ func fatalExit(err error) {
 }
 
 // normalizeCLIArgs allows flags to appear after positional arguments on leaf subcommands
-// (e.g., `web3 contract build hello.sol --solc-version 0.8.24` or `web3 transfer 1 to 0x... --wait`),
-// while keeping negative numbers (like `-5`) intact as positional arguments.
+// (e.g., `web3 contract build hello.sol --solc-version 0.8.24`, `web3 units 1.5eth --format json`),
+// hoisting global app flags before the first subcommand while keeping negative numbers (like `-5`) intact.
 func normalizeCLIArgs(app *cli.App, rawArgs []string) []string {
 	if len(rawArgs) <= 2 {
 		return rawArgs
 	}
-	out := []string{rawArgs[0]}
+	var globalFlags []string
+	var cmdPath []string
 	rest := rawArgs[1:]
 
-	// Walk global flags + command tree to find the leaf command
-	curFlags := app.Flags
+	curCmdFlags := []cli.Flag{}
 	var curCmds []*cli.Command = app.Commands
 
 	for len(rest) > 0 {
 		tok := rest[0]
 		if tok == "--" {
-			return append(out, rest...)
+			break
 		}
 		if isFlagToken(tok) {
-			consumed := consumeFlagTokens(curFlags, rest)
-			out = append(out, rest[:consumed]...)
-			rest = rest[consumed:]
-			continue
+			if len(cmdPath) == 0 || isKnownFlag(app.Flags, tok) {
+				consumed := consumeFlagTokens(app.Flags, rest)
+				globalFlags = append(globalFlags, rest[:consumed]...)
+				rest = rest[consumed:]
+				continue
+			}
+			if isKnownFlag(curCmdFlags, tok) {
+				break
+			}
+			break
 		}
 		matched := findSubcommand(curCmds, tok)
 		if matched == nil {
 			break
 		}
-		out = append(out, tok)
+		cmdPath = append(cmdPath, tok)
 		rest = rest[1:]
-		curFlags = append([]cli.Flag{}, app.Flags...)
-		curFlags = append(curFlags, matched.Flags...)
+		curCmdFlags = matched.Flags
 		curCmds = matched.Subcommands
 	}
 
-	// Reorder remaining leaf arguments so flags come before positional args
+	// Partition remaining tokens into hoisted global flags, leaf command flags, and positional args
 	var leafFlags, leafPos []string
 	for len(rest) > 0 {
 		tok := rest[0]
@@ -325,15 +330,28 @@ func normalizeCLIArgs(app *cli.App, rawArgs []string) []string {
 			rest = rest[1:]
 			continue
 		}
-		if isFlagToken(tok) && isKnownFlag(curFlags, tok) {
-			consumed := consumeFlagTokens(curFlags, rest)
-			leafFlags = append(leafFlags, rest[:consumed]...)
-			rest = rest[consumed:]
-			continue
+		if isFlagToken(tok) {
+			if isKnownFlag(curCmdFlags, tok) {
+				consumed := consumeFlagTokens(curCmdFlags, rest)
+				leafFlags = append(leafFlags, rest[:consumed]...)
+				rest = rest[consumed:]
+				continue
+			}
+			if isKnownFlag(app.Flags, tok) {
+				consumed := consumeFlagTokens(app.Flags, rest)
+				globalFlags = append(globalFlags, rest[:consumed]...)
+				rest = rest[consumed:]
+				continue
+			}
 		}
 		leafPos = append(leafPos, tok)
 		rest = rest[1:]
 	}
+
+	out := make([]string, 0, len(rawArgs))
+	out = append(out, rawArgs[0])
+	out = append(out, globalFlags...)
+	out = append(out, cmdPath...)
 	out = append(out, leafFlags...)
 	out = append(out, leafPos...)
 	return out

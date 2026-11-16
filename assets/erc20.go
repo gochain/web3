@@ -19,6 +19,7 @@ type Erc20Params struct {
 	TokenName     string
 	ContractName  string
 	Decimals      int
+	DecimalsSet   bool
 	InitialSupply *big.Int
 	Mintable      bool
 	Burnable      bool
@@ -105,7 +106,7 @@ func GenERC20(_ context.Context, openZeppelinVersion string, params *Erc20Params
 		return "", fmt.Errorf("nil ERC20 params")
 	}
 	decimals := params.Decimals
-	if decimals <= 0 {
+	if (!params.DecimalsSet && decimals == 0) || decimals < 0 {
 		decimals = 18
 	}
 	cname := params.ContractName

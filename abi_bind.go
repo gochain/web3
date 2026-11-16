@@ -164,7 +164,7 @@ func goBindingType(t ABIType) string {
 	case StringTy:
 		return "string"
 	case BytesTy:
-		return "[]byte"
+		return "web3.HexBytes"
 	case FixedBytesTy:
 		if t.Size == 32 {
 			return "web3.Hash"
@@ -237,6 +237,7 @@ func safeParamName(name string, idx int) string {
 		"go": true, "defer": true, "fallthrough": true, "if": true, "else": true,
 		"switch": true, "for": true, "break": true, "continue": true, "goto": true,
 		"ctx": true, "c": true, "value": true, "gasPrice": true, "gasLimit": true, "privateKeyHex": true,
+		"res": true, "zero": true, "err": true, "v": true,
 	}
 	if reserved[name] {
 		return name + "Arg"

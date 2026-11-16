@@ -123,6 +123,7 @@ func generateStandardContract(ctx context.Context, contractType string, c *cli.C
 			Symbol:        symbol,
 			TokenName:     name,
 			Decimals:      decimals,
+			DecimalsSet:   true,
 			InitialSupply: initSupply,
 			Mintable:      c.Bool("mintable"),
 			Burnable:      c.Bool("burnable"),
