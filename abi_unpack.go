@@ -41,7 +41,7 @@ func decodeTupleValues(args ABIArguments, data []byte) ([]interface{}, error) {
 	for i, arg := range args {
 		t := arg.Type
 		if t.isDynamic() {
-			if cursor+32 > len(data) {
+			if cursor > len(data)-32 {
 				return nil, fmt.Errorf("abi: truncated offset at arg %d (%s)", i, t.CanonicalString())
 			}
 			offset, err := readOffset(data[cursor : cursor+32])
@@ -59,7 +59,7 @@ func decodeTupleValues(args ABIArguments, data []byte) ([]interface{}, error) {
 			cursor += 32
 		} else {
 			sz := t.staticByteSize()
-			if cursor+sz > len(data) {
+			if sz > len(data)-cursor {
 				return nil, fmt.Errorf("abi: truncated static value at arg %d (%s)", i, t.CanonicalString())
 			}
 			val, err := decodeStaticValue(t, data[cursor:cursor+sz])
@@ -236,7 +236,7 @@ func readDynamicBytes(tail []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if 32+length > len(tail) {
+	if length > len(tail)-32 {
 		return nil, fmt.Errorf("abi: bytes payload length %d exceeds buffer %d", length, len(tail)-32)
 	}
 	out := make([]byte, length)

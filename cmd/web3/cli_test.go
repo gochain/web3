@@ -104,12 +104,12 @@ func TestOfflineCLICommands(t *testing.T) {
 		t.Fatalf("erc1155 list missing balanceOfBatch:\n%s", erc1155List)
 	}
 
-	// flatten + generate code in temp dir
+	// flatten (including multi-line Solidity imports!) + generate code in temp dir
 	tmp := t.TempDir()
 	baseSol := filepath.Join(tmp, "Base.sol")
 	childSol := filepath.Join(tmp, "Child.sol")
 	_ = os.WriteFile(baseSol, []byte("// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\nerror CustomErr();\nabstract contract Base { uint256 public x; }\n"), 0644)
-	_ = os.WriteFile(childSol, []byte("// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\nimport {Base, CustomErr} from \"./Base.sol\";\ncontract Child is Base {}\n"), 0644)
+	_ = os.WriteFile(childSol, []byte("// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\nimport {\n    Base,\n    CustomErr\n} from \"./Base.sol\";\ncontract Child is Base {}\n"), 0644)
 
 	flatOut := filepath.Join(tmp, "Child_flat.sol")
 	runCLI(t, "contract", "flatten", childSol, "-o", flatOut)

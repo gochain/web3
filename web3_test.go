@@ -278,6 +278,28 @@ func TestParseHumanSignatureMutability(t *testing.T) {
 	if !shorthandView.IsConstant() {
 		t.Fatalf("expected colon shorthand with outputs to default to constant/view")
 	}
+
+	// Verify GetABI handles inline colon signatures on Windows (no ERROR_INVALID_NAME failure)
+	inlineABI, err := GetABI("hello():(string,string)")
+	if err != nil || inlineABI == nil {
+		t.Fatalf("GetABI inline colon signature failed: %v", err)
+	}
+
+	// Verify CSV tuple input ("123,456") does not get partially consumed by JSON decoder
+	tupleFn, err := ParseHumanSignature("setPair((uint256 a, uint256 b) pair)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tupleFn.Inputs.Pack("123,456"); err != nil {
+		t.Fatalf("CSV tuple Pack failed: %v", err)
+	}
+
+	// Verify huge dynamic bytes length does not integer-overflow bounds check and panic
+	strArg := ABIArguments{{Type: ABIType{T: StringTy}}}
+	malicious := append(padLeft32(big.NewInt(0x20).Bytes()), FromHex("0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")...)
+	if _, err := strArg.UnpackValues(malicious); err == nil {
+		t.Fatalf("expected error on maliciously large dynamic bytes length")
+	}
 }
 
 func TestGenerateGoBinding(t *testing.T) {

@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	importPathRegexp   = regexp.MustCompile(`^\s*import\s+(?:[^"']*from\s+)?["']([^"']+)["']\s*;`)
+	importPathRegexp   = regexp.MustCompile(`(?s)^\s*import\s+(?:[^"']*from\s+)?["']([^"']+)["']\s*;`)
 	spdxRegexp         = regexp.MustCompile(`(?i)^\s*//\s*SPDX-License-Identifier:\s*(.+)$`)
 	pragmaLineRegexp   = regexp.MustCompile(`^\s*pragma\s+solidity\s+[^;]+;`)
 	ozCommentRegexp    = regexp.MustCompile(`@openzeppelin\s+v([0-9]+\.[0-9]+\.[0-9]+)`)
@@ -77,7 +77,8 @@ func FlattenSourceFile(ctx context.Context, source, output string) (string, stri
 
 		dir := filepath.Dir(canon)
 		lines := strings.Split(strings.ReplaceAll(string(contentBytes), "\r\n", "\n"), "\n")
-		for _, line := range lines {
+		for i := 0; i < len(lines); i++ {
+			line := lines[i]
 			if m := spdxRegexp.FindStringSubmatch(line); len(m) == 2 {
 				if topSPDX == "" {
 					topSPDX = strings.TrimSpace(m[1])
@@ -90,15 +91,23 @@ func FlattenSourceFile(ctx context.Context, source, output string) (string, stri
 				}
 				continue
 			}
-			if m := importPathRegexp.FindStringSubmatch(line); len(m) == 2 {
-				imp := m[1]
-				resolved := resolveImportPath(dir, imp)
-				depCanon, err := visitLoad(resolved)
-				if err != nil {
-					return "", err
+			trimmed := strings.TrimSpace(line)
+			if strings.HasPrefix(trimmed, "import ") || strings.HasPrefix(trimmed, "import{") || strings.HasPrefix(trimmed, "import\"") || strings.HasPrefix(trimmed, "import'") || trimmed == "import" {
+				stmt := line
+				for !strings.Contains(stmt, ";") && i+1 < len(lines) {
+					i++
+					stmt += "\n" + lines[i]
 				}
-				node.deps = append(node.deps, depCanon)
-				continue
+				if m := importPathRegexp.FindStringSubmatch(stmt); len(m) == 2 {
+					imp := m[1]
+					resolved := resolveImportPath(dir, imp)
+					depCanon, err := visitLoad(resolved)
+					if err != nil {
+						return "", err
+					}
+					node.deps = append(node.deps, depCanon)
+					continue
+				}
 			}
 			node.bodyLines = append(node.bodyLines, line)
 		}
@@ -174,13 +183,10 @@ func resolveImportPath(currentDir, imp string) string {
 	return filepath.Join(currentDir, filepath.FromSlash(imp))
 }
 
+var anyImportRegexp = regexp.MustCompile(`(?ms)^\s*import\s+(?:[^"']*from\s+)?["']([^"']+)["']\s*;`)
+
 func hasImports(src string) bool {
-	for _, line := range strings.Split(src, "\n") {
-		if importPathRegexp.MatchString(line) {
-			return true
-		}
-	}
-	return false
+	return anyImportRegexp.MatchString(src)
 }
 
 func detectPrimaryContract(src string) string {

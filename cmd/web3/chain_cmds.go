@@ -403,8 +403,8 @@ func runAddressOrBalance(ctx context.Context, c *cli.Context, onlyBalance bool) 
 
 	if onlyBalance && c.Bool("erc20") {
 		tokenAddr := strings.TrimSpace(c.String("address"))
-		if tokenAddr == "" {
-			return errors.New("must specify ERC20 contract --address when using --erc20")
+		if !web3.IsHexAddress(tokenAddr) {
+			return fmt.Errorf("invalid or missing ERC20 contract --address %q", tokenAddr)
 		}
 		erc20ABI, err := web3.GetABI("erc20")
 		if err != nil {

@@ -88,6 +88,7 @@ type RPCClient struct {
 	headers    http.Header
 	nextID     atomic.Uint64
 
+	isWS   bool
 	wsMu   sync.Mutex
 	wsConn *websocket.Conn
 }
@@ -129,6 +130,7 @@ func DialRPCContext(ctx context.Context, rawURL string) (*RPCClient, error) {
 		return &RPCClient{
 			endpoint: rawURL,
 			headers:  headers,
+			isWS:     true,
 			wsConn:   conn,
 		}, nil
 
@@ -243,7 +245,7 @@ func (c *RPCClient) BatchCallContext(ctx context.Context, b []BatchElem) error {
 }
 
 func (c *RPCClient) roundTrip(ctx context.Context, payload []byte) ([]byte, error) {
-	if c.wsConn != nil {
+	if c.isWS {
 		c.wsMu.Lock()
 		defer c.wsMu.Unlock()
 		if c.wsConn == nil {

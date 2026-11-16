@@ -30,8 +30,8 @@ type TxOptions struct {
 
 // CallConstantFunction executes a read-only contract call (eth_call) and unpacks the outputs.
 func CallConstantFunction(ctx context.Context, client Client, myabi ABI, address string, functionName string, params ...interface{}) ([]interface{}, error) {
-	if address == "" {
-		return nil, errors.New("no contract address specified")
+	if !IsHexAddress(address) {
+		return nil, fmt.Errorf("invalid contract address %q", address)
 	}
 	fn, ok := myabi.ResolveMethod(functionName, len(params))
 	if !ok {
@@ -79,6 +79,9 @@ func CallFunctionWithArgs(ctx context.Context, client Client, privateKeyHex, add
 // CallFunctionWithOpts submits a contract transaction supporting EIP-1559 fees, auto gas estimation, and revert decoding.
 func CallFunctionWithOpts(ctx context.Context, client Client, privateKeyHex, address string,
 	opts TxOptions, myabi ABI, functionName string, params ...interface{}) (*Transaction, error) {
+	if !IsHexAddress(address) {
+		return nil, fmt.Errorf("invalid contract address %q", address)
+	}
 	fn, ok := myabi.ResolveMethod(functionName, len(params))
 	if !ok {
 		return nil, fmt.Errorf("function %q not found in ABI", functionName)
@@ -107,8 +110,8 @@ func CallFunctionWithData(ctx context.Context, client Client, privateKeyHex, add
 
 // CallFunctionWithDataOpts submits pre-encoded calldata to address with full TxOptions.
 func CallFunctionWithDataOpts(ctx context.Context, client Client, privateKeyHex, address string, opts TxOptions, data []byte) (*Transaction, error) {
-	if address == "" {
-		return nil, errors.New("no contract address specified")
+	if !IsHexAddress(address) {
+		return nil, fmt.Errorf("invalid contract address %q", address)
 	}
 	toAddr := HexToAddress(address)
 	return submitTx(ctx, client, privateKeyHex, &toAddr, data, opts, nil)

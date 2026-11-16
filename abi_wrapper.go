@@ -45,10 +45,10 @@ func GetABI(abiSpec string) (*ABI, error) {
 		return ABIOpenURL(spec)
 	}
 
-	if abiFromFile, err := ABIOpenFile(spec); err == nil {
-		return abiFromFile, nil
-	} else if !os.IsNotExist(err) {
-		return nil, err
+	if info, statErr := os.Stat(spec); statErr == nil && !info.IsDir() {
+		return ABIOpenFile(spec)
+	} else if os.IsPermission(statErr) {
+		return nil, statErr
 	}
 
 	// Support inline human-readable Solidity function signature, e.g. "balanceOf(address):(uint256)"

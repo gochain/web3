@@ -502,15 +502,20 @@ func parseArrayOrSliceInput(param interface{}, elemIsString bool) ([]interface{}
 func convertTupleInput(fields []ABIArgument, param interface{}) ([]interface{}, error) {
 	if s, ok := param.(string); ok {
 		trimmed := strings.TrimSpace(s)
-		dec := json.NewDecoder(strings.NewReader(trimmed))
-		dec.UseNumber()
-		var parsed interface{}
-		if err := dec.Decode(&parsed); err != nil {
+		if strings.HasPrefix(trimmed, "{") || strings.HasPrefix(trimmed, "[") {
+			dec := json.NewDecoder(strings.NewReader(trimmed))
+			dec.UseNumber()
+			var parsed interface{}
+			if err := dec.Decode(&parsed); err != nil {
+				return nil, fmt.Errorf("invalid tuple JSON %q: %w", s, err)
+			}
+			param = parsed
+		} else {
 			// Fallback to "(a,b)" or "a,b" CSV
 			trimmed = strings.TrimPrefix(strings.TrimSuffix(trimmed, ")"), "(")
 			parts, splitErr := splitTopLevelCSV(trimmed)
 			if splitErr != nil {
-				return nil, fmt.Errorf("invalid tuple %q: %w", s, err)
+				return nil, fmt.Errorf("invalid tuple %q: %w", s, splitErr)
 			}
 			raw := make([]interface{}, len(parts))
 			for i, p := range parts {
@@ -518,7 +523,6 @@ func convertTupleInput(fields []ABIArgument, param interface{}) ([]interface{}, 
 			}
 			return ConvertArguments(fields, raw)
 		}
-		param = parsed
 	}
 
 	switch v := param.(type) {

@@ -237,7 +237,7 @@ func safeParamName(name string, idx int) string {
 		"go": true, "defer": true, "fallthrough": true, "if": true, "else": true,
 		"switch": true, "for": true, "break": true, "continue": true, "goto": true,
 		"ctx": true, "c": true, "value": true, "gasPrice": true, "gasLimit": true, "privateKeyHex": true,
-		"res": true, "zero": true, "err": true, "v": true,
+		"res": true, "zero": true, "err": true, "v": true, "web3": true, "context": true, "big": true,
 	}
 	if reserved[name] {
 		return name + "Arg"
