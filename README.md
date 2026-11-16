@@ -8,7 +8,8 @@
 Zero-CGO, pure-Go command-line tool and SDK (`package web3`) for interacting with EVM blockchains — GoChain, Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Sepolia, and more.
 
 [![API Reference](https://pkg.go.dev/badge/github.com/gochain/web3)](https://pkg.go.dev/github.com/gochain/web3)
-[![CI & Release](https://github.com/gochain/web3/actions/workflows/main.yml/badge.svg)](https://github.com/gochain/web3/actions/workflows/main.yml)
+[![Test](https://github.com/gochain/web3/actions/workflows/test.yml/badge.svg)](https://github.com/gochain/web3/actions/workflows/test.yml)
+[![Release](https://github.com/gochain/web3/actions/workflows/release.yml/badge.svg)](https://github.com/gochain/web3/actions/workflows/release.yml)
 
 ```sh
 web3 --help

@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    runs-on: ubuntu-latest
+    env:
+      CGO_ENABLED: "0"
+      DOCKER_USER: ${{ secrets.DOCKER_USER }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Vet & Test
+        run: |
+          go vet ./...
+          go test ./...
+
+      - name: Bump version
+        run: |
+          git config --global user.email "ci@gochain.io"
+          git config --global user.name "CI"
+          curl -fsSL https://raw.githubusercontent.com/treeder/bump/master/gitbump.sh | bash
+          echo "VERSION=$(git tag --sort=-v:refname --list 'v[0-9]*' | head -n 1 | cut -c 2-)" >> "$GITHUB_ENV"
+
+      - name: Cross-compile binaries
+        run: |
+          echo "Building version: $VERSION"
+          LDFLAGS="-s -w -X main.Version=$VERSION"
+
+          GOOS=linux   GOARCH=amd64 go build -trimpath -ldflags "$LDFLAGS" -o web3_linux       ./cmd/web3
+          GOOS=linux   GOARCH=arm64 go build -trimpath -ldflags "$LDFLAGS" -o web3_linux_arm64 ./cmd/web3
+          GOOS=darwin  GOARCH=amd64 go build -trimpath -ldflags "$LDFLAGS" -o web3_mac         ./cmd/web3
+          GOOS=darwin  GOARCH=arm64 go build -trimpath -ldflags "$LDFLAGS" -o web3_mac_arm64   ./cmd/web3
+          GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "$LDFLAGS" -o web3.exe         ./cmd/web3
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: ${{ env.VERSION }}
+          generate_release_notes: true
+          files: |
+            web3_linux
+            web3_linux_arm64
+            web3_mac
+            web3_mac_arm64
+            web3.exe
+
+      - name: Log in to Docker Hub
+        if: env.DOCKER_USER != ''
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASS }}
+
+      - name: Build and push Docker image
+        if: env.DOCKER_USER != ''
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          build-args: VERSION=${{ env.VERSION }}
+          tags: |
+            gochain/web3:${{ env.VERSION }}
+            gochain/web3:latest
