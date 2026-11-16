@@ -81,7 +81,7 @@ jobs:
 
           echo "Bumping $oldv -> $newv ($bump_type)"
           git tag -a "v$newv" -m "version $newv"
-          git push --follow-tags
+          git push origin "v$newv"
           echo "VERSION=$newv" >> "$GITHUB_ENV"
 
       - name: Cross-compile binaries
