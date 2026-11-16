@@ -6,6 +6,16 @@ on:
       - master
       - main
   workflow_dispatch:
+    inputs:
+      bump:
+        description: "Semver bump level"
+        required: false
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 permissions:
   contents: write
@@ -36,6 +46,9 @@ jobs:
           go test ./...
 
       - name: Bump version
+        env:
+          BUMP_INPUT: ${{ inputs.bump }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
           git config --global user.email "ci@gochain.io"
           git config --global user.name "CI"
@@ -44,8 +57,29 @@ jobs:
           if [ -z "$oldv" ]; then
             oldv="0.0.0"
           fi
-          newv=$(echo "$oldv" | awk -F. -v OFS=. '{$3 = $3 + 1; print $1, $2, $3}')
-          echo "Bumping $oldv -> $newv"
+
+          bump_type="${BUMP_INPUT:-patch}"
+          case "$COMMIT_MSG" in
+            *"[bump major]"*) bump_type="major" ;;
+            *"[bump minor]"*) bump_type="minor" ;;
+          esac
+
+          major=$(echo "$oldv" | cut -d. -f1)
+          minor=$(echo "$oldv" | cut -d. -f2)
+          patch=$(echo "$oldv" | cut -d. -f3)
+          patch="${patch%%-*}"
+
+          if [ "$major" -lt 1 ]; then
+            newv="1.0.0"
+          else
+            case "$bump_type" in
+              major) newv="$((major + 1)).0.0" ;;
+              minor) newv="${major}.$((minor + 1)).0" ;;
+              *)     newv="${major}.${minor}.$((patch + 1))" ;;
+            esac
+          fi
+
+          echo "Bumping $oldv -> $newv ($bump_type)"
           git tag -a "v$newv" -m "version $newv"
           git push --follow-tags
           echo "VERSION=$newv" >> "$GITHUB_ENV"
