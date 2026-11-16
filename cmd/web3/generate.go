@@ -1,184 +1,245 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"html/template"
-	"io/ioutil"
 	"log"
+	"math/big"
 	"os"
 	"os/exec"
+	"strings"
 
-	"github.com/gochain/gochain/v4/accounts/abi/bind"
+	"github.com/gochain/web3"
 	"github.com/gochain/web3/assets"
-	"github.com/gochain/web3/vyper"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
-const (
-	OpenZeppelinVersion = "4.6.0"
-)
+const OpenZeppelinVersion = "5.3.0"
 
-func GenerateCode(ctx context.Context, c *cli.Context) {
-	var lang bind.Lang
-	switch c.String("lang") {
-	case "go":
-		lang = bind.LangGo
-	case "java":
-		lang = bind.LangJava
-	case "objc":
-		lang = bind.LangObjC
-	default:
-		fatalExit(fmt.Errorf("Unsupported destination language: %v", lang))
+func generateCommand(ctx context.Context) *cli.Command {
+	return &cli.Command{
+		Name:    "generate",
+		Aliases: []string{"g"},
+		Usage:   "Generate OpenZeppelin v5 smart contracts or Go ABI bindings",
+		Subcommands: []*cli.Command{
+			{
+				Name:  "contract",
+				Usage: "Generate standard OpenZeppelin v5 contracts (erc20, erc721, erc1155)",
+				Subcommands: []*cli.Command{
+					{
+						Name:  "erc20",
+						Usage: "Generate an OpenZeppelin v5 ERC20 token contract",
+						Flags: []cli.Flag{
+							&cli.StringFlag{Name: "symbol", Aliases: []string{"s"}, Usage: "Token symbol", Required: true},
+							&cli.StringFlag{Name: "name", Aliases: []string{"n"}, Usage: "Token name", Required: true},
+							&cli.IntFlag{Name: "decimals", Aliases: []string{"d"}, Usage: "Token decimals", Value: 18},
+							&cli.StringFlag{Name: "initial-supply", Usage: "Initial whole-token supply minted to deployer"},
+							&cli.BoolFlag{Name: "mintable", Aliases: []string{"m"}, Usage: "Include owner-only mint()", Value: true},
+							&cli.BoolFlag{Name: "burnable", Aliases: []string{"b"}, Usage: "Include ERC20Burnable", Value: true},
+							&cli.BoolFlag{Name: "pausable", Aliases: []string{"p"}, Usage: "Include ERC20Pausable"},
+						},
+						Action: func(c *cli.Context) error {
+							return generateStandardContract(ctx, "erc20", c)
+						},
+					},
+					{
+						Name:  "erc721",
+						Usage: "Generate an OpenZeppelin v5 ERC721 NFT contract",
+						Flags: []cli.Flag{
+							&cli.StringFlag{Name: "symbol", Aliases: []string{"s"}, Usage: "Collection symbol", Required: true},
+							&cli.StringFlag{Name: "name", Aliases: []string{"n"}, Usage: "Collection name", Required: true},
+							&cli.StringFlag{Name: "base-uri", Usage: "Optional base URI for tokenURI metadata"},
+							&cli.BoolFlag{Name: "mintable", Aliases: []string{"m"}, Usage: "Include owner-only safeMint()", Value: true},
+							&cli.BoolFlag{Name: "burnable", Aliases: []string{"b"}, Usage: "Include ERC721Burnable", Value: true},
+							&cli.BoolFlag{Name: "pausable", Aliases: []string{"p"}, Usage: "Include ERC721Pausable"},
+						},
+						Action: func(c *cli.Context) error {
+							return generateStandardContract(ctx, "erc721", c)
+						},
+					},
+					{
+						Name:  "erc1155",
+						Usage: "Generate an OpenZeppelin v5 ERC1155 multi-token contract",
+						Flags: []cli.Flag{
+							&cli.StringFlag{Name: "symbol", Aliases: []string{"s"}, Usage: "Contract name / symbol", Required: true},
+							&cli.StringFlag{Name: "uri", Usage: "Metadata URI template (e.g. https://example.com/{id}.json)"},
+							&cli.BoolFlag{Name: "mintable", Aliases: []string{"m"}, Usage: "Include owner-only mint() and mintBatch()", Value: true},
+							&cli.BoolFlag{Name: "burnable", Aliases: []string{"b"}, Usage: "Include ERC1155Burnable", Value: true},
+							&cli.BoolFlag{Name: "pausable", Aliases: []string{"p"}, Usage: "Include ERC1155Pausable"},
+						},
+						Action: func(c *cli.Context) error {
+							return generateStandardContract(ctx, "erc1155", c)
+						},
+					},
+				},
+			},
+			{
+				Name:  "code",
+				Usage: "Generate Go contract bindings from an ABI",
+				Flags: []cli.Flag{
+					&cli.StringFlag{Name: "abi", Aliases: []string{"a"}, Required: true, Usage: "ABI file or bundled name (erc20/erc721/erc1155/proxy)"},
+					&cli.StringFlag{Name: "bin", Usage: "Optional .bin file to include Deploy<Type> helper"},
+					&cli.StringFlag{Name: "lang", Aliases: []string{"l"}, Usage: "Destination language (go)", Value: "go"},
+					&cli.StringFlag{Name: "pkg", Aliases: []string{"p"}, Usage: "Go package name", Value: "main"},
+					&cli.StringFlag{Name: "type", Aliases: []string{"t"}, Usage: "Generated Go struct name"},
+					&cli.StringFlag{Name: "out", Aliases: []string{"o"}, Usage: "Output file", Value: "out.go"},
+				},
+				Action: func(c *cli.Context) error {
+					return runGenerateCode(c)
+				},
+			},
+		},
 	}
-
-	abiFile := c.String("abi")
-
-	if abiFile == "" {
-		fatalExit(errors.New("Please set the ABI file name"))
-	}
-
-	abi, err := ioutil.ReadFile(abiFile)
-	if err != nil {
-		fatalExit(fmt.Errorf("Failed to read file %q: %v", abiFile, err))
-	}
-
-	abis := []string{string(abi)}
-	bins := []string{c.String("")}
-	types := []string{c.String("pkg")}
-
-	code, err := bind.Bind(types, abis, bins, nil, c.String("pkg"), lang, nil, nil)
-	if err != nil {
-		fatalExit(fmt.Errorf("Failed to generate ABI binding %q: %v", abiFile, err))
-	}
-	outFile := c.String("out")
-
-	if err := ioutil.WriteFile(outFile, []byte(code), 0600); err != nil {
-		fatalExit(fmt.Errorf("Failed to write ABI binding %q: %v", abiFile, err))
-	}
-	fmt.Println("The generated code has been successfully written to", outFile, "file")
 }
 
-func getOpenZeppelinLib(ctx context.Context, version string) error {
-	if _, err := os.Stat("lib/oz"); os.IsNotExist(err) {
-		if version == "" {
-			version = OpenZeppelinVersion
-		}
-		cmd := exec.Command("git", "clone", "--depth", "1", "--branch", "v"+version, "https://github.com/OpenZeppelin/openzeppelin-contracts", "lib/oz")
-		log.Printf("Cloning OpenZeppelin v%v...", version)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		err := cmd.Run()
-		if err != nil {
-			fatalExit(fmt.Errorf("Cloning finished with error: %v", err))
-		}
-		err = os.RemoveAll("lib/oz/.git")
-		if err != nil {
-			fatalExit(fmt.Errorf("Cannot cleanup .git dir in lib/oz: %v", err))
-		}
+func generateStandardContract(ctx context.Context, contractType string, c *cli.Context) error {
+	symbol := strings.TrimSpace(c.String("symbol"))
+	if symbol == "" {
+		return errors.New("--symbol is required")
 	}
+
+	var src string
+	var err error
+	switch contractType {
+	case "erc20":
+		name := strings.TrimSpace(c.String("name"))
+		if name == "" {
+			return errors.New("--name is required")
+		}
+		decimals := c.Int("decimals")
+		if decimals < 0 || decimals > 77 {
+			return errors.New("--decimals must be between 0 and 77")
+		}
+		var initSupply *big.Int
+		if supStr := strings.TrimSpace(c.String("initial-supply")); supStr != "" {
+			var ok bool
+			initSupply, ok = new(big.Int).SetString(supStr, 10)
+			if !ok || initSupply.Sign() < 0 {
+				return fmt.Errorf("invalid --initial-supply integer %q", supStr)
+			}
+		}
+		src, err = assets.GenERC20(ctx, OpenZeppelinVersion, &assets.Erc20Params{
+			Symbol:        symbol,
+			TokenName:     name,
+			Decimals:      decimals,
+			InitialSupply: initSupply,
+			Mintable:      c.Bool("mintable"),
+			Burnable:      c.Bool("burnable"),
+			Pausable:      c.Bool("pausable"),
+		})
+
+	case "erc721":
+		name := strings.TrimSpace(c.String("name"))
+		if name == "" {
+			return errors.New("--name is required")
+		}
+		src, err = assets.GenERC721(OpenZeppelinVersion, &assets.Erc721Params{
+			Symbol:    symbol,
+			TokenName: name,
+			BaseURI:   c.String("base-uri"),
+			Mintable:  c.Bool("mintable"),
+			Burnable:  c.Bool("burnable"),
+			Pausable:  c.Bool("pausable"),
+		})
+
+	case "erc1155":
+		src, err = assets.GenERC1155(OpenZeppelinVersion, &assets.Erc1155Params{
+			Symbol:   symbol,
+			URI:      c.String("uri"),
+			Mintable: c.Bool("mintable"),
+			Burnable: c.Bool("burnable"),
+			Pausable: c.Bool("pausable"),
+		})
+	default:
+		return fmt.Errorf("unsupported contract template %q", contractType)
+	}
+	if err != nil {
+		return err
+	}
+
+	if err := getOpenZeppelinLib(ctx, OpenZeppelinVersion); err != nil {
+		// Warn rather than fail if offline, since the .sol file itself is still valid and useful
+		fmt.Fprintf(os.Stderr, "WARN: could not clone OpenZeppelin v%s into lib/oz (%v)\n", OpenZeppelinVersion, err)
+	}
+
+	outFile := symbol + ".sol"
+	if err := os.WriteFile(outFile, []byte(src), 0644); err != nil {
+		return fmt.Errorf("cannot write %q: %w", outFile, err)
+	}
+	if isJSONFormat() {
+		fmt.Println(marshalJSON(map[string]string{"file": outFile, "openzeppelin_version": OpenZeppelinVersion}))
+		return nil
+	}
+	fmt.Printf("Generated %s contract in %s (OpenZeppelin v%s)\n", strings.ToUpper(contractType), outFile, OpenZeppelinVersion)
 	return nil
 }
 
-// TODO return the vyper contract for ERC020
-func GenerateVyperContract(contractName string) {
-	cntr := vyper.GenerateVyperERC20Token()
-	vyper.WriteToFile(contractName, cntr)
-	fmt.Println(cntr)
-
+func getOpenZeppelinLib(ctx context.Context, version string) error {
+	if _, err := os.Stat("lib/oz"); !os.IsNotExist(err) {
+		return nil
+	}
+	if version == "" {
+		version = OpenZeppelinVersion
+	}
+	if verbose {
+		log.Printf("Cloning OpenZeppelin v%s...", version)
+	}
+	cmd := exec.CommandContext(ctx, "git", "clone", "--depth", "1", "--branch", "v"+version, "https://github.com/OpenZeppelin/openzeppelin-contracts", "lib/oz")
+	cmd.Stdout = os.Stderr
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("git clone openzeppelin-contracts v%s failed: %w", version, err)
+	}
+	_ = os.RemoveAll("lib/oz/.git")
+	return nil
 }
 
-func GenerateContract(ctx context.Context, contractType string, c *cli.Context) {
-	if contractType != "erc20-vyper" {
-		if c.String("symbol") == "" {
-			fatalExit(errors.New("symbol is required"))
-		}
-		if c.String("name") == "" {
-			fatalExit(errors.New("name is required"))
-		}
-		if c.String("symbol") == "" {
-			fatalExit(errors.New("symbol is required"))
-		}
-		if c.String("name") == "" {
-			fatalExit(errors.New("name is required"))
-		}
+func runGenerateCode(c *cli.Context) error {
+	lang := strings.ToLower(strings.TrimSpace(c.String("lang")))
+	if lang != "go" {
+		return fmt.Errorf("unsupported destination language %q (supported: go)", lang)
 	}
-	err := getOpenZeppelinLib(ctx, OpenZeppelinVersion)
-	if err != nil {
-		fatalExit(err)
-	}
-	if contractType == "erc20" {
-		// var capped *big.Int
-		// decimals := c.Int("decimals")
-		// if decimals <= 0 {
-		// 	fatalExit(errors.New("Decimals should be greater than 0"))
-		// }
-		// if c.String("capped") != "" {
-		// 	var ok bool
-		// 	capped, ok = new(big.Int).SetString(c.String("capped"), 10)
-		// 	if !ok {
-		// 		fatalExit(errors.New("Cannot parse capped value"))
-		// 	}
-		// 	if capped.Cmp(big.NewInt(0)) < 1 {
-		// 		fatalExit(errors.New("Capped should be greater than 0"))
-		// 	}
-		// 	capped.Mul(capped, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(decimals)), nil))
-		// }
-		params := assets.Erc20Params{
-			Symbol:    c.String("symbol"),
-			TokenName: c.String("name"),
-			// Cap:       capped,
-			// Pausable:  c.Bool("pausable"),
-			// Mintable:  c.Bool("mintable"),
-			// Burnable:  c.Bool("burnable"),
-			// Decimals:  decimals,
-		}
-		// TODO: add initial-supply flag
-		// TODO: must have initial supply or be mintable, otherwise this is zero
-		// TODO: initial supply can be set in constructor given to owner, eg: _mint(msg.sender, initialSupply)
-		s, err := assets.GenERC20(ctx, OpenZeppelinVersion, &params)
+	abiSpec := strings.TrimSpace(c.String("abi"))
+	var abiJSON string
+	switch strings.ToLower(abiSpec) {
+	case "erc20":
+		abiJSON = assets.ERC20ABI
+	case "erc721":
+		abiJSON = assets.ERC721ABI
+	case "erc1155":
+		abiJSON = assets.ERC1155ABI
+	case "proxy", "eip1967":
+		abiJSON = assets.EIP1967ProxyABI
+	default:
+		b, err := readLocalOrURL(abiSpec)
 		if err != nil {
-			fatalExit(err)
+			return fmt.Errorf("failed to read ABI %q: %w", abiSpec, err)
 		}
-		writeStringToFile(s, params.Symbol)
-	} else if contractType == "erc721" {
-		// we're going to assume metadata
-		params := assets.Erc721Params{
-			Symbol:       c.String("symbol"),
-			ContractName: assets.EscapeName(c.String("symbol")),
-			TokenName:    c.String("name"),
-			BaseURI:      c.String("base-uri"),
-			// Pausable:  c.Bool("pausable"),
-			// Mintable:  c.Bool("mintable"),
-			// Burnable:  c.Bool("burnable"),
-		}
-		processTemplate(OpenZeppelinVersion, params, params.Symbol, assets.ERC721Template)
-	} else if contractType == "erc20-vyper" {
-		GenerateVyperContract(c.String("symbol"))
-		//fmt.Println("You selected an erc20 token in Vyper.")
+		abiJSON = string(b)
 	}
-}
 
-func processTemplate(openZeppelinVersion string, params interface{}, fileName, contractTemplate string) {
-	tmpl, err := template.New("contract").Parse(contractTemplate)
-	if err != nil {
-		fatalExit(fmt.Errorf("Cannot parse the template: %v", err))
+	var binHex string
+	if binFile := strings.TrimSpace(c.String("bin")); binFile != "" {
+		b, err := readLocalOrURL(binFile)
+		if err != nil {
+			return fmt.Errorf("failed to read bin %q: %w", binFile, err)
+		}
+		binHex = strings.TrimSpace(string(b))
 	}
-	var buff bytes.Buffer
-	err = tmpl.Execute(&buff, params)
+
+	code, err := web3.GenerateGoBinding(c.String("pkg"), c.String("type"), abiJSON, binHex)
 	if err != nil {
-		fatalExit(fmt.Errorf("Cannot execute the template: %v", err))
+		return fmt.Errorf("failed to generate Go binding: %w", err)
 	}
-	s := fmt.Sprintf("// @openzeppelin v%v\n", openZeppelinVersion)
-	s += buff.String()
-	writeStringToFile(s, fileName)
-}
-func writeStringToFile(s, fileName string) {
-	err := ioutil.WriteFile(fileName+".sol", []byte(s), 0666)
-	if err != nil {
-		fatalExit(fmt.Errorf("Cannot create the file: %v", err))
+	outFile := c.String("out")
+	if err := os.WriteFile(outFile, code, 0644); err != nil {
+		return fmt.Errorf("failed to write %q: %w", outFile, err)
 	}
-	fmt.Println("The sample contract has been successfully written to", fileName+".sol", "file")
+	if isJSONFormat() {
+		fmt.Println(marshalJSON(map[string]string{"file": outFile}))
+		return nil
+	}
+	fmt.Println("Generated Go binding written to", outFile)
+	return nil
 }

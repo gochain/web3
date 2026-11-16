@@ -1,6 +1,9 @@
 package web3
 
-import "math/big"
+import (
+	"math/big"
+	"sort"
+)
 
 const (
 	testnetExplorerURL = "https://testnet-explorer.gochain.io/api"
@@ -10,13 +13,6 @@ const (
 )
 
 var Networks = map[string]Network{
-	"testnet": {
-		Name:        "testnet",
-		URL:         testnetURL,
-		ChainID:     big.NewInt(31337),
-		Unit:        "GO",
-		ExplorerURL: testnetExplorerURL,
-	},
 	"gochain": {
 		Name:        "gochain",
 		URL:         mainnetURL,
@@ -24,31 +20,87 @@ var Networks = map[string]Network{
 		Unit:        "GO",
 		ExplorerURL: mainnetExplorerURL,
 	},
+	"testnet": {
+		Name:        "testnet",
+		URL:         testnetURL,
+		ChainID:     big.NewInt(31337),
+		Unit:        "GO",
+		ExplorerURL: testnetExplorerURL,
+	},
 	"localhost": {
 		Name: "localhost",
 		URL:  "http://localhost:8545",
-		Unit: "GO",
+		Unit: "ETH",
 	},
 	"ethereum": {
-		Name: "ethereum",
-		URL:  "https://mainnet.infura.io/v3/bc5b0e5cfd9b4385befb69a68a9400c3",
-		// URL: "https://cloudflare-eth.com", // these don't worry very well, constant problems
-		// URL: "https://main-rpc.linkpool.io",
+		Name:        "ethereum",
+		URL:         "https://ethereum-rpc.publicnode.com",
 		ChainID:     big.NewInt(1),
 		Unit:        "ETH",
 		ExplorerURL: "https://etherscan.io",
 	},
-	"ropsten": {
-		Name:    "ropsten",
-		URL:     "https://ropsten-rpc.linkpool.io",
-		ChainID: big.NewInt(3),
-		Unit:    "ETH",
-	},
 	"sepolia": {
-		Name:    "sepolia",
-		URL:     "https://sepolia.infura.io/v3/bc5b0e5cfd9b4385befb69a68a9400c3",
-		ChainID: big.NewInt(11155111),
-		Unit:    "ETH",
+		Name:        "sepolia",
+		URL:         "https://ethereum-sepolia-rpc.publicnode.com",
+		ChainID:     big.NewInt(11155111),
+		Unit:        "ETH",
+		ExplorerURL: "https://sepolia.etherscan.io",
+	},
+	"holesky": {
+		Name:        "holesky",
+		URL:         "https://ethereum-holesky-rpc.publicnode.com",
+		ChainID:     big.NewInt(17000),
+		Unit:        "ETH",
+		ExplorerURL: "https://holesky.etherscan.io",
+	},
+	"base": {
+		Name:        "base",
+		URL:         "https://mainnet.base.org",
+		ChainID:     big.NewInt(8453),
+		Unit:        "ETH",
+		ExplorerURL: "https://basescan.org",
+	},
+	"base-sepolia": {
+		Name:        "base-sepolia",
+		URL:         "https://sepolia.base.org",
+		ChainID:     big.NewInt(84532),
+		Unit:        "ETH",
+		ExplorerURL: "https://sepolia.basescan.org",
+	},
+	"arbitrum": {
+		Name:        "arbitrum",
+		URL:         "https://arb1.arbitrum.io/rpc",
+		ChainID:     big.NewInt(42161),
+		Unit:        "ETH",
+		ExplorerURL: "https://arbiscan.io",
+	},
+	"optimism": {
+		Name:        "optimism",
+		URL:         "https://mainnet.optimism.io",
+		ChainID:     big.NewInt(10),
+		Unit:        "ETH",
+		ExplorerURL: "https://optimistic.etherscan.io",
+	},
+	"polygon": {
+		Name:        "polygon",
+		URL:         "https://polygon-rpc.com",
+		ChainID:     big.NewInt(137),
+		Unit:        "POL",
+		ExplorerURL: "https://polygonscan.com",
+	},
+	"bsc": {
+		Name:        "bsc",
+		URL:         "https://bsc-dataseed.binance.org",
+		ChainID:     big.NewInt(56),
+		Unit:        "BNB",
+		ExplorerURL: "https://bscscan.com",
+	},
+	"avalanche": {
+		Name:        "avalanche",
+		URL:         "https://api.avax.network/ext/bc/C/rpc",
+		ChainID:     big.NewInt(43114),
+		Unit:        "AVAX",
+		ExplorerURL: "https://snowtrace.io",
 	},
 }
 
@@ -58,4 +110,14 @@ type Network struct {
 	ExplorerURL string
 	Unit        string
 	ChainID     *big.Int
+}
+
+// NetworkNames returns sorted built-in network names.
+func NetworkNames() []string {
+	names := make([]string, 0, len(Networks))
+	for k := range Networks {
+		names = append(names, k)
+	}
+	sort.Strings(names)
+	return names
 }

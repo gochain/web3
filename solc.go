@@ -13,10 +13,12 @@ import (
 	"strings"
 )
 
-var pragmaRegexp = regexp.MustCompile(`(?m)^\s*pragma\s+solidity\s+([^;]+);`)
+var (
+	pragmaRegexp = regexp.MustCompile(`(?m)^\s*pragma\s+solidity\s+([^;]+);`)
+	semverRegexp = regexp.MustCompile(`([0-9]+)\.([0-9]+)(?:\.([0-9]+))?`)
+)
 
-
-// Contract contains information about a compiled contract, alongside its code and runtime code.
+// Contract contains information about a compiled contract, alongside its creation and runtime bytecode.
 type Contract struct {
 	Code        string            `json:"code"`
 	RuntimeCode string            `json:"runtime-code"`
@@ -24,11 +26,7 @@ type Contract struct {
 	Hashes      map[string]string `json:"hashes"`
 }
 
-// ContractInfo contains information about a compiled contract, including access
-// to the ABI definition, source mapping, user and developer docs, and metadata.
-//
-// Depending on the source, language version, compiler version, and compiler
-// options will provide information about how the contract was compiled.
+// ContractInfo contains ABI, source maps, docs, and compiler metadata for a compiled contract.
 type ContractInfo struct {
 	Source          string      `json:"source"`
 	Language        string      `json:"language"`
@@ -43,14 +41,14 @@ type ContractInfo struct {
 	Metadata        string      `json:"metadata"`
 }
 
-// Solidity specifies the solidity compiler configuration.
+// Solidity specifies the Solidity compiler configuration.
 type Solidity struct {
 	Path, Version, EVMVersion string
 	Major, Minor, Patch       int
 	Optimize                  bool
+	UseDocker                 bool
 }
 
-// --combined-output format
 type solcOutput struct {
 	Contracts map[string]struct {
 		BinRuntime                                  string `json:"bin-runtime"`
@@ -59,6 +57,7 @@ type solcOutput struct {
 	}
 	Version string
 }
+
 type solcOutputV8 struct {
 	Contracts map[string]struct {
 		BinRuntime            string `json:"bin-runtime"`
@@ -72,73 +71,102 @@ type solcOutputV8 struct {
 	Version string
 }
 
+func (s *Solidity) solcFlags() []string {
+	flags := []string{
+		"--combined-json",
+		"bin,bin-runtime,srcmap,srcmap-runtime,abi,userdoc,devdoc,metadata",
+	}
+	if s.EVMVersion != "" {
+		flags = append(flags, "--evm-version", s.EVMVersion)
+	}
+	if s.Optimize {
+		flags = append(flags, "--optimize")
+	}
+	return flags
+}
+
 func (s *Solidity) makeArgs() ([]string, error) {
+	if !s.UseDocker {
+		return s.solcFlags(), nil
+	}
 	dir, err := os.Getwd()
 	if err != nil {
 		return nil, err
 	}
 	args := []string{
 		"run", "-i", "--rm", "-v", dir + ":/workdir", "-w", "/workdir", "ethereum/solc:" + s.Version,
-		"--combined-json",
-		"bin,bin-runtime,srcmap,srcmap-runtime,abi,userdoc,devdoc,metadata",
-		"--evm-version", s.EVMVersion,
 	}
-	if s.Optimize {
-		args = append(args, "--optimize")
-	}
+	args = append(args, s.solcFlags()...)
 	return args, nil
 }
 
+// SolidityVersion extracts a concrete Solidity compiler version from pragma solidity in source.
 func SolidityVersion(source string) (*Solidity, error) {
-    var err error
-    // Extract pragma solidity version from source
-    matches := pragmaRegexp.FindStringSubmatch(source)
-    if len(matches) < 2 {
-        return nil, fmt.Errorf("can't find pragma solidity in %q", source)
-    }
-    versionConstraint := strings.TrimSpace(matches[1])
+	matches := pragmaRegexp.FindStringSubmatch(source)
+	if len(matches) < 2 {
+		return nil, errors.New("can't find pragma solidity in source")
+	}
+	constraint := strings.TrimSpace(matches[1])
 
-    // Grab the first explicit version number like 0.8.0
-    versionNumber := regexp.MustCompile(`([0-9]+)\.([0-9]+)\.([0-9]+)`).FindString(versionConstraint)
-    if versionNumber == "" {
-        return nil, fmt.Errorf("invalid pragma solidity version: %q", versionConstraint)
-    }
+	allMatches := semverRegexp.FindAllStringSubmatch(constraint, -1)
+	if len(allMatches) == 0 {
+		return nil, fmt.Errorf("invalid pragma solidity version: %q", constraint)
+	}
 
-    parts := strings.Split(versionNumber, ".")
-    s := &Solidity{Path: "docker"}
+	// Pick the first lower-bound / caret version; if range like >=0.7.0 <0.9.0, prefer 0.8.24 if allowed.
+	m := allMatches[0]
+	major, _ := strconv.Atoi(m[1])
+	minor, _ := strconv.Atoi(m[2])
+	patch := 0
+	if m[3] != "" {
+		patch, _ = strconv.Atoi(m[3])
+	} else if major == 0 && minor == 8 {
+		patch = 24
+	}
+	if len(allMatches) >= 2 && strings.Contains(constraint, "<0.9") && major == 0 && minor < 8 {
+		minor = 8
+		patch = 24
+	}
 
-    if s.Major, err = strconv.Atoi(parts[0]); err != nil {
-        return nil, err
-    }
-    if s.Minor, err = strconv.Atoi(parts[1]); err != nil {
-        return nil, err
-    }
-    if s.Patch, err = strconv.Atoi(parts[2]); err != nil {
-        return nil, err
-    }
-    s.Version = versionNumber
-    return s, nil
+	ver := fmt.Sprintf("%d.%d.%d", major, minor, patch)
+	return &Solidity{
+		Path:      "docker",
+		UseDocker: true,
+		Version:   ver,
+		Major:     major,
+		Minor:     minor,
+		Patch:     patch,
+	}, nil
 }
 
-
-// CompileSolidityString builds and returns all the contracts contained within a source string.
+// CompileSolidityString compiles Solidity source using a local solc binary if compatible or Docker ethereum/solc.
 func CompileSolidityString(ctx context.Context, source, solcVersion, evmVersion string, optimize bool) (map[string]*Contract, error) {
-	var s *Solidity
-	var err error
 	if len(source) == 0 {
 		return nil, errors.New("solc: empty source string")
 	}
+	var s *Solidity
+	var err error
 	if solcVersion != "" {
-		s = &Solidity{Path: "docker", Version: solcVersion}
+		s = &Solidity{Path: "docker", UseDocker: true, Version: solcVersion}
 	} else {
 		s, err = SolidityVersion(source)
 		if err != nil {
 			return nil, err
 		}
 	}
-	// fmt.Printf("Building with solidity version %v\n", s.Version)
 	s.EVMVersion = evmVersion
 	s.Optimize = optimize
+
+	// Prefer native solc if installed and matches major.minor when solcVersion wasn't pinned to a different version.
+	if solcPath, lookErr := exec.LookPath("solc"); lookErr == nil {
+		if verOut, verErr := exec.CommandContext(ctx, solcPath, "--version").Output(); verErr == nil {
+			if strings.Contains(string(verOut), s.Version) || (solcVersion == "" && strings.Contains(string(verOut), fmt.Sprintf("%d.%d.", s.Major, s.Minor))) {
+				s.Path = solcPath
+				s.UseDocker = false
+			}
+		}
+	}
+
 	args, err := s.makeArgs()
 	if err != nil {
 		return nil, err
@@ -154,37 +182,30 @@ func (s *Solidity) run(cmd *exec.Cmd, source string) (map[string]*Contract, erro
 	cmd.Stderr = &stderr
 	cmd.Stdout = &stdout
 	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("solc: %v\n%s", err, stderr.Bytes())
+		return nil, fmt.Errorf("solc: %w\n%s", err, stderr.String())
 	}
-	args, err := s.makeArgs()
-	if err != nil {
-		return nil, err
-	}
-	return ParseCombinedJSON(stdout.Bytes(), source, s.Version, s.Version, strings.Join(args, " "))
+	return ParseCombinedJSON(stdout.Bytes(), source, s.Version, s.Version, strings.Join(s.solcFlags(), " "))
 }
 
-func ParseCombinedJSON(combinedJSON []byte, source string, languageVersion string, compilerVersion string, compilerOptions string) (map[string]*Contract, error) {
+func ParseCombinedJSON(combinedJSON []byte, source, languageVersion, compilerVersion, compilerOptions string) (map[string]*Contract, error) {
 	var output solcOutput
 	if err := json.Unmarshal(combinedJSON, &output); err != nil {
-		// Try to parse the output with the new solidity v.0.8.0 rules
 		return parseCombinedJSONV8(combinedJSON, source, languageVersion, compilerVersion, compilerOptions)
 	}
 
-	// Compilation succeeded, assemble and return the contracts.
 	contracts := make(map[string]*Contract)
 	for name, info := range output.Contracts {
-		// Parse the individual compilation results.
-		var abi interface{}
-		if err := json.Unmarshal([]byte(info.Abi), &abi); err != nil {
-			return nil, fmt.Errorf("solc: error reading abi definition (%v)", err)
+		var abiDef interface{}
+		if err := json.Unmarshal([]byte(info.Abi), &abiDef); err != nil {
+			return nil, fmt.Errorf("solc: error reading abi definition (%w)", err)
 		}
 		var userdoc interface{}
-		if err := json.Unmarshal([]byte(info.Userdoc), &userdoc); err != nil {
-			return nil, fmt.Errorf("solc: error reading user doc: %v", err)
+		if info.Userdoc != "" {
+			_ = json.Unmarshal([]byte(info.Userdoc), &userdoc)
 		}
 		var devdoc interface{}
-		if err := json.Unmarshal([]byte(info.Devdoc), &devdoc); err != nil {
-			return nil, fmt.Errorf("solc: error reading dev doc: %v", err)
+		if info.Devdoc != "" {
+			_ = json.Unmarshal([]byte(info.Devdoc), &devdoc)
 		}
 		contracts[name] = &Contract{
 			Code:        "0x" + info.Bin,
@@ -197,7 +218,7 @@ func ParseCombinedJSON(combinedJSON []byte, source string, languageVersion strin
 				CompilerOptions: compilerOptions,
 				SrcMap:          info.SrcMap,
 				SrcMapRuntime:   info.SrcMapRuntime,
-				AbiDefinition:   abi,
+				AbiDefinition:   abiDef,
 				UserDoc:         userdoc,
 				DeveloperDoc:    devdoc,
 				Metadata:        info.Metadata,
@@ -207,14 +228,11 @@ func ParseCombinedJSON(combinedJSON []byte, source string, languageVersion strin
 	return contracts, nil
 }
 
-// parseCombinedJSONV8 parses the direct output of solc --combined-output
-// and parses it using the rules from solidity v.0.8.0 and later.
-func parseCombinedJSONV8(combinedJSON []byte, source string, languageVersion string, compilerVersion string, compilerOptions string) (map[string]*Contract, error) {
+func parseCombinedJSONV8(combinedJSON []byte, source, languageVersion, compilerVersion, compilerOptions string) (map[string]*Contract, error) {
 	var output solcOutputV8
 	if err := json.Unmarshal(combinedJSON, &output); err != nil {
 		return nil, err
 	}
-	// Compilation succeeded, assemble and return the contracts.
 	contracts := make(map[string]*Contract)
 	for name, info := range output.Contracts {
 		contracts[name] = &Contract{

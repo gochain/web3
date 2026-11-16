@@ -1,16 +1,15 @@
-pragma solidity ^0.5.11;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
 
 contract Types {
-
-    string name;
+    string private name;
     bytes32 public tbytes32;
     bytes public tbytes;
     string public tstring;
     uint256 public tuint256;
     uint8 public tuint8;
 
-    /* This runs when the contract is executed */
-    constructor() public {
+    constructor() {
         name = "World";
         tbytes32 = "i'm bytes";
         tbytes = "this is a long string with variable length, so what are we going to do about it?";
@@ -28,7 +27,7 @@ contract Types {
     function setBytes32(bytes32 x) public {
         tbytes32 = x;
     }
-    
+
     function setBytes(bytes memory x) public {
         tbytes = x;
     }
