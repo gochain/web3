@@ -1,263 +1,151 @@
 package assets
 
 import (
+	"bytes"
 	"context"
+	_ "embed"
 	"fmt"
+	"math/big"
 	"strings"
+	"text/template"
+	"unicode"
 )
 
+//go:embed erc20.abi
+var ERC20ABI string
+
 type Erc20Params struct {
-	Symbol    string
-	TokenName string
+	Symbol        string
+	TokenName     string
+	ContractName  string
+	Decimals      int
+	DecimalsSet   bool
+	InitialSupply *big.Int
+	Mintable      bool
+	Burnable      bool
+	Pausable      bool
 }
 
 func EscapeName(symbol string) string {
-	name := strings.ReplaceAll(symbol, "-", "_")
-	return name
+	var b strings.Builder
+	for _, r := range symbol {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' {
+			if b.Len() == 0 && unicode.IsDigit(r) {
+				b.WriteByte('_')
+			}
+			b.WriteRune(r)
+		} else {
+			b.WriteByte('_')
+		}
+	}
+	if b.Len() == 0 {
+		return "Token"
+	}
+	return b.String()
 }
 
-func GenERC20(ctx context.Context, openZeppelinVersion string, params *Erc20Params) (string, error) {
-	var part1, part2, part3 strings.Builder
-	part1.WriteString(fmt.Sprintf("// @openzeppelin v%v\n", openZeppelinVersion))
-	part1.WriteString("pragma solidity ^0.8.4;\n\nimport \"./lib/oz/contracts/token/ERC20/presets/ERC20PresetMinterPauser.sol\";\n")
-	part2.WriteString("\ncontract ")
-	part2.WriteString(EscapeName(params.Symbol))
-	part2.WriteString(" is")
-	{
-		part3.WriteString("    constructor() public ERC20PresetMinterPauser(\"")
-		part3.WriteString(params.TokenName)
-		part3.WriteString("\", \"")
-		part3.WriteString(params.Symbol)
-		part3.WriteString("\")")
+const erc20Template = `// SPDX-License-Identifier: MIT
+// @openzeppelin v{{.OZVersion}}
+pragma solidity ^0.8.20;
 
-	}
-	part2.WriteString(" ERC20PresetMinterPauser {\n\n")
+import {ERC20} from "./lib/oz/contracts/token/ERC20/ERC20.sol";
+{{- if .Burnable}}
+import {ERC20Burnable} from "./lib/oz/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+{{- end}}
+{{- if .Pausable}}
+import {ERC20Pausable} from "./lib/oz/contracts/token/ERC20/extensions/ERC20Pausable.sol";
+{{- end}}
+{{- if or .Mintable .Pausable}}
+import {Ownable} from "./lib/oz/contracts/access/Ownable.sol";
+{{- end}}
 
-	part3.WriteString(" {}\n\n}\n")
+contract {{.ContractName}} is ERC20{{if .Burnable}}, ERC20Burnable{{end}}{{if .Pausable}}, ERC20Pausable{{end}}{{if or .Mintable .Pausable}}, Ownable{{end}} {
+    constructor()
+        ERC20({{printf "%q" .TokenName}}, {{printf "%q" .Symbol}})
+        {{- if or .Mintable .Pausable}}
+        Ownable(msg.sender)
+        {{- end}}
+    {
+        {{- if .HasInitialSupply}}
+        _mint(msg.sender, {{.InitialSupply}} * 10 ** decimals());
+        {{- end}}
+    }
+{{- if ne .Decimals 18}}
 
-	return part1.String() + part2.String() + part3.String(), nil
+    function decimals() public pure override returns (uint8) {
+        return {{.Decimals}};
+    }
+{{- end}}
+{{- if .Pausable}}
+
+    function pause() public onlyOwner {
+        _pause();
+    }
+
+    function unpause() public onlyOwner {
+        _unpause();
+    }
+{{- end}}
+{{- if .Mintable}}
+
+    function mint(address to, uint256 amount) public onlyOwner {
+        _mint(to, amount);
+    }
+{{- end}}
+{{- if .Pausable}}
+
+    function _update(address from, address to, uint256 value) internal override(ERC20, ERC20Pausable) {
+        super._update(from, to, value);
+    }
+{{- end}}
 }
-
-const ERC20ABI = `[
-	{
-		"constant": true,
-		"inputs": [],
-		"name": "name",
-		"outputs": [
-			{
-				"name": "",
-				"type": "string"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": false,
-		"inputs": [
-			{
-				"name": "_spender",
-				"type": "address"
-			},
-			{
-				"name": "_value",
-				"type": "uint256"
-			}
-		],
-		"name": "approve",
-		"outputs": [
-			{
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"payable": false,
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [],
-		"name": "totalSupply",
-		"outputs": [
-			{
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": false,
-		"inputs": [
-			{
-				"name": "_from",
-				"type": "address"
-			},
-			{
-				"name": "_to",
-				"type": "address"
-			},
-			{
-				"name": "_value",
-				"type": "uint256"
-			}
-		],
-		"name": "transferFrom",
-		"outputs": [
-			{
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"payable": false,
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [],
-		"name": "decimals",
-		"outputs": [
-			{
-				"name": "",
-				"type": "uint8"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [
-			{
-				"name": "_owner",
-				"type": "address"
-			}
-		],
-		"name": "balanceOf",
-		"outputs": [
-			{
-				"name": "balance",
-				"type": "uint256"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [],
-		"name": "symbol",
-		"outputs": [
-			{
-				"name": "",
-				"type": "string"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": false,
-		"inputs": [
-			{
-				"name": "_to",
-				"type": "address"
-			},
-			{
-				"name": "_value",
-				"type": "uint256"
-			}
-		],
-		"name": "transfer",
-		"outputs": [
-			{
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"payable": false,
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [
-			{
-				"name": "_owner",
-				"type": "address"
-			},
-			{
-				"name": "_spender",
-				"type": "address"
-			}
-		],
-		"name": "allowance",
-		"outputs": [
-			{
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"payable": true,
-		"stateMutability": "payable",
-		"type": "fallback"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"name": "owner",
-				"type": "address"
-			},
-			{
-				"indexed": true,
-				"name": "spender",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"name": "value",
-				"type": "uint256"
-			}
-		],
-		"name": "Approval",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"name": "from",
-				"type": "address"
-			},
-			{
-				"indexed": true,
-				"name": "to",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"name": "value",
-				"type": "uint256"
-			}
-		],
-		"name": "Transfer",
-		"type": "event"
-	}
-]
 `
+
+func GenERC20(_ context.Context, openZeppelinVersion string, params *Erc20Params) (string, error) {
+	if params == nil {
+		return "", fmt.Errorf("nil ERC20 params")
+	}
+	decimals := params.Decimals
+	if (!params.DecimalsSet && decimals == 0) || decimals < 0 {
+		decimals = 18
+	}
+	cname := params.ContractName
+	if cname == "" {
+		cname = EscapeName(params.Symbol)
+	}
+	data := struct {
+		OZVersion        string
+		Symbol           string
+		TokenName        string
+		ContractName     string
+		Decimals         int
+		InitialSupply    string
+		HasInitialSupply bool
+		Mintable         bool
+		Burnable         bool
+		Pausable         bool
+	}{
+		OZVersion:        openZeppelinVersion,
+		Symbol:           params.Symbol,
+		TokenName:        params.TokenName,
+		ContractName:     cname,
+		Decimals:         decimals,
+		HasInitialSupply: params.InitialSupply != nil && params.InitialSupply.Sign() > 0,
+		Mintable:         params.Mintable,
+		Burnable:         params.Burnable,
+		Pausable:         params.Pausable,
+	}
+	if data.HasInitialSupply {
+		data.InitialSupply = params.InitialSupply.String()
+	}
+
+	tmpl, err := template.New("erc20").Parse(erc20Template)
+	if err != nil {
+		return "", err
+	}
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}

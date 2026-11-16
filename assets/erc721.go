@@ -1,359 +1,118 @@
 package assets
 
+import (
+	"bytes"
+	_ "embed"
+	"fmt"
+	"text/template"
+)
+
+//go:embed erc721.abi
+var ERC721ABI string
+
 type Erc721Params struct {
 	Symbol       string
 	TokenName    string
-	BaseURI      string // Base URL to look up token metadata
-	ContractName string // for the contract, has to be escaped
-	// Pausable  bool
-	// Mintable  bool
-	// Burnable  bool
+	BaseURI      string
+	ContractName string
+	Mintable     bool
+	Burnable     bool
+	Pausable     bool
 }
 
-const ERC721Template = `pragma solidity ^0.8.4;
+const ERC721Template = `// SPDX-License-Identifier: MIT
+// @openzeppelin v{{.OZVersion}}
+pragma solidity ^0.8.20;
 
-import "./lib/oz/contracts/token/ERC721/presets/ERC721PresetMinterPauserAutoId.sol";
+import {ERC721} from "./lib/oz/contracts/token/ERC721/ERC721.sol";
+{{- if .Burnable}}
+import {ERC721Burnable} from "./lib/oz/contracts/token/ERC721/extensions/ERC721Burnable.sol";
+{{- end}}
+{{- if .Pausable}}
+import {ERC721Pausable} from "./lib/oz/contracts/token/ERC721/extensions/ERC721Pausable.sol";
+{{- end}}
+{{- if or .Mintable .Pausable}}
+import {Ownable} from "./lib/oz/contracts/access/Ownable.sol";
+{{- end}}
 
-contract {{.ContractName}} is ERC721PresetMinterPauserAutoId {
+contract {{.ContractName}} is ERC721{{if .Burnable}}, ERC721Burnable{{end}}{{if .Pausable}}, ERC721Pausable{{end}}{{if or .Mintable .Pausable}}, Ownable{{end}} {
+{{- if .Mintable}}
+    uint256 private _nextTokenId;
+{{- end}}
 
-    constructor() public
-	ERC721PresetMinterPauserAutoId("{{.TokenName}}", "{{.Symbol}}", "{{.BaseURI}}")
-	{}
+    constructor()
+        ERC721({{printf "%q" .TokenName}}, {{printf "%q" .Symbol}})
+        {{- if or .Mintable .Pausable}}
+        Ownable(msg.sender)
+        {{- end}}
+    {}
+{{- if .BaseURI}}
 
-}`
+    function _baseURI() internal pure override returns (string memory) {
+        return {{printf "%q" .BaseURI}};
+    }
+{{- end}}
+{{- if .Pausable}}
 
-const ERC721ABI = `[
-	{
-		"constant": true,
-		"inputs": [],
-		"name": "name",
-		"outputs": [
-			{
-				"name": "_name",
-				"type": "string"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [
-			{
-				"name": "_tokenId",
-				"type": "uint256"
-			}
-		],
-		"name": "getApproved",
-		"outputs": [
-			{
-				"name": "_approved",
-				"type": "address"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": false,
-		"inputs": [
-			{
-				"name": "_to",
-				"type": "address"
-			},
-			{
-				"name": "_tokenId",
-				"type": "uint256"
-			}
-		],
-		"name": "approve",
-		"outputs": [],
-		"payable": false,
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [],
-		"name": "implementsERC721",
-		"outputs": [
-			{
-				"name": "_implementsERC721",
-				"type": "bool"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [],
-		"name": "totalSupply",
-		"outputs": [
-			{
-				"name": "_totalSupply",
-				"type": "uint256"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": false,
-		"inputs": [
-			{
-				"name": "_from",
-				"type": "address"
-			},
-			{
-				"name": "_to",
-				"type": "address"
-			},
-			{
-				"name": "_tokenId",
-				"type": "uint256"
-			}
-		],
-		"name": "transferFrom",
-		"outputs": [],
-		"payable": false,
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [
-			{
-				"name": "_owner",
-				"type": "address"
-			},
-			{
-				"name": "_index",
-				"type": "uint256"
-			}
-		],
-		"name": "tokenOfOwnerByIndex",
-		"outputs": [
-			{
-				"name": "_tokenId",
-				"type": "uint256"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [
-			{
-				"name": "_tokenId",
-				"type": "uint256"
-			}
-		],
-		"name": "ownerOf",
-		"outputs": [
-			{
-				"name": "_owner",
-				"type": "address"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [
-			{
-				"name": "_tokenId",
-				"type": "uint256"
-			}
-		],
-		"name": "tokenMetadata",
-		"outputs": [
-			{
-				"name": "_infoUrl",
-				"type": "string"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [
-			{
-				"name": "_owner",
-				"type": "address"
-			}
-		],
-		"name": "balanceOf",
-		"outputs": [
-			{
-				"name": "_balance",
-				"type": "uint256"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": false,
-		"inputs": [
-			{
-				"name": "_owner",
-				"type": "address"
-			},
-			{
-				"name": "_tokenId",
-				"type": "uint256"
-			},
-			{
-				"name": "_approvedAddress",
-				"type": "address"
-			},
-			{
-				"name": "_metadata",
-				"type": "string"
-			}
-		],
-		"name": "mint",
-		"outputs": [],
-		"payable": false,
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [],
-		"name": "symbol",
-		"outputs": [
-			{
-				"name": "_symbol",
-				"type": "string"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": false,
-		"inputs": [
-			{
-				"name": "_to",
-				"type": "address"
-			},
-			{
-				"name": "_tokenId",
-				"type": "uint256"
-			}
-		],
-		"name": "transfer",
-		"outputs": [],
-		"payable": false,
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [],
-		"name": "numTokensTotal",
-		"outputs": [
-			{
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [
-			{
-				"name": "_owner",
-				"type": "address"
-			}
-		],
-		"name": "getOwnerTokens",
-		"outputs": [
-			{
-				"name": "_tokenIds",
-				"type": "uint256[]"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"name": "_to",
-				"type": "address"
-			},
-			{
-				"indexed": true,
-				"name": "_tokenId",
-				"type": "uint256"
-			}
-		],
-		"name": "Mint",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"name": "_from",
-				"type": "address"
-			},
-			{
-				"indexed": true,
-				"name": "_to",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"name": "_tokenId",
-				"type": "uint256"
-			}
-		],
-		"name": "Transfer",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"name": "_owner",
-				"type": "address"
-			},
-			{
-				"indexed": true,
-				"name": "_approved",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"name": "_tokenId",
-				"type": "uint256"
-			}
-		],
-		"name": "Approval",
-		"type": "event"
+    function pause() public onlyOwner {
+        _pause();
+    }
+
+    function unpause() public onlyOwner {
+        _unpause();
+    }
+{{- end}}
+{{- if .Mintable}}
+
+    function safeMint(address to) public onlyOwner returns (uint256) {
+        uint256 tokenId = _nextTokenId++;
+        _safeMint(to, tokenId);
+        return tokenId;
+    }
+{{- end}}
+{{- if .Pausable}}
+
+    function _update(address to, uint256 tokenId, address auth) internal override(ERC721, ERC721Pausable) returns (address) {
+        return super._update(to, tokenId, auth);
+    }
+{{- end}}
+}
+`
+
+func GenERC721(openZeppelinVersion string, params *Erc721Params) (string, error) {
+	if params == nil {
+		return "", fmt.Errorf("nil ERC721 params")
 	}
-]`
+	cname := params.ContractName
+	if cname == "" {
+		cname = EscapeName(params.Symbol)
+	}
+	data := struct {
+		OZVersion    string
+		Symbol       string
+		TokenName    string
+		BaseURI      string
+		ContractName string
+		Mintable     bool
+		Burnable     bool
+		Pausable     bool
+	}{
+		OZVersion:    openZeppelinVersion,
+		Symbol:       params.Symbol,
+		TokenName:    params.TokenName,
+		BaseURI:      params.BaseURI,
+		ContractName: cname,
+		Mintable:     params.Mintable,
+		Burnable:     params.Burnable,
+		Pausable:     params.Pausable,
+	}
+	tmpl, err := template.New("erc721").Parse(ERC721Template)
+	if err != nil {
+		return "", err
+	}
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}

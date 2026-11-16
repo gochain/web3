@@ -3,76 +3,109 @@ package web3
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
-	"github.com/gochain/gochain/v4/accounts/abi"
 	"github.com/gochain/web3/assets"
 )
 
-// GetABI accepts either built in contracts (erc20, erc721), a file location or a URL
-func GetABI(abiFile string) (*abi.ABI, error) {
-	abi, err := ABIBuiltIn(abiFile)
-	if err != nil {
-		return nil, fmt.Errorf("Cannot get ABI from the bundled storage: %v", err)
-	}
-	if abi != nil {
-		return abi, nil
-	}
-	abi, err = ABIOpenFile(abiFile)
-	if err == nil {
-		return abi, nil
-	}
-	// else most likely just not found, log it?
-
-	abi, err = ABIOpenURL(abiFile)
-	if err == nil {
-		return abi, nil
-	}
-	return nil, err
+var bundledContracts = map[string]string{
+	"erc20":   assets.ERC20ABI,
+	"erc721":  assets.ERC721ABI,
+	"erc1155": assets.ERC1155ABI,
+	"proxy":   assets.EIP1967ProxyABI,
+	"eip1967": assets.EIP1967ProxyABI,
 }
 
-func ABIBuiltIn(abiFile string) (*abi.ABI, error) {
-	if val, ok := bundledContracts[abiFile]; ok {
-		return readAbi(strings.NewReader(val))
+// GetABI resolves a built-in ABI name ("erc20", "erc721", "erc1155", "proxy"),
+// an inline JSON ABI array, a human-readable signature, a local file path, or an HTTP(S) URL.
+func GetABI(abiSpec string) (*ABI, error) {
+	spec := strings.TrimSpace(abiSpec)
+	if spec == "" {
+		return nil, fmt.Errorf("empty ABI specification")
+	}
+
+	if builtin, err := ABIBuiltIn(strings.ToLower(spec)); err != nil {
+		return nil, fmt.Errorf("cannot get bundled ABI %q: %w", spec, err)
+	} else if builtin != nil {
+		return builtin, nil
+	}
+
+	if strings.HasPrefix(spec, "[") {
+		parsed, err := ParseABI(spec)
+		if err != nil {
+			return nil, err
+		}
+		return &parsed, nil
+	}
+
+	if isValidURL(spec) {
+		return ABIOpenURL(spec)
+	}
+
+	if info, statErr := os.Stat(spec); statErr == nil && !info.IsDir() {
+		return ABIOpenFile(spec)
+	} else if os.IsPermission(statErr) {
+		return nil, statErr
+	}
+
+	// Support inline human-readable Solidity function signature, e.g. "balanceOf(address):(uint256)"
+	if strings.Contains(spec, "(") && strings.Contains(spec, ")") {
+		if m, err := ParseHumanSignature(spec); err == nil {
+			parsed := &ABI{
+				Methods:   map[string]ABIMethod{m.Name: m, m.Sig(): m},
+				Overloads: map[string][]ABIMethod{m.Name: {m}},
+				Events:    map[string]ABIEvent{},
+				Errors:    map[string]ABIError{},
+			}
+			return parsed, nil
+		}
+	}
+
+	return nil, fmt.Errorf("ABI %q not found as bundled name, file, URL, or function signature", abiSpec)
+}
+
+func ABIBuiltIn(name string) (*ABI, error) {
+	if val, ok := bundledContracts[name]; ok {
+		return readABI(strings.NewReader(val))
 	}
 	return nil, nil
 }
 
-func ABIOpenFile(abiFile string) (*abi.ABI, error) {
-	jsonReader, err := os.Open(abiFile)
+func ABIOpenFile(abiFile string) (*ABI, error) {
+	f, err := os.Open(abiFile)
 	if err != nil {
 		return nil, err
 	}
-	return readAbi(jsonReader)
+	defer f.Close()
+	return readABI(f)
 }
 
-func ABIOpenURL(abiFile string) (*abi.ABI, error) {
-	resp, err := http.Get(abiFile)
+func ABIOpenURL(abiURL string) (*ABI, error) {
+	client := &http.Client{Timeout: 30 * time.Second}
+	req, err := http.NewRequest(http.MethodGet, abiURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error getting ABI: %v", err)
+		return nil, err
+	}
+	req.Header.Set("User-Agent", DefaultUserAgent)
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching ABI from URL: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
-		}
-		return nil, fmt.Errorf("error getting ABI %v: %v", resp.StatusCode, string(bodyBytes))
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("error fetching ABI (HTTP %d): %s", resp.StatusCode, strings.TrimSpace(string(bodyBytes)))
 	}
-	return readAbi(resp.Body)
+	return readABI(resp.Body)
 }
 
-func readAbi(reader io.Reader) (*abi.ABI, error) {
-	abi, err := abi.JSON(reader)
+func readABI(reader io.Reader) (*ABI, error) {
+	parsed, err := ParseABIJSON(reader)
 	if err != nil {
 		return nil, err
 	}
-	return &abi, nil
+	return &parsed, nil
 }
-
-var bundledContracts = map[string]string{
-	"erc20":  assets.ERC20ABI,
-	"erc721": assets.ERC721ABI}

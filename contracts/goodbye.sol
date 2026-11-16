@@ -1,11 +1,10 @@
-pragma solidity ^0.5.11;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
 
 contract Goodbye {
+    string private name;
 
-    string name;
-
-    /* This runs when the contract is executed */
-    constructor() public {
+    constructor() {
         name = "World";
     }
 

@@ -1,0 +1,47 @@
+name: "🔎 Dazbo's Gemini Code Review"
+
+on:
+  pull_request:
+    branches:
+      - master
+      - main
+    # uncomment below to only do it once when the pull request is opened
+    # types: [opened]
+    # Optional: restrict trigger paths (supports inclusions & exclusions)
+    # paths:
+    #   - 'src/**'
+    #   - '!src/generated/**'  # Exclude generated files
+    #   - 'pyproject.toml'
+  issue_comment:
+    types: [created]
+
+jobs:
+  review:
+    # Run on PR opened, OR on issue comment starting with /gemini-review or /review by repo owners/members
+    if: |
+      github.event_name == 'pull_request' ||
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        (startsWith(github.event.comment.body, '/gemini-review') || startsWith(github.event.comment.body, '/review')) &&
+        contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          # Automatically checks out the head ref for PR events,
+          # and pulls the PR head branch for comment-based triggers
+          ref: ${{ github.event.pull_request.head.sha || format('refs/pull/{0}/head', github.event.issue.number) }}
+
+      - name: Run Gemini Review Action
+        uses: derailed-dash/gemini-review-action@v1
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}

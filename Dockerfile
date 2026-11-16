@@ -1,19 +1,15 @@
-# build stage
-FROM golang:1.24-alpine AS build-env
-RUN apk --no-cache add build-base git gcc linux-headers
-ENV D=/web3
-WORKDIR $D
-# cache dependencies
-ADD go.mod $D
-ADD go.sum $D
+# Build stage (pure Go, zero CGO)
+FROM golang:1.26-alpine AS build-env
+ARG VERSION=dev
+WORKDIR /web3
+COPY go.mod go.sum ./
 RUN go mod download
-# now build
-ADD . $D
-RUN cd $D && go build -o web3-alpine ./cmd/web3 && cp web3-alpine /tmp/
+COPY . .
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.Version=${VERSION}" -o /tmp/web3 ./cmd/web3
 
-# final stage
+# Final stage
 FROM alpine
 RUN apk add --no-cache ca-certificates git
 WORKDIR /app
-COPY --from=build-env /tmp/web3-alpine /app/web3
+COPY --from=build-env /tmp/web3 /app/web3
 ENTRYPOINT ["/app/web3"]

@@ -1,70 +1,57 @@
 package web3
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"log"
 	"math/big"
 	"sync/atomic"
-
-	"github.com/gochain/gochain/v4/common"
-	"github.com/gochain/gochain/v4/common/hexutil"
-	"github.com/gochain/gochain/v4/core/types"
-	"github.com/gochain/gochain/v4/rpc"
 )
 
-// Client is an interface for the web3 RPC API.
+// Client is the interface for interacting with an EVM JSON-RPC node.
 type Client interface {
-	// GetBalance returns the balance for an address at the given block number (nil for latest).
 	GetBalance(ctx context.Context, address string, blockNumber *big.Int) (*big.Int, error)
-	// GetCode returns the code for an address at the given block number (nil for latest).
 	GetCode(ctx context.Context, address string, blockNumber *big.Int) ([]byte, error)
-	// GetBlockByNumber returns block details by number (nil for latest), optionally including full txs.
+	GetStorageAt(ctx context.Context, address Address, slot Hash, blockNumber *big.Int) (Hash, error)
+	GetBlockNumber(ctx context.Context) (uint64, error)
 	GetBlockByNumber(ctx context.Context, number *big.Int, includeTxs bool) (*Block, error)
-	// GetBlockByHash returns block details for the given hash, optionally include full transaction details.
 	GetBlockByHash(ctx context.Context, hash string, includeTxs bool) (*Block, error)
-	// GetTransactionByHash returns transaction details for a hash.
-	GetTransactionByHash(ctx context.Context, hash common.Hash) (*Transaction, error)
-	// GetSnapshot returns the latest clique snapshot.
+	GetTransactionByHash(ctx context.Context, hash Hash) (*Transaction, error)
+	GetTransactionReceipt(ctx context.Context, hash Hash) (*Receipt, error)
+	GetLogs(ctx context.Context, q FilterQuery) ([]Log, error)
 	GetSnapshot(ctx context.Context) (*Snapshot, error)
-	// GetID returns unique identifying information for the network.
 	GetID(ctx context.Context) (*ID, error)
-	// GetTransactionReceipt returns the receipt for a transaction hash.
-	GetTransactionReceipt(ctx context.Context, hash common.Hash) (*Receipt, error)
-	// GetChainID returns the chain id for the network.
 	GetChainID(ctx context.Context) (*big.Int, error)
-	// GetNetworkID returns the network id.
 	GetNetworkID(ctx context.Context) (*big.Int, error)
-	// GetGasPrice returns a suggested gas price.
 	GetGasPrice(ctx context.Context) (*big.Int, error)
-	// GetPendingTransactionCount returns the transaction count including pending txs.
-	// This value is also the next legal nonce.
-	GetPendingTransactionCount(ctx context.Context, account common.Address) (uint64, error)
-	// SendRawTransaction sends the signed raw transaction bytes.
+	MaxPriorityFeePerGas(ctx context.Context) (*big.Int, error)
+	EstimateGas(ctx context.Context, msg CallMsg) (uint64, error)
+	GetPendingTransactionCount(ctx context.Context, account Address) (uint64, error)
+	GetTransactionCount(ctx context.Context, account Address, blockNumber *big.Int) (uint64, error)
 	SendRawTransaction(ctx context.Context, tx []byte) error
-	// Call executes a call without submitting a transaction.
 	Call(ctx context.Context, msg CallMsg) ([]byte, error)
 	Close()
 	SetChainID(*big.Int)
 }
 
-// Dial returns a new client backed by dialing url (supported schemes "http", "https", "ws" and "wss").
+// Dial returns a new Client connected to url ("http", "https", "ws", or "wss").
 func Dial(url string) (Client, error) {
-	r, err := rpc.Dial(url)
+	r, err := DialRPC(url)
 	if err != nil {
 		return nil, err
 	}
 	return NewClient(r), nil
 }
 
-// NewClient returns a new client backed by an existing rpc.Client.
-func NewClient(r *rpc.Client) Client {
+// NewClient wraps an *RPCClient in a web3 Client.
+func NewClient(r *RPCClient) Client {
 	return &client{r: r}
 }
 
 type client struct {
-	r       *rpc.Client
+	r       *RPCClient
 	chainID atomic.Value
 }
 
@@ -73,24 +60,53 @@ func (c *client) Close() {
 }
 
 func (c *client) Call(ctx context.Context, msg CallMsg) ([]byte, error) {
-	var result hexutil.Bytes
-	err := c.r.CallContext(ctx, &result, "eth_call", toCallArg(msg), "latest")
-	if err != nil {
+	var result HexBytes
+	if err := c.r.CallContext(ctx, &result, "eth_call", toCallArg(msg), "latest"); err != nil {
 		return nil, err
 	}
-	return result, err
+	return result, nil
+}
+
+func (c *client) EstimateGas(ctx context.Context, msg CallMsg) (uint64, error) {
+	var result HexUint64
+	if err := c.r.CallContext(ctx, &result, "eth_estimateGas", toCallArg(msg)); err != nil {
+		return 0, err
+	}
+	return uint64(result), nil
 }
 
 func (c *client) GetBalance(ctx context.Context, address string, blockNumber *big.Int) (*big.Int, error) {
-	var result hexutil.Big
-	err := c.r.CallContext(ctx, &result, "eth_getBalance", common.HexToAddress(address), toBlockNumArg(blockNumber))
-	return (*big.Int)(&result), err
+	var result HexBig
+	err := c.r.CallContext(ctx, &result, "eth_getBalance", HexToAddress(address), toBlockNumArg(blockNumber))
+	if err != nil {
+		return nil, err
+	}
+	return result.ToInt(), nil
 }
 
 func (c *client) GetCode(ctx context.Context, address string, blockNumber *big.Int) ([]byte, error) {
-	var result hexutil.Bytes
-	err := c.r.CallContext(ctx, &result, "eth_getCode", common.HexToAddress(address), toBlockNumArg(blockNumber))
-	return result, err
+	var result HexBytes
+	err := c.r.CallContext(ctx, &result, "eth_getCode", HexToAddress(address), toBlockNumArg(blockNumber))
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (c *client) GetStorageAt(ctx context.Context, address Address, slot Hash, blockNumber *big.Int) (Hash, error) {
+	var result HexBytes
+	if err := c.r.CallContext(ctx, &result, "eth_getStorageAt", address, slot, toBlockNumArg(blockNumber)); err != nil {
+		return ZeroHash, err
+	}
+	return BytesToHash(result), nil
+}
+
+func (c *client) GetBlockNumber(ctx context.Context) (uint64, error) {
+	var result HexUint64
+	if err := c.r.CallContext(ctx, &result, "eth_blockNumber"); err != nil {
+		return 0, err
+	}
+	return uint64(result), nil
 }
 
 func (c *client) GetBlockByNumber(ctx context.Context, number *big.Int, includeTxs bool) (*Block, error) {
@@ -101,23 +117,33 @@ func (c *client) GetBlockByHash(ctx context.Context, hash string, includeTxs boo
 	return c.getBlock(ctx, "eth_getBlockByHash", hash, includeTxs)
 }
 
-func (c *client) GetTransactionByHash(ctx context.Context, hash common.Hash) (*Transaction, error) {
+func (c *client) GetTransactionByHash(ctx context.Context, hash Hash) (*Transaction, error) {
 	var tx *Transaction
 	err := c.r.CallContext(ctx, &tx, "eth_getTransactionByHash", hash.String())
 	if err != nil {
 		return nil, err
-	} else if tx == nil {
+	}
+	if tx == nil {
 		return nil, NotFoundErr
-	} else if tx.R == nil {
-		return nil, fmt.Errorf("server returned transaction without signature")
 	}
 	return tx, nil
 }
 
+func (c *client) GetLogs(ctx context.Context, q FilterQuery) ([]Log, error) {
+	arg, err := toFilterArg(q)
+	if err != nil {
+		return nil, err
+	}
+	var logs []Log
+	if err := c.r.CallContext(ctx, &logs, "eth_getLogs", arg); err != nil {
+		return nil, err
+	}
+	return logs, nil
+}
+
 func (c *client) GetSnapshot(ctx context.Context) (*Snapshot, error) {
 	var s Snapshot
-	err := c.r.CallContext(ctx, &s, "clique_getSnapshot", "latest")
-	if err != nil {
+	if err := c.r.CallContext(ctx, &s, "clique_getSnapshot", "latest"); err != nil {
 		return nil, err
 	}
 	return &s, nil
@@ -126,8 +152,8 @@ func (c *client) GetSnapshot(ctx context.Context) (*Snapshot, error) {
 func (c *client) GetID(ctx context.Context) (*ID, error) {
 	var block Block
 	var netIDStr string
-	chainID := new(hexutil.Big)
-	batch := []rpc.BatchElem{
+	chainID := new(HexBig)
+	batch := []BatchElem{
 		{Method: "eth_getBlockByNumber", Args: []interface{}{"0x0", false}, Result: &block},
 		{Method: "net_version", Result: &netIDStr},
 		{Method: "eth_chainId", Result: chainID},
@@ -137,76 +163,93 @@ func (c *client) GetID(ctx context.Context) (*ID, error) {
 	}
 	for _, e := range batch {
 		if e.Error != nil {
-			log.Printf("Method %q failed: %v\n", e.Method, e.Error)
+			return nil, fmt.Errorf("method %q failed: %w", e.Method, e.Error)
 		}
 	}
 	netID := new(big.Int)
 	if _, ok := netID.SetString(netIDStr, 10); !ok {
 		return nil, fmt.Errorf("invalid net_version result %q", netIDStr)
 	}
-	return &ID{NetworkID: netID, ChainID: (*big.Int)(chainID), GenesisHash: block.Hash}, nil
+	return &ID{NetworkID: netID, ChainID: chainID.ToInt(), GenesisHash: block.Hash}, nil
 }
 
 func (c *client) GetNetworkID(ctx context.Context) (*big.Int, error) {
-	version := new(big.Int)
 	var ver string
 	if err := c.r.CallContext(ctx, &ver, "net_version"); err != nil {
 		return nil, err
 	}
-	if _, ok := version.SetString(ver, 10); !ok {
+	version, ok := new(big.Int).SetString(ver, 10)
+	if !ok {
 		return nil, fmt.Errorf("invalid net_version result %q", ver)
 	}
 	return version, nil
 }
 
 func (c *client) SetChainID(chainID *big.Int) {
-	c.chainID.Store(chainID)
+	if chainID != nil {
+		c.chainID.Store(new(big.Int).Set(chainID))
+	}
 }
 
 func (c *client) GetChainID(ctx context.Context) (*big.Int, error) {
 	if l := c.chainID.Load(); l != nil {
-		if i := l.(*big.Int); i != nil {
-			return i, nil
+		if i, ok := l.(*big.Int); ok && i != nil {
+			return new(big.Int).Set(i), nil
 		}
 	}
-	var result hexutil.Big
-	err := c.r.CallContext(ctx, &result, "eth_chainId")
-	i := (*big.Int)(&result)
+	var result HexBig
+	if err := c.r.CallContext(ctx, &result, "eth_chainId"); err != nil {
+		return nil, err
+	}
+	i := result.ToInt()
 	c.SetChainID(i)
-	return i, err
+	return i, nil
 }
 
-func (c *client) GetTransactionReceipt(ctx context.Context, hash common.Hash) (*Receipt, error) {
+func (c *client) GetTransactionReceipt(ctx context.Context, hash Hash) (*Receipt, error) {
 	var r *Receipt
 	err := c.r.CallContext(ctx, &r, "eth_getTransactionReceipt", hash)
-	if err == nil {
-		if r == nil {
-			return nil, NotFoundErr
-		}
+	if err != nil {
+		return nil, err
 	}
-	return r, err
+	if r == nil {
+		return nil, NotFoundErr
+	}
+	return r, nil
 }
 
 func (c *client) GetGasPrice(ctx context.Context) (*big.Int, error) {
-	var hex hexutil.Big
+	var hex HexBig
 	if err := c.r.CallContext(ctx, &hex, "eth_gasPrice"); err != nil {
 		return nil, err
 	}
-	return (*big.Int)(&hex), nil
+	return hex.ToInt(), nil
 }
 
-func (c *client) GetPendingTransactionCount(ctx context.Context, account common.Address) (uint64, error) {
+func (c *client) MaxPriorityFeePerGas(ctx context.Context) (*big.Int, error) {
+	var hex HexBig
+	if err := c.r.CallContext(ctx, &hex, "eth_maxPriorityFeePerGas"); err != nil {
+		return nil, err
+	}
+	return hex.ToInt(), nil
+}
+
+func (c *client) GetPendingTransactionCount(ctx context.Context, account Address) (uint64, error) {
 	return c.getTransactionCount(ctx, account, "pending")
 }
 
-func (c *client) getTransactionCount(ctx context.Context, account common.Address, blockNumArg string) (uint64, error) {
-	var result hexutil.Uint64
+func (c *client) GetTransactionCount(ctx context.Context, account Address, blockNumber *big.Int) (uint64, error) {
+	return c.getTransactionCount(ctx, account, toBlockNumArg(blockNumber))
+}
+
+func (c *client) getTransactionCount(ctx context.Context, account Address, blockNumArg string) (uint64, error) {
+	var result HexUint64
 	err := c.r.CallContext(ctx, &result, "eth_getTransactionCount", account, blockNumArg)
 	return uint64(result), err
 }
 
 func (c *client) SendRawTransaction(ctx context.Context, tx []byte) error {
-	return c.r.CallContext(ctx, nil, "eth_sendRawTransaction", common.ToHex(tx))
+	return c.r.CallContext(ctx, nil, "eth_sendRawTransaction", EncodeHex(tx))
 }
 
 func (c *client) getBlock(ctx context.Context, method string, hashOrNum string, includeTxs bool) (*Block, error) {
@@ -214,49 +257,25 @@ func (c *client) getBlock(ctx context.Context, method string, hashOrNum string, 
 	err := c.r.CallContext(ctx, &raw, method, hashOrNum, includeTxs)
 	if err != nil {
 		return nil, err
-	} else if len(raw) == 0 {
+	}
+	if len(raw) == 0 || bytes.Equal(raw, []byte("null")) {
 		return nil, NotFoundErr
 	}
 	var block Block
 	if err := json.Unmarshal(raw, &block); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal json response: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal json response: %w", err)
 	}
-	// Quick-verify transaction and uncle lists. This mostly helps with debugging the server.
-	if block.Sha3Uncles == types.EmptyUncleHash && len(block.Uncles) > 0 {
-		return nil, fmt.Errorf("server returned non-empty uncle list but block header indicates no uncles")
+	if block.Sha3Uncles == EmptyUncleHash && len(block.Uncles) > 0 {
+		return nil, errors.New("server returned non-empty uncle list but block header indicates no uncles")
 	}
-	if block.Sha3Uncles != types.EmptyUncleHash && len(block.Uncles) == 0 {
-		return nil, fmt.Errorf("server returned empty uncle list but block header indicates uncles")
+	if !block.Sha3Uncles.IsZero() && block.Sha3Uncles != EmptyUncleHash && len(block.Uncles) == 0 {
+		return nil, errors.New("server returned empty uncle list but block header indicates uncles")
 	}
-	if block.TxsRoot == types.EmptyRootHash && block.TxCount() > 0 {
-		return nil, fmt.Errorf("server returned non-empty transaction list but block header indicates no transactions")
+	if block.TxsRoot == EmptyRootHash && block.TxCount() > 0 {
+		return nil, errors.New("server returned non-empty transaction list but block header indicates no transactions")
 	}
-	if block.TxsRoot != types.EmptyRootHash && len(block.TxsRoot) == 0 {
-		return nil, fmt.Errorf("server returned empty transaction list but block header indicates transactions")
-	}
-	// Load uncles because they are not included in the block response.
-	var uncles []*types.Header
-	if len(block.Uncles) > 0 {
-		uncles = make([]*types.Header, len(block.Uncles))
-		reqs := make([]rpc.BatchElem, len(block.Uncles))
-		for i := range reqs {
-			reqs[i] = rpc.BatchElem{
-				Method: "eth_getUncleByBlockHashAndIndex",
-				Args:   []interface{}{block.Hash, hexutil.EncodeUint64(uint64(i))},
-				Result: &uncles[i],
-			}
-		}
-		if err := c.r.BatchCallContext(ctx, reqs); err != nil {
-			return nil, err
-		}
-		for i := range reqs {
-			if reqs[i].Error != nil {
-				return nil, reqs[i].Error
-			}
-			if uncles[i] == nil {
-				return nil, fmt.Errorf("got null header for uncle %d of block %x", i, block.Hash[:])
-			}
-		}
+	if !block.TxsRoot.IsZero() && block.TxsRoot != EmptyRootHash && block.TxCount() == 0 {
+		return nil, errors.New("server returned empty transaction list but block header indicates transactions")
 	}
 	return &block, nil
 }
@@ -265,27 +284,70 @@ func toBlockNumArg(number *big.Int) string {
 	if number == nil {
 		return "latest"
 	}
-	return hexutil.EncodeBig(number)
+	if number.Sign() < 0 {
+		return "latest"
+	}
+	return EncodeBig(number)
 }
 
 func toCallArg(msg CallMsg) interface{} {
-	arg := map[string]interface{}{
-		"to": msg.To,
-	}
+	arg := make(map[string]interface{})
 	if msg.From != nil {
 		arg["from"] = msg.From
 	}
-	if len(msg.Data) > 0 {
-		arg["data"] = hexutil.Bytes(msg.Data)
+	if msg.To != nil {
+		arg["to"] = msg.To
 	}
-	if msg.Value != nil {
-		arg["value"] = (*hexutil.Big)(msg.Value)
+	if len(msg.Data) > 0 {
+		arg["input"] = HexBytes(msg.Data)
+		arg["data"] = HexBytes(msg.Data)
+	}
+	if msg.Value != nil && msg.Value.Sign() > 0 {
+		arg["value"] = (*HexBig)(msg.Value)
 	}
 	if msg.Gas != 0 {
-		arg["gas"] = hexutil.Uint64(msg.Gas)
+		arg["gas"] = HexUint64(msg.Gas)
 	}
 	if msg.GasPrice != nil {
-		arg["gasPrice"] = (*hexutil.Big)(msg.GasPrice)
+		arg["gasPrice"] = (*HexBig)(msg.GasPrice)
+	}
+	if msg.MaxFeePerGas != nil {
+		arg["maxFeePerGas"] = (*HexBig)(msg.MaxFeePerGas)
+	}
+	if msg.MaxPriorityFeePerGas != nil {
+		arg["maxPriorityFeePerGas"] = (*HexBig)(msg.MaxPriorityFeePerGas)
 	}
 	return arg
+}
+
+func toFilterArg(q FilterQuery) (interface{}, error) {
+	arg := make(map[string]interface{})
+	if len(q.Addresses) == 1 {
+		arg["address"] = q.Addresses[0]
+	} else if len(q.Addresses) > 1 {
+		arg["address"] = q.Addresses
+	}
+	if len(q.Topics) > 0 {
+		topics := make([]interface{}, len(q.Topics))
+		for i, group := range q.Topics {
+			if len(group) == 0 {
+				topics[i] = nil
+			} else if len(group) == 1 {
+				topics[i] = group[0]
+			} else {
+				topics[i] = group
+			}
+		}
+		arg["topics"] = topics
+	}
+	if q.BlockHash != nil {
+		if q.FromBlock != nil || q.ToBlock != nil {
+			return nil, errors.New("cannot specify both BlockHash and FromBlock/ToBlock")
+		}
+		arg["blockHash"] = *q.BlockHash
+		return arg, nil
+	}
+	arg["fromBlock"] = toBlockNumArg(q.FromBlock)
+	arg["toBlock"] = toBlockNumArg(q.ToBlock)
+	return arg, nil
 }

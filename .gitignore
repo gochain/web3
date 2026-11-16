@@ -27,8 +27,12 @@ web3-cli
 bin/
 *.bin
 *.abi
+!assets/*.abi
+/web3.exe
 /web3_linux
+/web3_linux_arm64
 /web3_mac
+/web3_mac_arm64
 /web3_alpine
 /*.sol
 lib/
