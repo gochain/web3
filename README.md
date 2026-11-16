@@ -74,7 +74,7 @@ Quick one-line install:
 curl -fsSL https://raw.githubusercontent.com/gochain/web3/master/install.sh | sh
 ```
 
-Or install with Go (`1.24+`):
+Or install with Go (`1.26+`):
 
 ```sh
 go install github.com/gochain/web3/cmd/web3@latest

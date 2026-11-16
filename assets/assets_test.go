@@ -26,7 +26,7 @@ func TestBundledABIsValidJSON(t *testing.T) {
 }
 
 func TestOpenZeppelinV5Generators(t *testing.T) {
-	erc20Src, err := GenERC20(context.Background(), "5.3.0", &Erc20Params{
+	erc20Src, err := GenERC20(context.Background(), "5.7.0", &Erc20Params{
 		Symbol:        "TEST",
 		TokenName:     "Test Token",
 		Decimals:      6,
@@ -42,7 +42,7 @@ func TestOpenZeppelinV5Generators(t *testing.T) {
 		t.Fatalf("unexpected ERC20 output:\n%s", erc20Src)
 	}
 
-	erc20ZeroDec, err := GenERC20(context.Background(), "5.3.0", &Erc20Params{
+	erc20ZeroDec, err := GenERC20(context.Background(), "5.7.0", &Erc20Params{
 		Symbol:      "ZERO",
 		TokenName:   "Zero Decimals",
 		Decimals:    0,
@@ -53,7 +53,7 @@ func TestOpenZeppelinV5Generators(t *testing.T) {
 	}
 
 	// ERC721 without --base-uri (matching README quickstart)
-	erc721Src, err := GenERC721("5.3.0", &Erc721Params{
+	erc721Src, err := GenERC721("5.7.0", &Erc721Params{
 		Symbol:    "CAT",
 		TokenName: "Kitties",
 		Mintable:  true,
@@ -66,7 +66,7 @@ func TestOpenZeppelinV5Generators(t *testing.T) {
 		t.Fatalf("unexpected ERC721 output:\n%s", erc721Src)
 	}
 
-	erc1155Src, err := GenERC1155("5.3.0", &Erc1155Params{
+	erc1155Src, err := GenERC1155("5.7.0", &Erc1155Params{
 		Symbol:   "GAME",
 		URI:      "https://api.example.com/item/{id}.json",
 		Mintable: true,

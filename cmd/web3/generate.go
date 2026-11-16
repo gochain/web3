@@ -15,7 +15,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-const OpenZeppelinVersion = "5.3.0"
+const OpenZeppelinVersion = "5.7.0"
 
 func generateCommand(ctx context.Context) *cli.Command {
 	return &cli.Command{
