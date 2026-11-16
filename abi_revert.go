@@ -1,7 +1,6 @@
 package web3
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"math/big"
@@ -93,10 +92,10 @@ func FormatRPCError(err error, myabi *ABI) error {
 			}
 		}
 	}
-	// Check if raw hex selector appears inline
-	if bytes.Contains([]byte(err.Error()), []byte("0x08c379a0")) || bytes.Contains([]byte(err.Error()), []byte("0x4e487b71")) {
-		s := err.Error()
-		if idx := strings.Index(s, "0x"); idx >= 0 {
+	// Check if raw hex revert/panic selector appears inline
+	s := err.Error()
+	for _, selHex := range []string{"0x08c379a0", "0x4e487b71"} {
+		if idx := strings.Index(strings.ToLower(s), selHex); idx >= 0 {
 			hexPart := strings.Fields(s[idx:])[0]
 			if raw, decErr := DecodeHex(strings.Trim(hexPart, `",)`)); decErr == nil {
 				if msg, ok := DecodeRevert(raw, myabi); ok {

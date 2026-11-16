@@ -43,8 +43,8 @@ func transferCommand(ctx context.Context) *cli.Command {
 			}
 
 			amountD, err := decimal.NewFromString(amountS)
-			if err != nil {
-				return fmt.Errorf("invalid amount %q: %w", amountS, err)
+			if err != nil || amountD.Sign() < 0 {
+				return fmt.Errorf("invalid amount %q: must be a non-negative number", amountS)
 			}
 			if !web3.IsHexAddress(toAddress) {
 				return fmt.Errorf("invalid recipient address %q", toAddress)

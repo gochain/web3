@@ -39,27 +39,7 @@ contract EIP1967UpgradeableProxy {
         _;
     }
 
-    function implementation() external view returns (address) {
-        return _getImplementation();
-    }
-
-    function target() external view returns (address) {
-        return _getImplementation();
-    }
-
-    function admin() external view returns (address) {
-        return _getAdmin();
-    }
-
-    function paused() external view returns (bool) {
-        return _isPaused();
-    }
-
     function upgradeTo(address newImplementation) external onlyAdmin {
-        _upgradeToAndCall(newImplementation, "");
-    }
-
-    function upgrade(address newImplementation) external onlyAdmin {
         _upgradeToAndCall(newImplementation, "");
     }
 

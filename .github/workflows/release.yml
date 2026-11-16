@@ -39,8 +39,16 @@ jobs:
         run: |
           git config --global user.email "ci@gochain.io"
           git config --global user.name "CI"
-          curl -fsSL https://raw.githubusercontent.com/treeder/bump/master/gitbump.sh | bash
-          echo "VERSION=$(git tag --sort=-v:refname --list 'v[0-9]*' | head -n 1 | cut -c 2-)" >> "$GITHUB_ENV"
+          git fetch --tags
+          oldv=$(git tag --sort=-v:refname --list 'v[0-9]*' | head -n 1 | sed 's/^v//')
+          if [ -z "$oldv" ]; then
+            oldv="0.0.0"
+          fi
+          newv=$(echo "$oldv" | awk -F. -v OFS=. '{$3 = $3 + 1; print $1, $2, $3}')
+          echo "Bumping $oldv -> $newv"
+          git tag -a "v$newv" -m "version $newv"
+          git push --follow-tags
+          echo "VERSION=$newv" >> "$GITHUB_ENV"
 
       - name: Cross-compile binaries
         run: |

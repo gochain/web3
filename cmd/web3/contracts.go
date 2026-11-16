@@ -530,9 +530,12 @@ func executeContractCall(ctx context.Context, client web3.Client, privateKey, co
 			}
 			if toString {
 				for _, r := range res {
-					if b, ok := r.(web3.HexBytes); ok {
-						fmt.Println(strings.TrimRight(string(b), "\x00"))
-					} else {
+					switch v := r.(type) {
+					case web3.HexBytes:
+						fmt.Println(strings.TrimRight(string(v), "\x00"))
+					case web3.Hash:
+						fmt.Println(strings.TrimRight(string(v[:]), "\x00"))
+					default:
 						fmt.Printf("%s\n", r)
 					}
 				}
@@ -633,12 +636,12 @@ func contractTargetCmd(ctx context.Context) *cli.Command {
 				return nil
 			}
 
-			// 3. Fallback: call target() view function
-			proxyABI, err := web3.ParseABI(assets.EIP1967ProxyABI)
+			// 3. Fallback: call legacy target() view function if non-EIP-1967 proxy
+			legacyTargetABI, err := web3.GetABI("target():(address)")
 			if err != nil {
 				return err
 			}
-			res, err := web3.CallConstantFunction(ctx, client, proxyABI, proxyAddr.Hex(), "target")
+			res, err := web3.CallConstantFunction(ctx, client, *legacyTargetABI, proxyAddr.Hex(), "target")
 			if err != nil {
 				return fmt.Errorf("could not read proxy implementation slot or target(): %w", err)
 			}
